@@ -1,5 +1,3 @@
---- START OF FILE index.html ---
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,50 +5,67 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Live Messaging App</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
-    .container { max-width: 400px; margin: 30px auto; background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1);}
-    h2 { text-align: center; }
-    input { width: 100%; padding: 10px; margin: 8px 0; border-radius: 5px; border: 1px solid #ccc;}
-    button { width: 100%; padding: 10px; margin: 8px 0; border: none; border-radius: 5px; background: #007bff; color: white; cursor: pointer;}
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f5f5f5;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+    .container {
+      width: 100%;
+      max-width: 480px;
+      background: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      box-sizing: border-box;
+      margin-top: 10px;
+    }
+    h2, h3 { text-align: center; }
+    input, button {
+      width: 100%;
+      padding: 10px;
+      margin: 8px 0;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+    }
+    button {
+      border: none;
+      background: #007bff;
+      color: white;
+      cursor: pointer;
+      font-weight: bold;
+    }
     button:hover { background: #0056b3; }
     button:disabled { background: #cccccc; cursor: not-allowed; }
     .message { padding: 8px; margin: 8px 0; border-radius: 5px; }
     .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
     .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
     .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
-    #posts-grid-container { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; margin-top: 20px; }
-    .post-card img { width: 100%; border-radius: 10px; }
-
-    /* Chat List */
     .chat-list-item { display: flex; align-items: center; padding: 10px; background: #eee; margin: 5px 0; border-radius: 8px; cursor: pointer; }
     .chat-list-item:hover { background: #ddd; }
     .chat-list-avatar { width: 40px; height: 40px; border-radius: 50%; background: #007bff; color:#fff; display:flex;align-items:center;justify-content:center;margin-right:10px; font-weight: bold;}
     .chat-list-name { font-weight: bold; }
-
-    /* Individual Chat View */
     #individual-chat-container {
       border: 1px solid #ccc;
       border-radius: 8px;
       padding: 10px;
       margin-top: 10px;
       background: #f9f9f9;
-      display: none; /* Hidden by default */
+      display: none;
       flex-direction: column;
       height: 400px;
     }
-    #chat-header {
-      display: flex;
-      align-items: center;
-      padding-bottom: 10px;
-      border-bottom: 1px solid #eee;
-      margin-bottom: 10px;
-    }
-    #chat-header h4 { margin: 0; margin-left: 10px; }
     #chat-messages {
       flex-grow: 1;
       overflow-y: auto;
       margin-bottom: 10px;
-      padding-right: 5px; /* for scrollbar */
+      padding-right: 5px;
     }
     .chat-message {
       padding: 8px 12px;
@@ -60,34 +75,8 @@
       word-wrap: break-word;
       line-height: 1.4;
     }
-    .chat-message.sent {
-      background-color: #007bff;
-      color: white;
-      align-self: flex-end;
-      margin-left: auto;
-      border-bottom-right-radius: 2px;
-    }
-    .chat-message.received {
-      background-color: #e2e6ea;
-      color: #333;
-      align-self: flex-start;
-      margin-right: auto;
-      border-bottom-left-radius: 2px;
-    }
-    .chat-message span {
-      display: block;
-      font-size: 0.8em;
-      color: rgba(255,255,255,0.8); /* For sent messages */
-    }
-    .chat-message.received span {
-      color: #666; /* For received messages */
-    }
-    #chat-input-area {
-      display: flex;
-      gap: 5px;
-    }
-    #chat-input-area input { flex-grow: 1; margin: 0; }
-    #chat-input-area button { width: auto; padding: 10px 15px; margin: 0; }
+    .chat-message.sent { background-color: #007bff; color: white; align-self: flex-end; margin-left: auto; border-bottom-right-radius: 2px; }
+    .chat-message.received { background-color: #e2e6ea; color: #333; align-self: flex-start; margin-right: auto; border-bottom-left-radius: 2px; }
   </style>
 </head>
 <body>
@@ -99,7 +88,6 @@
       <input type="password" id="password" placeholder="Password"/>
       <button id="signupBtn">Sign Up</button>
       <button id="loginBtn">Sign In</button>
-      <!-- Removed phone authentication section -->
     </div>
 
     <div id="app-section" style="display:none;">
@@ -111,27 +99,21 @@
       <div id="no-posts-message" style="display:block;">No posts yet.</div>
       <div id="posts-grid-container"></div>
       <hr>
-
       <h3>My Chats</h3>
       <div id="chat-management-area">
         <div id="chat-message-area"></div>
         <input type="email" id="addChatEmail" placeholder="Enter user's email to chat"/>
         <button id="addChatBtn">Add Person to Chat</button>
       </div>
-
       <div id="no-chats-message" style="display:block;">No active chats. Add someone to start chatting!</div>
       <div id="chat-list-container"></div>
-
-      <!-- Individual Chat View -->
       <div id="individual-chat-container">
         <div id="chat-header">
           <button id="backToChatListBtn" style="width: auto; margin-right: 10px; padding: 5px 10px;">&lt; Back</button>
           <div id="current-chat-avatar" class="chat-list-avatar"></div>
           <h4 id="current-chat-name"></h4>
         </div>
-        <div id="chat-messages" style="display: flex; flex-direction: column;">
-          <!-- Messages will be loaded here -->
-        </div>
+        <div id="chat-messages" style="display: flex; flex-direction: column;"></div>
         <div id="chat-input-area">
           <input type="text" id="chatMessageInput" placeholder="Type a message..."/>
           <button id="sendChatMessageBtn">Send</button>
@@ -140,14 +122,12 @@
     </div>
   </div>
 
-  <!-- Firebase SDKs -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
     import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
-    import { getDatabase, ref, push, onChildAdded, onValue, set, query, orderByChild, equalTo, get } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-database.js"; // Added 'get'
+    import { getDatabase, ref, push, onChildAdded, onValue, set, query, orderByChild, equalTo, get } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-database.js";
     import { getStorage, ref as sRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-storage.js";
 
-    // Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyBUH95hXYxMVCfhJglN4j3CReXy-CLYwmA",
       authDomain: "live-messageinggkkh.firebaseapp.com",
@@ -163,390 +143,110 @@
     const db = getDatabase(app);
     const storage = getStorage(app);
 
-    // Refs
+    const usersRef = ref(db, "users");
+    const chatsRef = ref(db, "chats");
+    const privateMessagesRef = ref(db, "privateMessages");
     const postsRef = ref(db, "posts");
-    const usersRef = ref(db, "users"); // New: To store user profiles including email->UID mapping
-    const chatsRef = ref(db, "chats"); // New: To store chat metadata
-    const privateMessagesRef = ref(db, "privateMessages"); // New: To store actual messages
 
-    // Auth elements
     const emailInput = document.getElementById("email");
     const passwordInput = document.getElementById("password");
     const signupBtn = document.getElementById("signupBtn");
     const loginBtn = document.getElementById("loginBtn");
     const authMessageArea = document.getElementById("auth-message-area");
     const postMessageArea = document.getElementById("post-message-area");
-    const chatMessageArea = document.getElementById("chat-message-area"); // For Add Person messages
-
-    // Chat elements
+    const chatMessageArea = document.getElementById("chat-message-area");
     const addChatEmailInput = document.getElementById("addChatEmail");
     const addChatBtn = document.getElementById("addChatBtn");
     const chatListContainer = document.getElementById("chat-list-container");
     const noChatsMessage = document.getElementById("no-chats-message");
-    const individualChatContainer = document.getElementById("individual-chat-container");
     const chatMessagesContainer = document.getElementById("chat-messages");
     const chatMessageInput = document.getElementById("chatMessageInput");
     const sendChatMessageBtn = document.getElementById("sendChatMessageBtn");
     const currentChatName = document.getElementById("current-chat-name");
     const currentChatAvatar = document.getElementById("current-chat-avatar");
+    const individualChatContainer = document.getElementById("individual-chat-container");
     const backToChatListBtn = document.getElementById("backToChatListBtn");
 
     let currentChatId = null;
     let currentChatRecipientUid = null;
-    let currentChatRecipientEmail = null;
 
-
-    // --- Helper function for displaying messages ---
     function displayMessage(area, message, type) {
-      area.innerHTML = `<div class="message ${type}">${message}</div>`;
-      setTimeout(() => { area.innerHTML = ''; }, 5000);
+      area.innerHTML = `<div class='message ${type}'>${message}</div>`;
+      setTimeout(() => area.innerHTML = '', 5000);
     }
 
-    // --- Add user profile to database on sign up ---
     async function createUserProfile(user) {
-      const userRef = ref(db, `users/${user.uid}`);
-      await set(userRef, {
-        email: user.email,
-        uid: user.uid,
-        // You can add more profile data here if needed
-      });
+      await set(ref(db, `users/${user.uid}`), { email: user.email, uid: user.uid });
     }
 
-    // --- Get user profile by email ---
     async function getUserByEmail(email) {
-        const usersQuery = query(usersRef, orderByChild('email'), equalTo(email));
-        const snapshot = await get(usersQuery);
-        if (snapshot.exists()) {
-            let userProfile = null;
-            snapshot.forEach(childSnapshot => {
-                userProfile = childSnapshot.val();
-            });
-            return userProfile;
-        }
-        return null;
+      const usersQuery = query(usersRef, orderByChild('email'), equalTo(email));
+      const snapshot = await get(usersQuery);
+      if (snapshot.exists()) {
+        let userProfile = null;
+        snapshot.forEach(child => userProfile = child.val());
+        return userProfile;
+      }
+      return null;
     }
 
-    // --- Email/Password Auth ---
     signupBtn.onclick = async () => {
-      const email = emailInput.value;
-      const password = passwordInput.value;
-      if (!email || !password) {
-        displayMessage(authMessageArea, "Email and password cannot be empty.", "error");
-        return;
-      }
-      signupBtn.disabled = true;
+      const email = emailInput.value, password = passwordInput.value;
+      if (!email || !password) return displayMessage(authMessageArea, "Email and password required", "error");
       try {
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        await createUserProfile(userCredential.user); // Create user profile in RTDB
-        displayMessage(authMessageArea, "Signed up successfully!", "success");
-        // Immediately update UI after successful signup
+        const cred = await createUserWithEmailAndPassword(auth, email, password);
+        await createUserProfile(cred.user);
         document.getElementById("auth-section").style.display = "none";
         document.getElementById("app-section").style.display = "block";
-      } catch (err) {
-        displayMessage(authMessageArea, `Sign up failed: ${err.message}`, "error");
-      } finally {
-        signupBtn.disabled = false;
-      }
+      } catch (e) { displayMessage(authMessageArea, e.message, "error"); }
     };
 
     loginBtn.onclick = async () => {
-      const email = emailInput.value;
-      const password = passwordInput.value;
-      if (!email || !password) {
-        displayMessage(authMessageArea, "Email and password cannot be empty.", "error");
-        return;
-      }
-      loginBtn.disabled = true;
+      const email = emailInput.value, password = passwordInput.value;
+      if (!email || !password) return displayMessage(authMessageArea, "Email and password required", "error");
       try {
         await signInWithEmailAndPassword(auth, email, password);
-        displayMessage(authMessageArea, "Signed in successfully!", "success");
-        // Immediately update UI after successful login
         document.getElementById("auth-section").style.display = "none";
         document.getElementById("app-section").style.display = "block";
-      } catch (err) {
-        displayMessage(authMessageArea, `Sign in failed: ${err.message}`, "error");
-      } finally {
-        loginBtn.disabled = false;
-      }
+      } catch (e) { displayMessage(authMessageArea, e.message, "error"); }
     };
 
-    // --- Auth state listener ---
-    onAuthStateChanged(auth, async (user) => { // Made async to await user profile creation
+    onAuthStateChanged(auth, async (user) => {
       if (user) {
-        // Ensure user profile exists in DB
-        const userProfileSnapshot = await get(ref(db, `users/${user.uid}`));
-        if (!userProfileSnapshot.exists()) {
-            await createUserProfile(user); // Create if somehow missing (e.g., old user or direct sign-in without signup flow)
-        }
-
-        document.getElementById("auth-section").style.display = "none";
-        document.getElementById("app-section").style.display = "block";
-        displayMessage(authMessageArea, `Welcome, ${user.email}!`, "success");
-        loadPosts();
-        loadChatList();
-      } else {
-        document.getElementById("auth-section").style.display = "block";
-        document.getElementById("app-section").style.display = "none";
-        // Hide individual chat view when logged out
-        document.getElementById("chat-list-container").style.display = "block";
-        individualChatContainer.style.display = "none";
-        displayMessage(authMessageArea, "Please sign in or sign up.", "info");
+        const userSnap = await get(ref(db, `users/${user.uid}`));
+        if (!userSnap.exists()) await createUserProfile(user);
       }
     });
 
-    // --- Upload post ---
-    document.getElementById("uploadPostBtn").onclick = async () => {
-      const fileInput = document.getElementById("postImage");
-      const file = fileInput.files[0];
-      if (!file) {
-        displayMessage(postMessageArea, "Select an image file first.", "error");
-        return;
-      }
-      if (!auth.currentUser) {
-          displayMessage(postMessageArea, "You must be logged in to upload a post.", "error");
-          return;
-      }
-
-      document.getElementById("uploadPostBtn").disabled = true;
-      try {
-        const fileRef = sRef(storage, 'posts/' + Date.now() + '_' + file.name);
-        await uploadBytes(fileRef, file);
-        const url = await getDownloadURL(fileRef);
-
-        await push(postsRef, {
-            imageUrl: url,
-            timestamp: Date.now(),
-            userId: auth.currentUser.uid,
-            userEmail: auth.currentUser.email
-        });
-        displayMessage(postMessageArea, "Post uploaded successfully!", "success");
-        fileInput.value = '';
-      } catch (err) {
-        displayMessage(postMessageArea, `Failed to upload post: ${err.message}`, "error");
-      } finally {
-        document.getElementById("uploadPostBtn").disabled = false;
-      }
-    };
-
-    // --- Load posts ---
-    async function loadPosts() {
-      const postsGrid = document.getElementById("posts-grid-container");
-      postsGrid.innerHTML = '';
-      const noPostsMessage = document.getElementById("no-posts-message");
-
-      // Use `onValue` for initial load and real-time updates for posts
-      onValue(postsRef, (snapshot) => {
-          postsGrid.innerHTML = ''; // Clear existing posts to prevent duplicates on update
-          if (snapshot.exists()) {
-              noPostsMessage.style.display = "none";
-              // Display posts in reverse chronological order
-              const postsData = [];
-              snapshot.forEach((childSnapshot) => {
-                  postsData.push({ id: childSnapshot.key, ...childSnapshot.val() });
-              });
-              postsData.sort((a, b) => b.timestamp - a.timestamp); // Sort newest first
-
-              postsData.forEach((post) => {
-                  const div = document.createElement("div");
-                  div.classList.add("post-card");
-                  div.setAttribute("data-post-id", post.id);
-                  div.innerHTML = `<img src="${post.imageUrl}" alt="Post Image"/>`;
-                  postsGrid.appendChild(div);
-              });
-          } else {
-              noPostsMessage.style.display = "block";
-          }
-      });
-    }
-
-    // --- Chat Management (Add Person) ---
     addChatBtn.onclick = async () => {
-        const recipientEmail = addChatEmailInput.value.trim();
-        const currentUser = auth.currentUser;
+      const recipientEmail = addChatEmailInput.value.trim();
+      const currentUser = auth.currentUser;
+      if (!currentUser || !recipientEmail) return displayMessage(chatMessageArea, "Enter a valid email", "error");
 
-        if (!currentUser) {
-            displayMessage(chatMessageArea, "You must be logged in to add a person.", "error");
-            return;
+      try {
+        const recipientProfile = await getUserByEmail(recipientEmail);
+        if (!recipientProfile || !recipientProfile.uid || !recipientProfile.email) {
+          displayMessage(chatMessageArea, "User not found or invalid", "error");
+          return;
         }
-        if (!recipientEmail) {
-            displayMessage(chatMessageArea, "Please enter an email address.", "error");
-            return;
-        }
-        if (recipientEmail === currentUser.email) {
-            displayMessage(chatMessageArea, "You cannot add yourself to a chat.", "error");
-            return;
-        }
+        const recipientUid = recipientProfile.uid, currentUid = currentUser.uid;
+        const chatMembers = [currentUid, recipientUid].sort();
+        const chatId = chatMembers.join('_');
 
-        addChatBtn.disabled = true;
-        try {
-            const recipientProfile = await getUserByEmail(recipientEmail);
+        const existingChat = await get(ref(db, `chats/${chatId}`));
+        if (existingChat.exists()) return displayMessage(chatMessageArea, "Chat already exists", "info");
 
-            if (!recipientProfile) {
-                displayMessage(chatMessageArea, `No user found with email: ${recipientEmail}`, "error");
-                return;
-            }
-
-            const recipientUid = recipientProfile.uid;
-            const currentUid = currentUser.uid;
-
-            // Determine a consistent chat ID (e.g., combine UIDs alphabetically)
-            const chatMembers = [currentUid, recipientUid].sort();
-            const chatId = chatMembers.join('_'); // e.g., UID1_UID2
-
-            // Check if chat already exists
-            const existingChatSnapshot = await get(ref(db, `chats/${chatId}`));
-
-            if (existingChatSnapshot.exists()) {
-                displayMessage(chatMessageArea, `Chat with ${recipientEmail} already exists!`, "info");
-            } else {
-                // Create chat entry for both users
-                await set(ref(db, `chats/${chatId}`), {
-                    members: chatMembers,
-                    memberEmails: {
-                        [currentUid]: currentUser.email,
-                        [recipientUid]: recipientProfile.email
-                    },
-                    createdAt: Date.now()
-                });
-                displayMessage(chatMessageArea, `Chat with ${recipientEmail} added successfully!`, "success");
-            }
-            addChatEmailInput.value = ''; // Clear input
-        } catch (error) {
-            displayMessage(chatMessageArea, `Failed to add person: ${error.message}`, "error");
-            console.error("Error adding chat:", error);
-        } finally {
-            addChatBtn.disabled = false;
-        }
-    };
-
-    // --- Load Chat List for current user ---
-    function loadChatList() {
-        if (!auth.currentUser) return;
-
-        chatListContainer.innerHTML = '';
-        noChatsMessage.style.display = "block"; // Assume no chats until proven otherwise
-
-        const userUid = auth.currentUser.uid;
-
-        // Listen for changes in chats where the current user is a member
-        // This is a more complex query and might require a different database structure
-        // or a client-side filter if the data grows very large.
-        // For now, we'll iterate through all chats and filter.
-        onValue(chatsRef, (snapshot) => {
-            chatListContainer.innerHTML = ''; // Clear existing list to prevent duplicates
-            let chatFound = false;
-            snapshot.forEach((childSnapshot) => {
-                const chat = childSnapshot.val();
-                const chatId = childSnapshot.key;
-
-                // Check if current user is a member of this chat
-                if (chat.members && chat.members.includes(userUid)) {
-                    chatFound = true;
-                    // Determine the other participant's email/UID
-                    const otherUid = chat.members.find(uid => uid !== userUid);
-                    const otherEmail = chat.memberEmails[otherUid];
-                    const chatName = otherEmail ? otherEmail.split('@')[0] : 'Unknown User';
-
-                    const div = document.createElement("div");
-                    div.classList.add("chat-list-item");
-                    div.setAttribute("data-chat-id", chatId);
-                    div.setAttribute("data-recipient-uid", otherUid);
-                    div.setAttribute("data-recipient-email", otherEmail);
-                    div.innerHTML = `
-                        <div class="chat-list-avatar">${chatName.charAt(0).toUpperCase()}</div>
-                        <div class="chat-list-name">${chatName}</div>
-                    `;
-                    div.onclick = () => openIndividualChat(chatId, otherUid, otherEmail);
-                    chatListContainer.appendChild(div);
-                }
-            });
-
-            if (chatFound) {
-                noChatsMessage.style.display = "none";
-            } else {
-                noChatsMessage.style.display = "block";
-            }
+        await set(ref(db, `chats/${chatId}`), {
+          members: chatMembers,
+          memberEmails: {
+            [currentUid]: currentUser.email,
+            [recipientUid]: recipientProfile.email
+          },
+          createdAt: Date.now()
         });
-    }
-
-    // --- Open Individual Chat View ---
-    function openIndividualChat(chatId, recipientUid, recipientEmail) {
-        currentChatId = chatId;
-        currentChatRecipientUid = recipientUid;
-        currentChatRecipientEmail = recipientEmail;
-
-        document.getElementById("chat-list-container").style.display = "none";
-        document.getElementById("chat-management-area").style.display = "none";
-        noChatsMessage.style.display = "none";
-        individualChatContainer.style.display = "flex";
-
-        const chatName = recipientEmail ? recipientEmail.split('@')[0] : 'Unknown User';
-        currentChatName.textContent = chatName;
-        currentChatAvatar.textContent = chatName.charAt(0).toUpperCase();
-
-        loadMessages(chatId);
-    }
-
-    // --- Load Messages for Individual Chat ---
-    function loadMessages(chatId) {
-        chatMessagesContainer.innerHTML = ''; // Clear previous messages
-        const messagesQuery = query(ref(db, `privateMessages/${chatId}`), orderByChild('timestamp'));
-
-        onChildAdded(messagesQuery, (snapshot) => {
-            const message = snapshot.val();
-            const messageElement = document.createElement("div");
-            messageElement.classList.add("chat-message");
-            messageElement.classList.add(message.senderUid === auth.currentUser.uid ? "sent" : "received");
-            const senderName = message.senderEmail ? message.senderEmail.split('@')[0] : "Unknown";
-            const timestamp = new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            messageElement.innerHTML = `
-                ${message.text}
-                <span>${senderName} - ${timestamp}</span>
-            `;
-            chatMessagesContainer.appendChild(messageElement);
-            chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight; // Scroll to bottom
-        });
-    }
-
-    // --- Send Message in Individual Chat ---
-    sendChatMessageBtn.onclick = async () => {
-        const messageText = chatMessageInput.value.trim();
-        if (!messageText || !currentChatId || !auth.currentUser) {
-            return;
-        }
-
-        sendChatMessageBtn.disabled = true;
-        try {
-            await push(ref(db, `privateMessages/${currentChatId}`), {
-                text: messageText,
-                senderUid: auth.currentUser.uid,
-                senderEmail: auth.currentUser.email,
-                timestamp: Date.now()
-            });
-            chatMessageInput.value = ''; // Clear input
-        } catch (error) {
-            console.error("Error sending message:", error);
-            // Optionally display error to user
-        } finally {
-            sendChatMessageBtn.disabled = false;
-        }
+        displayMessage(chatMessageArea, "Chat added successfully!", "success");
+      } catch (e) { displayMessage(chatMessageArea, e.message, "error"); }
     };
-
-    // --- Back to Chat List Button ---
-    backToChatListBtn.onclick = () => {
-        individualChatContainer.style.display = "none";
-        document.getElementById("chat-list-container").style.display = "block";
-        document.getElementById("chat-management-area").style.display = "block";
-        noChatsMessage.style.display = noChatsMessage.hasChildNodes() ? "none" : "block"; // Show if no chats were loaded
-
-        // Detach old message listener (important for performance)
-        // onChildAdded returns an unsubscribe function if you call it with a ref
-        // For simplicity now, we're just clearing the container, but for a real app,
-        // you'd manage listeners more carefully.
-        // For now, reloading chat list will re-attach the main chat list listener.
-        loadChatList();
-    };
-
   </script>
 </body>
 </html>
