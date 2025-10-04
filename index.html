@@ -145,34 +145,19 @@
 
     const usersRef = ref(db, "users");
     const chatsRef = ref(db, "chats");
-    const privateMessagesRef = ref(db, "privateMessages");
-    const postsRef = ref(db, "posts");
 
     const emailInput = document.getElementById("email");
     const passwordInput = document.getElementById("password");
     const signupBtn = document.getElementById("signupBtn");
     const loginBtn = document.getElementById("loginBtn");
     const authMessageArea = document.getElementById("auth-message-area");
-    const postMessageArea = document.getElementById("post-message-area");
     const chatMessageArea = document.getElementById("chat-message-area");
     const addChatEmailInput = document.getElementById("addChatEmail");
     const addChatBtn = document.getElementById("addChatBtn");
-    const chatListContainer = document.getElementById("chat-list-container");
-    const noChatsMessage = document.getElementById("no-chats-message");
-    const chatMessagesContainer = document.getElementById("chat-messages");
-    const chatMessageInput = document.getElementById("chatMessageInput");
-    const sendChatMessageBtn = document.getElementById("sendChatMessageBtn");
-    const currentChatName = document.getElementById("current-chat-name");
-    const currentChatAvatar = document.getElementById("current-chat-avatar");
-    const individualChatContainer = document.getElementById("individual-chat-container");
-    const backToChatListBtn = document.getElementById("backToChatListBtn");
-
-    let currentChatId = null;
-    let currentChatRecipientUid = null;
 
     function displayMessage(area, message, type) {
       area.innerHTML = `<div class='message ${type}'>${message}</div>`;
-      setTimeout(() => area.innerHTML = '', 5000);
+      setTimeout(() => area.innerHTML = '', 4000);
     }
 
     async function createUserProfile(user) {
@@ -191,24 +176,52 @@
     }
 
     signupBtn.onclick = async () => {
-      const email = emailInput.value, password = passwordInput.value;
-      if (!email || !password) return displayMessage(authMessageArea, "Email and password required", "error");
+      const email = emailInput.value.trim();
+      const password = passwordInput.value.trim();
+      if (!email || !password) {
+        displayMessage(authMessageArea, "Email and password cannot be empty.", "error");
+        return;
+      }
+      signupBtn.disabled = true;
       try {
-        const cred = await createUserWithEmailAndPassword(auth, email, password);
-        await createUserProfile(cred.user);
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+        await createUserProfile(user);
+        displayMessage(authMessageArea, "Signed up successfully!", "success");
         document.getElementById("auth-section").style.display = "none";
         document.getElementById("app-section").style.display = "block";
-      } catch (e) { displayMessage(authMessageArea, e.message, "error"); }
+      } catch (error) {
+        displayMessage(authMessageArea, `Sign up failed: ${error.message}`, "error");
+      } finally {
+        signupBtn.disabled = false;
+      }
     };
 
     loginBtn.onclick = async () => {
-      const email = emailInput.value, password = passwordInput.value;
-      if (!email || !password) return displayMessage(authMessageArea, "Email and password required", "error");
+      const email = emailInput.value.trim();
+      const password = passwordInput.value.trim();
+      if (!email || !password) {
+        displayMessage(authMessageArea, "Email and password cannot be empty.", "error");
+        return;
+      }
+      loginBtn.disabled = true;
       try {
         await signInWithEmailAndPassword(auth, email, password);
+        const user = auth.currentUser;
+        if (user) {
+          const userSnap = await get(ref(db, `users/${user.uid}`));
+          if (!userSnap.exists()) {
+            await createUserProfile(user);
+          }
+        }
+        displayMessage(authMessageArea, "Signed in successfully!", "success");
         document.getElementById("auth-section").style.display = "none";
         document.getElementById("app-section").style.display = "block";
-      } catch (e) { displayMessage(authMessageArea, e.message, "error"); }
+      } catch (error) {
+        displayMessage(authMessageArea, `Sign in failed: ${error.message}`, "error");
+      } finally {
+        loginBtn.disabled = false;
+      }
     };
 
     onAuthStateChanged(auth, async (user) => {
@@ -221,7 +234,10 @@
     addChatBtn.onclick = async () => {
       const recipientEmail = addChatEmailInput.value.trim();
       const currentUser = auth.currentUser;
-      if (!currentUser || !recipientEmail) return displayMessage(chatMessageArea, "Enter a valid email", "error");
+      if (!currentUser || !recipientEmail) {
+        displayMessage(chatMessageArea, "Enter a valid email", "error");
+        return;
+      }
 
       try {
         const recipientProfile = await getUserByEmail(recipientEmail);
@@ -232,10 +248,11 @@
         const recipientUid = recipientProfile.uid, currentUid = currentUser.uid;
         const chatMembers = [currentUid, recipientUid].sort();
         const chatId = chatMembers.join('_');
-
         const existingChat = await get(ref(db, `chats/${chatId}`));
-        if (existingChat.exists()) return displayMessage(chatMessageArea, "Chat already exists", "info");
-
+        if (existingChat.exists()) {
+          displayMessage(chatMessageArea, "Chat already exists", "info");
+          return;
+        }
         await set(ref(db, `chats/${chatId}`), {
           members: chatMembers,
           memberEmails: {
@@ -245,7 +262,9 @@
           createdAt: Date.now()
         });
         displayMessage(chatMessageArea, "Chat added successfully!", "success");
-      } catch (e) { displayMessage(chatMessageArea, e.message, "error"); }
+      } catch (e) {
+        displayMessage(chatMessageArea, `Error: ${e.message}`, "error");
+      }
     };
   </script>
 </body>
