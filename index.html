@@ -1,3 +1,5 @@
+--- START OF FILE index.html ---
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -142,7 +144,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
     import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
-    import { getDatabase, ref, push, onChildAdded, onValue, set, query, orderByChild, equalTo } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-database.js";
+    import { getDatabase, ref, push, onChildAdded, onValue, set, query, orderByChild, equalTo, get } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-database.js"; // Added 'get'
     import { getStorage, ref as sRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-storage.js";
 
     // Firebase config
@@ -237,6 +239,9 @@
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         await createUserProfile(userCredential.user); // Create user profile in RTDB
         displayMessage(authMessageArea, "Signed up successfully!", "success");
+        // Immediately update UI after successful signup
+        document.getElementById("auth-section").style.display = "none";
+        document.getElementById("app-section").style.display = "block";
       } catch (err) {
         displayMessage(authMessageArea, `Sign up failed: ${err.message}`, "error");
       } finally {
@@ -255,6 +260,9 @@
       try {
         await signInWithEmailAndPassword(auth, email, password);
         displayMessage(authMessageArea, "Signed in successfully!", "success");
+        // Immediately update UI after successful login
+        document.getElementById("auth-section").style.display = "none";
+        document.getElementById("app-section").style.display = "block";
       } catch (err) {
         displayMessage(authMessageArea, `Sign in failed: ${err.message}`, "error");
       } finally {
@@ -326,32 +334,28 @@
       postsGrid.innerHTML = '';
       const noPostsMessage = document.getElementById("no-posts-message");
 
-      const snapshot = await get(postsRef);
-      if (snapshot.exists()) {
-        noPostsMessage.style.display = "none";
-        snapshot.forEach((childSnapshot) => {
-          const post = childSnapshot.val();
-          const div = document.createElement("div");
-          div.classList.add("post-card");
-          div.setAttribute("data-post-id", childSnapshot.key);
-          div.innerHTML = `<img src="${post.imageUrl}" alt="Post Image"/>`;
-          postsGrid.appendChild(div);
-        });
-      } else {
-        noPostsMessage.style.display = "block";
-      }
+      // Use `onValue` for initial load and real-time updates for posts
+      onValue(postsRef, (snapshot) => {
+          postsGrid.innerHTML = ''; // Clear existing posts to prevent duplicates on update
+          if (snapshot.exists()) {
+              noPostsMessage.style.display = "none";
+              // Display posts in reverse chronological order
+              const postsData = [];
+              snapshot.forEach((childSnapshot) => {
+                  postsData.push({ id: childSnapshot.key, ...childSnapshot.val() });
+              });
+              postsData.sort((a, b) => b.timestamp - a.timestamp); // Sort newest first
 
-      onChildAdded(postsRef, (data) => {
-        const postId = data.key;
-        if (!document.querySelector(`[data-post-id="${postId}"]`)) {
-          noPostsMessage.style.display = "none";
-          const post = data.val();
-          const div = document.createElement("div");
-          div.classList.add("post-card");
-          div.setAttribute("data-post-id", postId);
-          div.innerHTML = `<img src="${post.imageUrl}" alt="Post Image"/>`;
-          postsGrid.prepend(div);
-        }
+              postsData.forEach((post) => {
+                  const div = document.createElement("div");
+                  div.classList.add("post-card");
+                  div.setAttribute("data-post-id", post.id);
+                  div.innerHTML = `<img src="${post.imageUrl}" alt="Post Image"/>`;
+                  postsGrid.appendChild(div);
+              });
+          } else {
+              noPostsMessage.style.display = "block";
+          }
       });
     }
 
@@ -423,7 +427,6 @@
         noChatsMessage.style.display = "block"; // Assume no chats until proven otherwise
 
         const userUid = auth.currentUser.uid;
-        const chatsQuery = query(chatsRef, orderByChild(`members/${userUid}`), equalTo(userUid)); // This needs adjustment
 
         // Listen for changes in chats where the current user is a member
         // This is a more complex query and might require a different database structure
