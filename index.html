@@ -2,130 +2,324 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Live Messaging App</title>
   <style>
-    body { font-family: Arial, sans-serif; background: #f0f2f5; margin: 0; padding: 0; }
-    .container { max-width: 600px; margin: 30px auto; padding: 20px; background: #fff; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-    #messages { height: 300px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; border-radius: 5px; background: #fafafa; }
-    .msg { margin: 5px 0; padding: 8px; border-radius: 5px; }
-    .me { background: #d1ffd1; text-align: right; }
-    .other { background: #e1e1ff; text-align: left; }
-    input, button { padding: 10px; margin: 5px 0; border-radius: 5px; border: 1px solid #ccc; width: 100%; }
-    button { cursor: pointer; background: #007bff; color: white; border: none; }
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
+    .container { max-width: 400px; margin: 30px auto; background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1);}
+    h2 { text-align: center; }
+    input { width: 100%; padding: 10px; margin: 8px 0; border-radius: 5px; border: 1px solid #ccc;}
+    button { width: 100%; padding: 10px; margin: 8px 0; border: none; border-radius: 5px; background: #007bff; color: white; cursor: pointer;}
     button:hover { background: #0056b3; }
+    button:disabled { background: #cccccc; cursor: not-allowed; } /* Added for disabled state */
+    .message { padding: 8px; margin: 8px 0; border-radius: 5px; }
+    .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+    .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    #posts-grid-container { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; margin-top: 20px; }
+    .post-card img { width: 100%; border-radius: 10px; }
+    .chat-item { display: flex; padding: 10px; background: #eee; margin: 5px 0; border-radius: 8px; }
+    .chat-avatar { width: 40px; height: 40px; border-radius: 50%; background: #007bff; color:#fff; display:flex;align-items:center;justify-content:center;margin-right:10px;}
   </style>
 </head>
 <body>
   <div class="container">
-    <h2>🔥 Live Messaging</h2>
-
+    <h2>Live Messaging App</h2>
     <div id="auth-section">
-      <input type="email" id="email" placeholder="Email" />
-      <input type="password" id="password" placeholder="Password" />
-      <button onclick="signUp()">Sign Up</button>
-      <button onclick="signIn()">Sign In</button>
-      <button onclick="googleLogin()">Sign In with Google</button>
+      <div id="auth-message-area"></div> <!-- For displaying auth messages -->
+      <input type="email" id="email" placeholder="Email"/>
+      <input type="password" id="password" placeholder="Password"/>
+      <button id="signupBtn">Sign Up</button>
+      <button id="loginBtn">Sign In</button>
+      <hr>
+      <input type="text" id="phone" placeholder="+8801XXXXXXXXX"/>
+      <div id="recaptcha-container"></div>
+      <button id="sendOtpBtn">Send OTP</button>
+      <input type="text" id="otp" placeholder="Enter OTP"/>
+      <button id="verifyOtpBtn">Verify OTP</button>
     </div>
 
-    <div id="chat-section" style="display:none;">
-      <p>Welcome, <span id="user-name"></span> <button onclick="logout()">Logout</button></p>
-      <div id="messages"></div>
-      <input type="text" id="messageInput" placeholder="Type a message..." />
-      <button onclick="sendMessage()">Send</button>
+    <div id="app-section" style="display:none;">
+      <h3>Upload Post</h3>
+      <input type="file" id="postImage"/>
+      <button id="uploadPostBtn">Upload</button>
+      <div id="post-message-area"></div> <!-- For displaying post upload messages -->
+      <h3>Posts</h3>
+      <div id="no-posts-message" style="display:block;">No posts yet.</div>
+      <div id="posts-grid-container"></div>
+      <h3>Chats</h3>
+      <div id="no-chats-message" style="display:block;">No chats yet.</div>
+      <div id="chat-list-container"></div>
     </div>
   </div>
 
   <!-- Firebase SDKs -->
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
-             GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } 
-             from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
-    import { getDatabase, ref, push, onChildAdded } 
-             from "https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, RecaptchaVerifier, signInWithPhoneNumber, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
+    import { getDatabase, ref, push, onChildAdded, get } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-database.js"; // Added 'get' for initial load
+    import { getStorage, ref as sRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-storage.js";
 
-    // Your Firebase config (fixed storageBucket)
+    // Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyBUH95hXYxMVCfhJglN4j3CReXy-CLYwmA",
       authDomain: "live-messageinggkkh.firebaseapp.com",
       databaseURL: "https://live-messageinggkkh-default-rtdb.firebaseio.com",
       projectId: "live-messageinggkkh",
-      storageBucket: "live-messageinggkkh.appspot.com",
+      storageBucket: "live-messageinggkkh.firebasestorage.app",
       messagingSenderId: "537475612761",
       appId: "1:537475612761:web:d00723c117383e54027148"
     };
 
-    // Initialize Firebase
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getDatabase(app);
+    const storage = getStorage(app);
 
+    // Refs
+    const postsRef = ref(db, "posts");
     const messagesRef = ref(db, "messages");
 
-    // Auth Functions
-    window.signUp = function () {
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
-      createUserWithEmailAndPassword(auth, email, password)
-        .catch(e => alert(e.message));
+    // Auth elements
+    const emailInput = document.getElementById("email");
+    const passwordInput = document.getElementById("password");
+    const signupBtn = document.getElementById("signupBtn");
+    const loginBtn = document.getElementById("loginBtn");
+    const phoneInput = document.getElementById("phone");
+    const recaptchaContainer = document.getElementById("recaptcha-container");
+    const sendOtpBtn = document.getElementById("sendOtpBtn");
+    const otpInput = document.getElementById("otp");
+    const verifyOtpBtn = document.getElementById("verifyOtpBtn");
+    const authMessageArea = document.getElementById("auth-message-area");
+    const postMessageArea = document.getElementById("post-message-area");
+
+    let confirmationResult;
+    let recaptchaVerifier; // Declare globally to manage its state
+
+    // --- Helper function for displaying messages ---
+    function displayMessage(area, message, type) {
+      area.innerHTML = `<div class="message ${type}">${message}</div>`;
+      setTimeout(() => { area.innerHTML = ''; }, 5000); // Clear message after 5 seconds
     }
 
-    window.signIn = function () {
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
-      signInWithEmailAndPassword(auth, email, password)
-        .catch(e => alert(e.message));
-    }
+    // --- Recaptcha Initialization (Important for phone auth) ---
+    // Initialize RecaptchaVerifier once the page is loaded and ready
+    window.onload = () => {
+        recaptchaVerifier = new RecaptchaVerifier(auth, recaptchaContainer, {
+            'size': 'normal',
+            'callback': (response) => {
+                // reCAPTCHA solved, allow signInWithPhoneNumber.
+                displayMessage(authMessageArea, "reCAPTCHA solved!", "success");
+                sendOtpBtn.disabled = false; // Enable send OTP button after recaptcha is solved
+            },
+            'expired-callback': () => {
+                // Response expired. Ask user to solve reCAPTCHA again.
+                displayMessage(authMessageArea, "reCAPTCHA expired. Please solve again.", "error");
+                sendOtpBtn.disabled = true;
+                recaptchaVerifier.render().then(widgetId => grecaptcha.reset(widgetId)); // Reset recaptcha
+            }
+        });
+        recaptchaVerifier.render().then(widgetId => {
+            console.log("reCAPTCHA rendered with widget ID:", widgetId);
+            sendOtpBtn.disabled = true; // Initially disable send OTP until recaptcha is solved
+        });
+    };
 
-    window.googleLogin = function () {
-      const provider = new GoogleAuthProvider();
-      signInWithPopup(auth, provider).catch(e => alert(e.message));
-    }
 
-    window.logout = function () {
-      signOut(auth);
-    }
+    // --- Email/Password Auth ---
+    signupBtn.onclick = async () => {
+      const email = emailInput.value;
+      const password = passwordInput.value;
+      if (!email || !password) {
+        displayMessage(authMessageArea, "Email and password cannot be empty.", "error");
+        return;
+      }
+      signupBtn.disabled = true;
+      try {
+        await createUserWithEmailAndPassword(auth, email, password);
+        displayMessage(authMessageArea, "Signed up successfully!", "success");
+      } catch (err) {
+        displayMessage(authMessageArea, `Sign up failed: ${err.message}`, "error");
+      } finally {
+        signupBtn.disabled = false;
+      }
+    };
 
-    // Track user login state
+    loginBtn.onclick = async () => {
+      const email = emailInput.value;
+      const password = passwordInput.value;
+      if (!email || !password) {
+        displayMessage(authMessageArea, "Email and password cannot be empty.", "error");
+        return;
+      }
+      loginBtn.disabled = true;
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+        displayMessage(authMessageArea, "Signed in successfully!", "success");
+      } catch (err) {
+        displayMessage(authMessageArea, `Sign in failed: ${err.message}`, "error");
+      } finally {
+        loginBtn.disabled = false;
+      }
+    };
+
+    // --- Phone Login ---
+    sendOtpBtn.onclick = async () => {
+      const phoneNumber = phoneInput.value;
+      if (!phoneNumber) {
+        displayMessage(authMessageArea, "Phone number cannot be empty.", "error");
+        return;
+      }
+      sendOtpBtn.disabled = true;
+      try {
+        confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier);
+        displayMessage(authMessageArea, "OTP sent successfully! Please check your phone.", "success");
+        otpInput.focus();
+      } catch (err) {
+        displayMessage(authMessageArea, `Failed to send OTP: ${err.message}`, "error");
+        // Reset recaptcha if error occurs to allow user to retry
+        if (recaptchaVerifier && recaptchaVerifier.render) {
+             recaptchaVerifier.render().then(widgetId => grecaptcha.reset(widgetId));
+        }
+      } finally {
+        sendOtpBtn.disabled = false;
+      }
+    };
+
+    verifyOtpBtn.onclick = async () => {
+      const code = otpInput.value;
+      if (!code) {
+        displayMessage(authMessageArea, "OTP cannot be empty.", "error");
+        return;
+      }
+      if (!confirmationResult) {
+        displayMessage(authMessageArea, "Please send OTP first.", "error");
+        return;
+      }
+      verifyOtpBtn.disabled = true;
+      try {
+        await confirmationResult.confirm(code);
+        displayMessage(authMessageArea, "Phone sign-in success!", "success");
+      } catch (err) {
+        displayMessage(authMessageArea, `OTP verification failed: ${err.message}`, "error");
+      } finally {
+        verifyOtpBtn.disabled = false;
+      }
+    };
+
+    // --- Auth state listener ---
     onAuthStateChanged(auth, (user) => {
       if (user) {
         document.getElementById("auth-section").style.display = "none";
-        document.getElementById("chat-section").style.display = "block";
-        document.getElementById("user-name").innerText = user.email || user.displayName;
-
-        loadMessages(user);
+        document.getElementById("app-section").style.display = "block";
+        displayMessage(authMessageArea, `Welcome, ${user.email || user.phoneNumber}!`, "success"); // Provide feedback
+        loadPosts();
+        loadChats();
       } else {
         document.getElementById("auth-section").style.display = "block";
-        document.getElementById("chat-section").style.display = "none";
+        document.getElementById("app-section").style.display = "none";
+        displayMessage(authMessageArea, "Please sign in or sign up.", "info");
       }
     });
 
-    // Send Message
-    window.sendMessage = function () {
-      const msg = document.getElementById("messageInput").value;
-      if (msg.trim() === "") return;
-      const user = auth.currentUser;
-      push(messagesRef, {
-        uid: user.uid,
-        sender: user.email || user.displayName,
-        text: msg,
-        timestamp: Date.now()
+    // --- Upload post ---
+    document.getElementById("uploadPostBtn").onclick = async () => {
+      const fileInput = document.getElementById("postImage");
+      const file = fileInput.files[0];
+      if (!file) {
+        displayMessage(postMessageArea, "Select an image file first.", "error");
+        return;
+      }
+
+      document.getElementById("uploadPostBtn").disabled = true;
+      try {
+        const fileRef = sRef(storage, 'posts/' + Date.now() + '_' + file.name); // Added filename for uniqueness
+        await uploadBytes(fileRef, file);
+        const url = await getDownloadURL(fileRef);
+
+        await push(postsRef, { imageUrl: url, timestamp: Date.now(), userId: auth.currentUser.uid }); // Add more post data
+        displayMessage(postMessageArea, "Post uploaded successfully!", "success");
+        fileInput.value = ''; // Clear file input
+      } catch (err) {
+        displayMessage(postMessageArea, `Failed to upload post: ${err.message}`, "error");
+      } finally {
+        document.getElementById("uploadPostBtn").disabled = false;
+      }
+    };
+
+    // --- Load posts ---
+    async function loadPosts() {
+      const postsGrid = document.getElementById("posts-grid-container");
+      postsGrid.innerHTML = ''; // Clear existing posts on load
+      const noPostsMessage = document.getElementById("no-posts-message");
+
+      // Use `get` for initial load to avoid immediate re-renders of existing items
+      const snapshot = await get(postsRef);
+      if (snapshot.exists()) {
+        noPostsMessage.style.display = "none";
+        snapshot.forEach((childSnapshot) => {
+          const post = childSnapshot.val();
+          const div = document.createElement("div");
+          div.classList.add("post-card");
+          div.innerHTML = `<img src="${post.imageUrl}" alt="Post Image"/>`;
+          postsGrid.appendChild(div);
+        });
+      } else {
+        noPostsMessage.style.display = "block";
+      }
+
+      // Then use onChildAdded for real-time updates
+      onChildAdded(postsRef, (data) => {
+        // Check if the post already exists in the grid to prevent duplicates on initial load + real-time
+        const postId = data.key;
+        if (!document.querySelector(`[data-post-id="${postId}"]`)) {
+          noPostsMessage.style.display = "none";
+          const post = data.val();
+          const div = document.createElement("div");
+          div.classList.add("post-card");
+          div.setAttribute("data-post-id", postId); // Add an ID for tracking
+          div.innerHTML = `<img src="${post.imageUrl}" alt="Post Image"/>`;
+          postsGrid.prepend(div); // Prepend to show new posts at the top
+        }
       });
-      document.getElementById("messageInput").value = "";
     }
 
-    // Load Messages in real-time
-    function loadMessages(user) {
-      document.getElementById("messages").innerHTML = "";
+
+    // --- Load chats ---
+    async function loadChats() {
+      const chatList = document.getElementById("chat-list-container");
+      chatList.innerHTML = ''; // Clear existing chats on load
+      const noChatsMessage = document.getElementById("no-chats-message");
+
+      // Use `get` for initial load
+      const snapshot = await get(messagesRef);
+      if (snapshot.exists()) {
+        noChatsMessage.style.display = "none";
+        snapshot.forEach((childSnapshot) => {
+          const chat = childSnapshot.val();
+          const div = document.createElement("div");
+          div.classList.add("chat-item");
+          div.setAttribute("data-chat-id", childSnapshot.key); // Add an ID for tracking
+          div.innerHTML = `<div class="chat-avatar">${chat.sender ? chat.sender[0].toUpperCase() : "?"}</div>
+                           <div><strong>${chat.sender || "Unknown"}</strong><br>${chat.text || ""}</div>`;
+          chatList.appendChild(div);
+        });
+      } else {
+        noChatsMessage.style.display = "block";
+      }
+
+      // Then use onChildAdded for real-time updates
       onChildAdded(messagesRef, (data) => {
-        const msg = data.val();
-        const div = document.createElement("div");
-        div.classList.add("msg");
-        div.classList.add(msg.uid === user.uid ? "me" : "other");
-        div.innerText = `${msg.sender}: ${msg.text}`;
-        document.getElementById("messages").appendChild(div);
-        document.getElementById("messages").scrollTop = document.getElementById("messages").scrollHeight;
+        const chatId = data.key;
+        if (!document.querySelector(`[data-chat-id="${chatId}"]`)) {
+          noChatsMessage.style.display = "none";
+          const chat = data.val();
+          const div = document.createElement("div");
+          div.classList.add("chat-item");
+          div.setAttribute("data-chat-id", chatId);
+          div.innerHTML = `<div class="chat-avatar">${chat.sender ? chat.sender[0].toUpperCase() : "?"}</div>
+                           <div><strong>${chat.sender || "Unknown"}</strong><br>${chat.text || ""}</div>`;
+          chatList.appendChild(div);
+        }
       });
     }
   </script>
