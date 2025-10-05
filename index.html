@@ -16,16 +16,20 @@
     .success{background:#e6ffef;color:#0b6623;border:1px solid #c9f3d6}
     .error{background:#ffecec;color:#8b1a1a;border:1px solid #f5c6c6}
     .info{background:#eef6ff;color:#0b3a66;border:1px solid #cfe6ff}
+    /* Chat-specific styles */
     .chat-list-item{display:flex;align-items:center;padding:10px;background:#f0f2f5;margin:6px 0;border-radius:8px;cursor:pointer}
     .chat-list-avatar{width:40px;height:40px;border-radius:50%;background:#007bff;color:#fff;display:flex;align-items:center;justify-content:center;margin-right:10px;font-weight:700}
     #individual-chat-container{display:none;flex-direction:column;border:1px solid #eee;padding:10px;border-radius:8px;margin-top:8px;background:#fafafa;height:60vh;min-height:360px}
     #chat-messages{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding-right:6px}
-    .chat-message{padding:10px 14px;border-radius:16px;max-width:75%;line-height:1.4;word-wrap:break-word}
-    .chat-message.sent{background:#007bff;color:#fff;align-self:flex-end;margin-left:auto;border-bottom-right-radius:4px}
-    .chat-message.received{background:#e8eaf0;color:#111;align-self:flex-start;margin-right:auto;border-bottom-left-radius:4px}
-    #chat-input-area{display:flex;align-items:center;gap:8px;margin-top:8px;background:#fff;border-radius:30px;padding:6px 10px;box-shadow:0 1px 4px rgba(0,0,0,0.1)}
-    #chat-input-area input{flex:1;margin:0;padding:12px 16px;border:none;outline:none;font-size:16px;border-radius:30px;background:#f0f2f5}
-    #sendChatMessageBtn{width:auto;padding:8px 14px;font-size:14px;border-radius:30px;background:#007bff;color:#fff;cursor:pointer}
+    .chat-message{padding:8px 12px;border-radius:14px;max-width:78%;line-height:1.4;word-wrap:break-word}
+    .chat-message.sent{background:#007bff;color:#fff;align-self:flex-end;margin-left:auto}
+    .chat-message.received{background:#e8eaf0;color:#111;align-self:flex-start;margin-right:auto}
+    /* --- Updated chat input area: larger message bar, smaller send button (WhatsApp-like) --- */
+    #chat-input-area{display:flex;gap:8px;margin-top:8px;align-items:center}
+    /* make the text input big and pill-shaped */
+    #chat-input-area input{flex:1;margin:0;padding:14px 18px;border-radius:24px;border:1px solid #ddd;font-size:16px;background:#fff;box-sizing:border-box}
+    /* smaller send button */
+    #sendChatMessageBtn{flex:0 0 auto;padding:8px 12px;border-radius:20px;background:#007bff;color:#fff;border:none;cursor:pointer;font-weight:600}
     #sendChatMessageBtn:disabled{background:#ccc;cursor:not-allowed}
   </style>
 </head>
@@ -42,7 +46,9 @@
     </div>
 
     <div id="app-section" style="display:none">
+      
       <hr>
+
       <h3>My Chats</h3>
       <div id="chat-management-area">
         <div id="chat-message-area"></div>
@@ -67,5 +73,122 @@
       </div>
     </div>
   </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
+    import { getDatabase, ref as dbRef, push, onValue, set, query, orderByChild, equalTo, get, onChildAdded } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-database.js";
+    // Firebase Storage imports are removed as they are no longer needed.
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBUH95hXYxMVCfhJglN4j3CReXy-CLYwmA",
+      authDomain: "live-messageinggkkh.firebaseapp.com",
+      databaseURL: "https://live-messageinggkkh-default-rtdb.firebaseio.com",
+      projectId: "live-messageinggkkh",
+      storageBucket: "live-messageinggkkh.appspot.com",
+      messagingSenderId: "537475612761",
+      appId: "1:537475612761:web:d00723c117383e54027148"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
+
+    // References for posts are removed as they are no longer needed.
+    const usersRef = dbRef(db, 'users');
+    const chatsRef = dbRef(db, 'chats');
+    const privateMessagesRoot = dbRef(db, 'privateMessages');
+
+    const authMessageArea = document.getElementById('auth-message-area');
+    const signupBtn = document.getElementById('signupBtn');
+    const loginBtn = document.getElementById('loginBtn');
+    
+    // Post-related elements are removed.
+    const addChatEmailInput = document.getElementById('addChatEmail');
+    const addChatBtn = document.getElementById('addChatBtn');
+    const chatMessageArea = document.getElementById('chat-message-area');
+    const chatListContainer = document.getElementById('chat-list-container');
+    const noChatsMessage = document.getElementById('no-chats-message');
+    const individualChatContainer = document.getElementById('individual-chat-container');
+    const chatMessagesContainer = document.getElementById('chat-messages');
+    const chatMessageInput = document.getElementById('chatMessageInput');
+    const sendChatMessageBtn = document.getElementById('sendChatMessageBtn');
+    const backToChatListBtn = document.getElementById('backToChatListBtn');
+    const currentChatName = document.getElementById('current-chat-name');
+    const currentChatAvatar = document.getElementById('current-chat-avatar');
+
+    let currentChatId=null,currentChatRecipientUid=null,currentChatRecipientEmail=null;
+
+    function displayMessage(area,msg,type='info'){area.innerHTML=`<div class="message ${type}">${msg}</div>`;setTimeout(()=>area.innerHTML='',4000);}
+    async function createUserProfile(user){if(user)await set(dbRef(db,'users/'+user.uid),{email:user.email,uid:user.uid});}
+
+    async function getUserByEmail(email){
+      const q=query(usersRef,orderByChild('email'),equalTo(email));
+      const s=await get(q);if(s.exists()){let u=null;s.forEach(c=>u=c.val());return u;}return null;
+    }
+
+    signupBtn.onclick=async()=>{const e=document.getElementById('email').value.trim(),p=document.getElementById('password').value.trim();
+      if(!e||!p)return displayMessage(authMessageArea,'Email/password required','error');
+      signupBtn.disabled=true;
+      try{const c=await createUserWithEmailAndPassword(auth,e,p);await createUserProfile(c.user);
+        document.getElementById('auth-section').style.display='none';document.getElementById('app-section').style.display='block';loadChatList();}
+      catch(err){displayMessage(authMessageArea,'Sign up failed: '+err.message,'error');}
+      finally{signupBtn.disabled=false;}
+    };
+
+    loginBtn.onclick=async()=>{const e=document.getElementById('email').value.trim(),p=document.getElementById('password').value.trim();
+      if(!e||!p)return displayMessage(authMessageArea,'Email/password required','error');
+      loginBtn.disabled=true;
+      try{const c=await signInWithEmailAndPassword(auth,e,p);await createUserProfile(c.user);
+        document.getElementById('auth-section').style.display='none';document.getElementById('app-section').style.display='block';loadChatList();}
+      catch(err){displayMessage(authMessageArea,'Sign in failed: '+err.message,'error');}
+      finally{loginBtn.disabled=false;}
+    };
+
+    onAuthStateChanged(auth,async(u)=>{
+      if(u){
+        await createUserProfile(u);
+        document.getElementById('auth-section').style.display='none';
+        document.getElementById('app-section').style.display='block';
+        displayMessage(authMessageArea,`Welcome, ${u.email}`,'success');
+        loadChatList();
+      }
+      else{
+        document.getElementById('auth-section').style.display='block';
+        document.getElementById('app-section').style.display='none';
+        individualChatContainer.style.display='none';
+      }
+    });
+
+    // loadPosts function is REMOVED
+    
+    addChatBtn.onclick=async()=>{const e=addChatEmailInput.value.trim(),u=auth.currentUser;if(!u)return displayMessage(chatMessageArea,'Login first','error');
+      if(!e)return displayMessage(chatMessageArea,'Enter email','error');if(e===u.email)return displayMessage(chatMessageArea,'Cannot chat with yourself','error');
+      addChatBtn.disabled=true;
+      try{const r=await getUserByEmail(e);if(!r)return displayMessage(chatMessageArea,'User not found','error');
+        const ids=[u.uid,r.uid].sort();const id=ids.join('_');const ex = await get(dbRef(db, 'chats/' + id));
+        if(ex.exists()){ displayMessage(chatMessageArea,'Chat already exists','info'); }
+        else{ await set(dbRef(db,'chats/'+id),{members:ids,memberEmails:{[u.uid]:u.email,[r.uid]:r.email},createdAt:Date.now()}); displayMessage(chatMessageArea,'Chat added','success'); }
+        addChatEmailInput.value='';
+      }catch(er){console.error('Add chat error',er);displayMessage(chatMessageArea,'Failed to add person: '+(er.message||er),'error');}finally{addChatBtn.disabled=false;}
+    };
+
+    function loadChatList(){ const uid = auth.currentUser?.uid; if(!uid) return;
+      chatListContainer.innerHTML=''; noChatsMessage.style.display='block';
+      onValue(chatsRef,s=>{ chatListContainer.innerHTML=''; let found=false; s.forEach(c=>{ const v=c.val(); const k=c.key; if(v.members && v.members.includes(uid)){ found=true; const other = v.members.find(x=>x!==uid); const email = v.memberEmails ? v.memberEmails[other] : ''; const name = email ? email.split('@')[0] : 'Unknown'; const div=document.createElement('div'); div.className='chat-list-item'; div.innerHTML=`<div class='chat-list-avatar'>${name.charAt(0).toUpperCase()}</div><div><div style='font-weight:700'>${name}</div><div style='font-size:12px;color:#666'>${email}</div></div>`; div.onclick=()=>openIndividualChat(k, other, email); chatListContainer.appendChild(div); } }); noChatsMessage.style.display = found ? 'none' : 'block'; }); }
+
+    function openIndividualChat(chatId, recipientUid, recipientEmail){ currentChatId=chatId; currentChatRecipientUid=recipientUid; currentChatRecipientEmail=recipientEmail;
+      document.getElementById('chat-list-container').style.display='none'; document.getElementById('chat-management-area').style.display='none'; noChatsMessage.style.display='none'; individualChatContainer.style.display='flex';
+      currentChatName.textContent = recipientEmail ? recipientEmail.split('@')[0] : 'Unknown'; currentChatAvatar.textContent = currentChatName.textContent.charAt(0).toUpperCase();
+      chatMessagesContainer.innerHTML = ''; loadMessages(chatId);
+    }
+
+    function loadMessages(chatId){ chatMessagesContainer.innerHTML=''; const q = query(dbRef(db, 'privateMessages/' + chatId), orderByChild('timestamp')); onChildAdded(q, s=>{ const m = s.val(); const el = document.createElement('div'); el.className = 'chat-message ' + (m.senderUid === auth.currentUser?.uid ? 'sent' : 'received'); const senderName = m.senderEmail ? m.senderEmail.split('@')[0] : 'Unknown'; const time = m.timestamp ? new Date(m.timestamp).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }) : ''; el.innerHTML = `${m.text || ''}<div style='font-size:11px;margin-top:6px;color:rgba(0,0,0,0.5)'>${senderName} • ${time}</div>`; chatMessagesContainer.appendChild(el); chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight; }); }
+
+    sendChatMessageBtn.onclick=async()=>{ const text=chatMessageInput.value.trim(); if(!text || !currentChatId || !auth.currentUser) return; sendChatMessageBtn.disabled=true; try{ await push(dbRef(db, 'privateMessages/' + currentChatId), { text, senderUid: auth.currentUser.uid, senderEmail: auth.currentUser.email, timestamp: Date.now() }); chatMessageInput.value=''; }catch(e){console.error('send error',e);displayMessage(chatMessageArea,'Failed to send message','error'); } finally{ sendChatMessageBtn.disabled=false; } }
+
+    backToChatListBtn.onclick=()=>{ individualChatContainer.style.display='none'; document.getElementById('chat-list-container').style.display='block'; document.getElementById('chat-management-area').style.display='block'; noChatsMessage.style.display='block'; loadChatList(); }
+
+  </script>
 </body>
 </html>
