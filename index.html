@@ -1,260 +1,153 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Live Messaging App</title>
-  <style>
-    body{font-family:Arial,Helvetica,sans-serif;margin:0;padding:0;background:#f5f5f5;min-height:100vh;display:flex;justify-content:center;align-items:flex-start}
-    .container{width:100%;max-width:520px;background:#fff;padding:16px;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,0.08);box-sizing:border-box;margin:12px}
-    h2{text-align:center;margin:6px 0 12px}
-    h3{margin:14px 0 8px}
-    input,button,textarea{width:100%;padding:10px;margin:8px 0;border-radius:6px;border:1px solid #ccc;box-sizing:border-box;font-size:15px}
-    button{background:#007bff;color:#fff;border:none;cursor:pointer;font-weight:600}
-    button:disabled{background:#ccc;cursor:not-allowed}
-    .message{padding:8px;border-radius:6px;margin:8px 0}
-    .success{background:#e6ffef;color:#0b6623;border:1px solid #c9f3d6}
-    .error{background:#ffecec;color:#8b1a1a;border:1px solid #f5c6c6}
-    .info{background:#eef6ff;color:#0b3a66;border:1px solid #cfe6ff}
-    /* Chat-specific styles */
-    .chat-list-item{display:flex;align-items:center;padding:10px;background:#f0f2f5;margin:6px 0;border-radius:8px;cursor:pointer}
-    .chat-list-avatar{width:40px;height:40px;border-radius:50%;background:#007bff;color:#fff;display:flex;align-items:center;justify-content:center;margin-right:10px;font-weight:700}
-    #individual-chat-container{display:none;flex-direction:column;border:1px solid #eee;padding:10px;border-radius:8px;margin-top:8px;background:#fafafa;height:60vh;min-height:360px}
-    #chat-messages{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding-right:6px}
-    .chat-message{padding:8px 12px;border-radius:14px;max-width:78%;line-height:1.4;word-wrap:break-word}
-    .chat-message.sent{background:#007bff;color:#fff;align-self:flex-end;margin-left:auto}
-    .chat-message.received{background:#e8eaf0;color:#111;align-self:flex-start;margin-right:auto}
-    /* Updated chat input (WhatsApp-style) */
-    #chat-input-area{display:flex;align-items:center;gap:8px;margin-top:8px;padding:8px;background:#f0f0f0;border-radius:30px}
-    #chat-input-area input{flex:1;padding:12px 16px;border-radius:20px;border:1px solid #ccc;font-size:16px;width:auto;margin:0}
-    #chat-input-area .small-btn{width:44px;height:44px;border-radius:50%;border:none;background:#007bff;color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;padding:0;cursor:pointer}
-    #chat-input-area .game-btn{background:#28a745;margin-left:0}
-    /* Tic-tac-toe panel (minimal addition) */
-    #tic-tac-toe-container{display:none;margin-top:12px}
-    #ttt-board{display:grid;grid-template-columns:repeat(3,80px);grid-gap:6px;margin-top:8px}
-    .ttt-cell{width:80px;height:80px;font-size:36px;font-weight:bold;border-radius:8px;border:1px solid #ccc;cursor:pointer;background:#fff}
-    #ttt-status{margin:0 0 4px 0;font-weight:600}
-
-    /* Loading spinner for buttons */
-    .btn-spinner {
-      display:inline-block;
-      width:16px;
-      height:16px;
-      border:2px solid rgba(255,255,255,0.6);
-      border-top-color:#fff;
-      border-radius:50%;
-      animation:spin 0.8s linear infinite;
-      vertical-align:middle;
-      margin-right:6px;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Live Messaging App</title>
+<style>
+body{font-family:Arial,Helvetica,sans-serif;margin:0;padding:0;background:#f5f5f5;min-height:100vh;display:flex;justify-content:center;align-items:flex-start}
+.container{width:100%;max-width:520px;background:#fff;padding:16px;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,0.08);box-sizing:border-box;margin:12px}
+h2{text-align:center;margin:6px 0 12px}
+h3{margin:14px 0 8px}
+input,button,textarea{width:100%;padding:10px;margin:8px 0;border-radius:6px;border:1px solid #ccc;box-sizing:border-box;font-size:15px}
+button{background:#007bff;color:#fff;border:none;cursor:pointer;font-weight:600}
+button:disabled{background:#ccc;cursor:not-allowed}
+.message{padding:8px;border-radius:6px;margin:8px 0}
+.success{background:#e6ffef;color:#0b6623;border:1px solid #c9f3d6}
+.error{background:#ffecec;color:#8b1a1a;border:1px solid #f5c6c6}
+.info{background:#eef6ff;color:#0b3a66;border:1px solid #cfe6ff}
+.chat-list-item{display:flex;align-items:center;padding:10px;background:#f0f2f5;margin:6px 0;border-radius:8px;cursor:pointer}
+.chat-list-avatar{width:40px;height:40px;border-radius:50%;background:#007bff;color:#fff;display:flex;align-items:center;justify-content:center;margin-right:10px;font-weight:700}
+#individual-chat-container{display:none;flex-direction:column;border:1px solid #eee;padding:10px;border-radius:8px;margin-top:8px;background:#fafafa;height:60vh;min-height:360px}
+#chat-messages{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding-right:6px}
+.chat-message{padding:8px 12px;border-radius:14px;max-width:78%;line-height:1.4;word-wrap:break-word}
+.chat-message.sent{background:#007bff;color:#fff;align-self:flex-end;margin-left:auto}
+.chat-message.received{background:#e8eaf0;color:#111;align-self:flex-start;margin-right:auto}
+#chat-input-area{display:flex;gap:8px;margin-top:8px}
+#chat-input-area input{flex:1;margin:0}
+</style>
 </head>
 <body>
-  <div class="container">
-    <h2>Live Messaging App</h2>
+<div class="container">
+<h2>Live Messaging App</h2>
 
-    <div id="auth-section">
-      <div id="auth-message-area"></div>
-      <input id="email" type="email" placeholder="Email" />
-      <input id="password" type="password" placeholder="Password" />
-      <div style="display:flex;gap:8px">
-        <button id="signupBtn" style="flex:1">Sign Up</button>
-        <button id="loginBtn" style="flex:1">Sign In</button>
-      </div>
-    </div>
+<div id="auth-section">
+  <div id="auth-message-area"></div>
+  <input id="email" type="email" placeholder="Email">
+  <input id="password" type="password" placeholder="Password">
+  <button id="signupBtn">Sign Up</button>
+  <button id="loginBtn">Sign In</button>
+</div>
 
-    <div id="app-section" style="display:none">
-
-      <hr>
-
-      <h3>My Chats</h3>
-      <div id="chat-management-area">
-        <div id="chat-message-area"></div>
-        <input id="addChatEmail" type="email" placeholder="Enter user's email to chat" />
-        <button id="addChatBtn">Add Person to Chat</button>
-      </div>
-
-      <div id="no-chats-message">No active chats. Add someone to start chatting!</div>
-      <div id="chat-list-container"></div>
-
-      <div id="individual-chat-container">
-        <div id="chat-header" style="display:flex;align-items:center;gap:8px;padding-bottom:8px;border-bottom:1px solid #eee;margin-bottom:8px">
-          <button id="backToChatListBtn" style="padding:6px 10px">&lt; Back</button>
-          <div id="current-chat-avatar" class="chat-list-avatar"></div>
-          <h4 id="current-chat-name" style="margin:0"></h4>
-        </div>
-        <div id="chat-messages"></div>
-
-        <div id="tic-tac-toe-container">
-          <h4 id="ttt-status">Waiting for opponent...</h4>
-          <div id="ttt-board"></div>
-          <button id="ttt-reset-btn">Play Again</button>
-        </div>
-
-        <div id="chat-input-area">
-          <button id="playGameBtn" class="small-btn game-btn" title="Play Game">🎮</button>
-          <input id="chatMessageInput" type="text" placeholder="Type a message..." />
-          <button id="sendChatMessageBtn" class="small-btn">➤</button>
-        </div>
-      </div>
-    </div>
+<div id="app-section" style="display:none">
+  <hr>
+  <h3>My Chats</h3>
+  <div id="chat-management-area">
+    <div id="chat-message-area"></div>
+    <input id="addChatEmail" type="email" placeholder="Enter user's email to chat">
+    <button id="addChatBtn">Add Person to Chat</button>
   </div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
-    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
-    import { getDatabase, ref as dbRef, push, onValue, set, query, orderByChild, equalTo, get, onChildAdded } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-database.js";
-    import { initTicTacToe } from './tic-tac-toe.js';
+  <div id="no-chats-message">No active chats. Add someone to start chatting!</div>
+  <div id="chat-list-container"></div>
 
-    // Firebase configuration preserved
-    const firebaseConfig = {
-      apiKey: "AIzaSyBUH95hXYxMVCfhJglN4j3CReXy-CLYwmA",
-      authDomain: "live-messageinggkkh.firebaseapp.com",
-      databaseURL: "https://live-messageinggkkh-default-rtdb.firebaseio.com",
-      projectId: "live-messageinggkkh",
-      storageBucket: "live-messageinggkkh.appspot.com",
-      messagingSenderId: "537475612761",
-      appId: "1:537475612761:web:d00723c117383e54027148"
-    };
+  <div id="individual-chat-container">
+    <div id="chat-header" style="display:flex;align-items:center;gap:8px;padding-bottom:8px;border-bottom:1px solid #eee;margin-bottom:8px">
+      <button id="backToChatListBtn" style="padding:6px 10px">&lt; Back</button>
+      <div id="current-chat-avatar" class="chat-list-avatar"></div>
+      <h4 id="current-chat-name" style="margin:0"></h4>
+    </div>
+    <div id="chat-messages"></div>
+    <div id="chat-input-area">
+      <input id="chatMessageInput" type="text" placeholder="Type a message...">
+      <button id="sendChatMessageBtn">Send</button>
+      <button id="playGameBtn">🎮 Play Game</button>
+    </div>
+  </div>
+</div>
+</div>
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getDatabase(app);
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
+import { getDatabase, ref as dbRef, set } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-database.js";
+import { startTicTacToe } from "./tic-tac-toe.js";
 
-    const usersRef = dbRef(db, 'users');
-    const chatsRef = dbRef(db, 'chats');
-    const privateMessagesRoot = dbRef(db, 'privateMessages');
+const firebaseConfig = {
+  apiKey: "AIzaSyBUH95hXYxMVCfhJglN4j3CReXy-CLYwmA",
+  authDomain: "live-messageinggkkh.firebaseapp.com",
+  databaseURL: "https://live-messageinggkkh-default-rtdb.firebaseio.com",
+  projectId: "live-messageinggkkh",
+  storageBucket: "live-messageinggkkh.firebasestorage.app",
+  messagingSenderId: "537475612761",
+  appId: "1:537475612761:web:d00723c117383e54027148"
+};
 
-    const authMessageArea = document.getElementById('auth-message-area');
-    const signupBtn = document.getElementById('signupBtn');
-    const loginBtn = document.getElementById('loginBtn');
-    const addChatEmailInput = document.getElementById('addChatEmail');
-    const addChatBtn = document.getElementById('addChatBtn');
-    const chatMessageArea = document.getElementById('chat-message-area');
-    const chatListContainer = document.getElementById('chat-list-container');
-    const noChatsMessage = document.getElementById('no-chats-message');
-    const individualChatContainer = document.getElementById('individual-chat-container');
-    const chatMessagesContainer = document.getElementById('chat-messages');
-    const chatMessageInput = document.getElementById('chatMessageInput');
-    const sendChatMessageBtn = document.getElementById('sendChatMessageBtn');
-    const backToChatListBtn = document.getElementById('backToChatListBtn');
-    const currentChatName = document.getElementById('current-chat-name');
-    const currentChatAvatar = document.getElementById('current-chat-avatar');
-    const playGameBtn = document.getElementById('playGameBtn');
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getDatabase(app);
 
-    let currentChatId=null,currentChatRecipientUid=null,currentChatRecipientEmail=null;
+// Utility functions
+function displayMessage(area,msg,type='info'){area.innerHTML=`<div class="message ${type}">${msg}</div>`;setTimeout(()=>area.innerHTML='',4000);}
+function showButtonLoading(btn,text){btn.innerText=text;btn.disabled=true;}
+function hideButtonLoading(btn){btn.innerText=btn.id==='signupBtn'?'Sign Up':'Sign In';btn.disabled=false;}
 
-    function displayMessage(area,msg,type='info'){area.innerHTML=`<div class="message ${type}">${msg}</div>`;setTimeout(()=>area.innerHTML='',5000);}
+// Auth elements
+const authMessageArea = document.getElementById('auth-message-area');
+const signupBtn = document.getElementById('signupBtn');
+const loginBtn = document.getElementById('loginBtn');
 
-    async function createUserProfile(user){
-      try{
-        if(user) await set(dbRef(db,'users/'+user.uid),{email:user.email,uid:user.uid});
-      }catch(e){
-        console.error('createUserProfile error',e);
-      }
-    }
+signupBtn.onclick = async () => {
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value.trim();
+  if(!email||!password) return displayMessage(authMessageArea,'Email/password required','error');
 
-    async function getUserByEmail(email){
-      try{
-        const q=query(usersRef,orderByChild('email'),equalTo(email));
-        const s=await get(q); if(s.exists()){ let u=null; s.forEach(c=>u=c.val()); return u; } return null;
-      }catch(e){ console.error('getUserByEmail',e); return null; }
-    }
+  showButtonLoading(signupBtn,'Signing up...'); loginBtn.disabled=true;
+  try {
+    const userCred = await createUserWithEmailAndPassword(auth,email,password);
+    await set(dbRef(db,'users/'+userCred.user.uid),{email,userUid:userCred.user.uid});
+    document.getElementById('auth-section').style.display='none';
+    document.getElementById('app-section').style.display='block';
+  } catch(err) {
+    console.error(err);
+    displayMessage(authMessageArea,'Sign up failed: '+err.code,'error');
+  } finally {
+    hideButtonLoading(signupBtn); loginBtn.disabled=false;
+  }
+};
 
-    // Utility: show loading state inside a button
-    function showButtonLoading(btn, text){
-      btn.disabled = true;
-      btn.dataset.orig = btn.innerHTML;
-      btn.innerHTML = '<span class="btn-spinner"></span>' + text;
-    }
-    function hideButtonLoading(btn){
-      btn.disabled = false;
-      if(btn.dataset.orig) btn.innerHTML = btn.dataset.orig;
-    }
+loginBtn.onclick = async () => {
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value.trim();
+  if(!email||!password) return displayMessage(authMessageArea,'Email/password required','error');
 
-    signupBtn.onclick = async () => {
-      const e = document.getElementById('email').value.trim(), p = document.getElementById('password').value.trim();
-      if(!e || !p) return displayMessage(authMessageArea,'Email/password required','error');
-      showButtonLoading(signupBtn, 'Signing up...'); loginBtn.disabled = true;
-      try{
-        const c = await createUserWithEmailAndPassword(auth, e, p);
-        await createUserProfile(c.user);
-        // show homepage after successful signup
-        document.getElementById('auth-section').style.display='none'; document.getElementById('app-section').style.display='block';
-        loadChatList();
-      }catch(err){
-        console.error('signup error', err);
-        displayMessage(authMessageArea, 'Sign up failed: ' + (err.message || err), 'error');
-      }finally{
-        hideButtonLoading(signupBtn); loginBtn.disabled = false;
-      }
-    };
+  showButtonLoading(loginBtn,'Signing in...'); signupBtn.disabled=true;
+  try {
+    const userCred = await signInWithEmailAndPassword(auth,email,password);
+    await set(dbRef(db,'users/'+userCred.user.uid),{email,userUid:userCred.user.uid});
+    document.getElementById('auth-section').style.display='none';
+    document.getElementById('app-section').style.display='block';
+  } catch(err) {
+    console.error(err);
+    displayMessage(authMessageArea,'Sign in failed: '+err.code,'error');
+  } finally {
+    hideButtonLoading(loginBtn); signupBtn.disabled=false;
+  }
+};
 
-    loginBtn.onclick = async () => {
-      const e = document.getElementById('email').value.trim(), p = document.getElementById('password').value.trim();
-      if(!e || !p) return displayMessage(authMessageArea,'Email/password required','error');
-      showButtonLoading(loginBtn, 'Signing in...'); signupBtn.disabled = true;
-      try{
-        const c = await signInWithEmailAndPassword(auth, e, p);
-        await createUserProfile(c.user);
-        // show homepage after successful sign in
-        document.getElementById('auth-section').style.display='none'; document.getElementById('app-section').style.display='block';
-        loadChatList();
-      }catch(err){
-        console.error('signin error', err);
-        displayMessage(authMessageArea, 'Sign in failed: ' + (err.message || err), 'error');
-      }finally{
-        hideButtonLoading(loginBtn); signupBtn.disabled = false;
-      }
-    };
+onAuthStateChanged(auth,user=>{
+  if(user){
+    document.getElementById('auth-section').style.display='none';
+    document.getElementById('app-section').style.display='block';
+  } else {
+    document.getElementById('auth-section').style.display='block';
+    document.getElementById('app-section').style.display='none';
+  }
+});
 
-    onAuthStateChanged(auth, async (u) => {
-      if(u){
-        await createUserProfile(u);
-        document.getElementById('auth-section').style.display='none'; document.getElementById('app-section').style.display='block';
-        displayMessage(authMessageArea, `Welcome, ${u.email}`, 'success');
-        loadChatList();
-      } else {
-        document.getElementById('auth-section').style.display='block'; document.getElementById('app-section').style.display='none';
-        individualChatContainer.style.display='none';
-      }
-    });
+// Game button
+document.getElementById('playGameBtn').onclick = startTicTacToe;
 
-    addChatBtn.onclick=async()=>{const e=addChatEmailInput.value.trim(),u=auth.currentUser;if(!u)return displayMessage(chatMessageArea,'Login first','error');
-      if(!e)return displayMessage(chatMessageArea,'Enter email','error');if(e===u.email)return displayMessage(chatMessageArea,'Cannot chat with yourself','error');
-      addChatBtn.disabled=true;
-      try{const r=await getUserByEmail(e);if(!r)return displayMessage(chatMessageArea,'User not found','error');
-        const ids=[u.uid,r.uid].sort();const id=ids.join('_');const ex = await get(dbRef(db, 'chats/' + id));
-        if(ex.exists()){ displayMessage(chatMessageArea,'Chat already exists','info'); }
-        else{ await set(dbRef(db,'chats/'+id),{members:ids,memberEmails:{[u.uid]:u.email,[r.uid]:r.email},createdAt:Date.now()}); displayMessage(chatMessageArea,'Chat added','success'); }
-        addChatEmailInput.value='';
-      }catch(er){console.error('Add chat error',er);displayMessage(chatMessageArea,'Failed to add person: '+(er.message||er),'error');}finally{addChatBtn.disabled=false;}
-    };
-
-    function loadChatList(){ const uid = auth.currentUser?.uid; if(!uid) return;
-      chatListContainer.innerHTML=''; noChatsMessage.style.display='block';
-      onValue(chatsRef,s=>{ chatListContainer.innerHTML=''; let found=false; s.forEach(c=>{ const v=c.val(); const k=c.key; if(v.members && v.members.includes(uid)){ found=true; const other = v.members.find(x=>x!==uid); const email = v.memberEmails ? v.memberEmails[other] : ''; const name = email ? email.split('@')[0] : 'Unknown'; const div=document.createElement('div'); div.className='chat-list-item'; div.innerHTML=`<div class='chat-list-avatar'>${name.charAt(0).toUpperCase()}</div><div><div style='font-weight:700'>${name}</div><div style='font-size:12px;color:#666'>${email}</div></div>`; div.onclick=()=>openIndividualChat(k, other, email); chatListContainer.appendChild(div); } }); noChatsMessage.style.display = found ? 'none' : 'block'; }); }
-
-    // initialize tic-tac-toe for a chat
-    function openIndividualChat(chatId, recipientUid, recipientEmail){ currentChatId=chatId; currentChatRecipientUid=recipientUid; currentChatRecipientEmail=recipientEmail;
-      document.getElementById('chat-list-container').style.display='none'; document.getElementById('chat-management-area').style.display='none'; noChatsMessage.style.display='none'; individualChatContainer.style.display='flex';
-      currentChatName.textContent = recipientEmail ? recipientEmail.split('@')[0] : 'Unknown'; currentChatAvatar.textContent = currentChatName.textContent.charAt(0).toUpperCase();
-      chatMessagesContainer.innerHTML = ''; loadMessages(chatId);
-      initTicTacToe(chatId);
-    }
-
-    function loadMessages(chatId){ chatMessagesContainer.innerHTML=''; const q = query(dbRef(db, 'privateMessages/' + chatId), orderByChild('timestamp')); onChildAdded(q, s=>{ const m = s.val(); const el = document.createElement('div'); el.className = 'chat-message ' + (m.senderUid === auth.currentUser?.uid ? 'sent' : 'received'); const senderName = m.senderEmail ? m.senderEmail.split('@')[0] : 'Unknown'; const time = m.timestamp ? new Date(m.timestamp).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }) : ''; el.innerHTML = `${m.text || ''}<div style='font-size:11px;margin-top:6px;color:rgba(0,0,0,0.5)'>${senderName} • ${time}</div>`; chatMessagesContainer.appendChild(el); chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight; }); }
-
-    sendChatMessageBtn.onclick=async()=>{ const text=chatMessageInput.value.trim(); if(!text || !currentChatId || !auth.currentUser) return; sendChatMessageBtn.disabled=true; try{ await push(dbRef(db, 'privateMessages/' + currentChatId), { text, senderUid: auth.currentUser.uid, senderEmail: auth.currentUser.email, timestamp: Date.now() }); chatMessageInput.value=''; }catch(e){console.error('send error',e);displayMessage(chatMessageArea,'Failed to send message','error'); } finally{sendChatMessageBtn.disabled=false; } }
-
-    backToChatListBtn.onclick=()=>{ individualChatContainer.style.display='none'; document.getElementById('chat-list-container').style.display='block'; document.getElementById('chat-management-area').style.display='block'; noChatsMessage.style.display='block'; loadChatList(); }
-
-    // Toggle game panel
-    playGameBtn.onclick = () => {
-      const tttContainer = document.getElementById('tic-tac-toe-container');
-      tttContainer.style.display = tttContainer.style.display === 'none' ? 'block' : 'none';
-    };
-  </script>
+</script>
 </body>
 </html>
