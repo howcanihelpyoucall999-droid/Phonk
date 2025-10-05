@@ -1,3 +1,5 @@
+--- START OF FILE fu.html ---
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,19 +7,13 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Live Messaging App</title>
   <style>
-    /* Basic layout */
     body{font-family:Arial,Helvetica,sans-serif;margin:0;padding:0;background:#f5f5f5;min-height:100vh;display:flex;justify-content:center;align-items:flex-start}
     .container{width:100%;max-width:520px;background:#fff;padding:16px;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,0.08);box-sizing:border-box;margin:12px}
     h2{text-align:center;margin:6px 0 12px}
     h3{margin:14px 0 8px}
-    input,button,textarea{font-family:inherit}
-    input,button,textarea{box-sizing:border-box}
-    input,button,textarea{font-size:15px}
-    input,button,textarea{outline:none}
-    /* Form controls */
-    input[type="email"], input[type="password"]{width:100%;padding:10px;margin:8px 0;border-radius:6px;border:1px solid #ccc}
-    button.primary{width:100%;padding:10px;margin:8px 0;border-radius:6px;border:none;background:#007bff;color:#fff;cursor:pointer;font-weight:600}
-    button.primary:disabled{background:#ccc;cursor:not-allowed}
+    input,button,textarea{width:100%;padding:10px;margin:8px 0;border-radius:6px;border:1px solid #ccc;box-sizing:border-box;font-size:15px}
+    button{background:#007bff;color:#fff;border:none;cursor:pointer;font-weight:600}
+    button:disabled{background:#ccc;cursor:not-allowed}
     .message{padding:8px;border-radius:6px;margin:8px 0}
     .success{background:#e6ffef;color:#0b6623;border:1px solid #c9f3d6}
     .error{background:#ffecec;color:#8b1a1a;border:1px solid #f5c6c6}
@@ -26,26 +22,17 @@
     .chat-list-item{display:flex;align-items:center;padding:10px;background:#f0f2f5;margin:6px 0;border-radius:8px;cursor:pointer}
     .chat-list-avatar{width:40px;height:40px;border-radius:50%;background:#007bff;color:#fff;display:flex;align-items:center;justify-content:center;margin-right:10px;font-weight:700}
     #individual-chat-container{display:none;flex-direction:column;border:1px solid #eee;padding:10px;border-radius:8px;margin-top:8px;background:#fafafa;height:60vh;min-height:360px}
-    #chat-messages{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding:12px}
-    .chat-message{padding:10px 14px;border-radius:16px;max-width:78%;line-height:1.4;word-wrap:break-word}
-    .chat-message.sent{background:#007bff;color:#fff;align-self:flex-end;margin-left:auto;border-bottom-right-radius:4px}
-    .chat-message.received{background:#e8eaf0;color:#111;align-self:flex-start;margin-right:auto;border-bottom-left-radius:4px}
-    /* WhatsApp-like input area (blue send button) */
-    .chat-footer{display:flex;align-items:center;padding:12px;background:transparent;border-top:1px solid rgba(0,0,0,0.04);position:relative}
-    /* big rounded white input */
-    .chat-input-wrap{flex:1;display:flex;align-items:center;background:#fff;border-radius:30px;padding:6px 10px;margin-right:12px;box-shadow:0 1px 3px rgba(0,0,0,0.06)}
-    #chatMessageInput{flex:1;border:none;padding:12px 14px;border-radius:22px;font-size:15px;background:transparent}
-    #chatMessageInput::placeholder{color:#666}
-    /* small circular blue send button on right */
-    #sendChatMessageBtn{width:46px;height:46px;border-radius:50%;border:none;background:#007bff;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 6px rgba(0,123,255,0.25);font-size:18px}
-    #sendChatMessageBtn:disabled{background:#8fb7ff;cursor:not-allowed;box-shadow:none}
-    /* smaller icon inside send button */
-    .send-icon{transform:translateX(1px);font-weight:700}
-    /* responsive tweaks */
-    @media (max-width:420px){
-      .container{padding:12px}
-      #sendChatMessageBtn{width:42px;height:42px;font-size:16px}
-    }
+    #chat-messages{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding-right:6px}
+    .chat-message{padding:8px 12px;border-radius:14px;max-width:78%;line-height:1.4;word-wrap:break-word}
+    .chat-message.sent{background:#007bff;color:#fff;align-self:flex-end;margin-left:auto}
+    .chat-message.received{background:#e8eaf0;color:#111;align-self:flex-start;margin-right:auto}
+    /* --- Updated chat input area: larger message bar, smaller send button (WhatsApp-like) --- */
+    #chat-input-area{display:flex;gap:8px;margin-top:8px;align-items:center}
+    /* make the text input big and pill-shaped */
+    #chat-input-area input{flex:1;margin:0;padding:14px 18px;border-radius:24px;border:1px solid #ddd;font-size:16px;background:#fff;box-sizing:border-box}
+    /* smaller send button */
+    #sendChatMessageBtn{flex:0 0 auto;padding:8px 12px;border-radius:20px;background:#007bff;color:#fff;border:none;cursor:pointer;font-weight:600}
+    #sendChatMessageBtn:disabled{background:#ccc;cursor:not-allowed}
   </style>
 </head>
 <body>
@@ -56,8 +43,8 @@
       <div id="auth-message-area"></div>
       <input id="email" type="email" placeholder="Email" />
       <input id="password" type="password" placeholder="Password" />
-      <button id="signupBtn" class="primary">Sign Up</button>
-      <button id="loginBtn" class="primary">Sign In</button>
+      <button id="signupBtn">Sign Up</button>
+      <button id="loginBtn">Sign In</button>
     </div>
 
     <div id="app-section" style="display:none">
@@ -68,7 +55,7 @@
       <div id="chat-management-area">
         <div id="chat-message-area"></div>
         <input id="addChatEmail" type="email" placeholder="Enter user's email to chat" />
-        <button id="addChatBtn" class="primary">Add Person to Chat</button>
+        <button id="addChatBtn">Add Person to Chat</button>
       </div>
 
       <div id="no-chats-message">No active chats. Add someone to start chatting!</div>
@@ -80,15 +67,10 @@
           <div id="current-chat-avatar" class="chat-list-avatar"></div>
           <h4 id="current-chat-name" style="margin:0"></h4>
         </div>
-
         <div id="chat-messages"></div>
-
-        <!-- Footer: WhatsApp-like input + circular blue send button -->
-        <div class="chat-footer">
-          <div class="chat-input-wrap">
-            <input id="chatMessageInput" type="text" placeholder="Message" />
-          </div>
-          <button id="sendChatMessageBtn" title="Send"><span class="send-icon">➤</span></button>
+        <div id="chat-input-area">
+          <input id="chatMessageInput" type="text" placeholder="Type a message..." />
+          <button id="sendChatMessageBtn">Send</button>
         </div>
       </div>
     </div>
@@ -180,6 +162,8 @@
       }
     });
 
+    // loadPosts function is REMOVED
+    
     addChatBtn.onclick=async()=>{const e=addChatEmailInput.value.trim(),u=auth.currentUser;if(!u)return displayMessage(chatMessageArea,'Login first','error');
       if(!e)return displayMessage(chatMessageArea,'Enter email','error');if(e===u.email)return displayMessage(chatMessageArea,'Cannot chat with yourself','error');
       addChatBtn.disabled=true;
