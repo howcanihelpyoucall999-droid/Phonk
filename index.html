@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Zag Messenger — Demo</title>
+  <title>Zag Messenger — Fullscreen</title>
 
   <!-- Handwritten-style font like the mockup -->
   <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet">
@@ -11,8 +11,8 @@
   <style>
     :root{
       --bg:#e9f1ff;
-      --primary:#4b86e6; /* darker blue for text/icons */
-      --accent:#8fb9ff;  /* soft blue accents */
+      --primary:#4b86e6;
+      --accent:#8fb9ff;
       --card-bg:#ffffff;
       --muted:#9aaecf;
       --bubble:#f5f9ff;
@@ -25,28 +25,22 @@
       background:linear-gradient(180deg,var(--bg), #eef6ff 60%);
       -webkit-font-smoothing:antialiased;
       -moz-osx-font-smoothing:grayscale;
-      display:flex;
-      justify-content:center;
-      align-items:flex-start;
-      padding:28px 12px;
-      box-sizing:border-box;
     }
 
-    /* Phone frame container */
+    /* Fullscreen app container (no blue border / frame) */
     .phone {
-      width:360px;
-      max-width:92vw;
+      width:100%;
+      height:100vh;
       background:var(--card-bg);
-      border-radius:14px;
-      box-shadow: 0 14px 30px rgba(20,40,80,0.06);
-      border: 3px solid rgba(75,134,230,0.15);
-      padding:14px;
+      border-radius:0;
+      box-shadow: none;
+      border: none;
+      padding:18px;
       box-sizing:border-box;
       position:relative;
-      overflow:hidden;
+      overflow:auto;
     }
 
-    /* Header w/ logo and wavy line */
     .header {
       display:flex;
       align-items:center;
@@ -57,14 +51,13 @@
       width:36px;
       height:36px;
       border-radius:50%;
-      border:2px solid var(--primary);
+      border:2px solid rgba(0,0,0,0.04);
       display:flex;
       align-items:center;
       justify-content:center;
       font-weight:700;
       color:var(--primary);
       background:linear-gradient(180deg, #fff, #f7fbff);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
     }
     .title {
       font-size:20px;
@@ -78,7 +71,6 @@
       padding:6px;
     }
 
-    /* Decorative wavy separator - top & bottom */
     .wave-top, .wave-bottom{
       width:100%;
       height:28px;
@@ -110,13 +102,12 @@
       margin-bottom:8px;
     }
     input[type="email"], input[type="password"], input[type="tel"]{
-      border:1px solid rgba(75,134,230,0.18);
+      border:1px solid rgba(75,134,230,0.08);
       border-radius:10px;
       padding:12px 14px;
       font-size:15px;
       outline:none;
       background:linear-gradient(180deg,#fff,#fbfdff);
-      box-shadow: 0 2px 0 rgba(255,255,255,0.6) inset;
       font-family:var(--hand-font);
       color:var(--primary);
     }
@@ -134,7 +125,7 @@
       cursor:pointer;
       font-weight:700;
       font-size:15px;
-      box-shadow: 0 6px 14px rgba(75,134,230,0.12);
+      box-shadow: 0 6px 14px rgba(75,134,230,0.08);
     }
     .btn.primary{
       background:linear-gradient(180deg,var(--primary), #3a6ed6);
@@ -142,11 +133,10 @@
     }
     .btn.ghost{
       background:transparent;
-      border:2px solid rgba(75,134,230,0.12);
+      border:2px solid rgba(75,134,230,0.08);
       color:var(--primary);
     }
 
-    /* small rounded informational pill buttons like the mockup */
     .text-pill {
       background:linear-gradient(180deg, #cfe7ff, #b8d9ff);
       padding:8px 10px;
@@ -164,24 +154,21 @@
       text-align:center;
     }
 
-    /* App area */
     .app {
-      padding:8px 6px 76px 6px;
+      padding:8px 6px 110px 6px;
       display:none;
     }
 
-    /* Phone section panel for phone input */
     .phone-panel {
       background:var(--bubble);
       border-radius:12px;
       padding:12px;
       margin:8px 0;
-      border:1px solid rgba(75,134,230,0.06);
+      border:1px solid rgba(75,134,230,0.04);
     }
 
     .message-area { min-height:28px; }
 
-    /* Chat list */
     .chats {
       margin-top:8px;
     }
@@ -198,7 +185,7 @@
       background:linear-gradient(180deg,#fff,#fbfdff);
       border-radius:10px;
       margin-bottom:8px;
-      border:1px solid rgba(75,134,230,0.06);
+      border:1px solid rgba(75,134,230,0.04);
       cursor:pointer;
     }
     .avatar {
@@ -206,7 +193,7 @@
       height:44px;
       border-radius:50%;
       background:linear-gradient(180deg,#dbeeff,#c1ddff);
-      border:2px solid rgba(75,134,230,0.12);
+      border:2px solid rgba(75,134,230,0.06);
       display:flex;
       align-items:center;
       justify-content:center;
@@ -218,13 +205,12 @@
     .chat-meta .name { font-weight:700; color:var(--primary); }
     .chat-meta .sub { font-size:12px; color:var(--muted); margin-top:2px; }
 
-    /* Floating new button */
     .floating-new {
-      position:absolute;
-      right:18px;
-      top:92px;
-      width:48px;
-      height:48px;
+      position:fixed;
+      right:20px;
+      bottom:88px;
+      width:52px;
+      height:52px;
       border-radius:50%;
       display:flex;
       align-items:center;
@@ -235,29 +221,28 @@
       border:4px solid #fff;
       font-weight:700;
       cursor:pointer;
+      z-index:40;
     }
 
-    /* Bottom nav */
     .bottom-nav {
-      position:absolute;
+      position:fixed;
       left:0;
       bottom:0;
       width:100%;
       background:linear-gradient(180deg,#fff,#f6fbff);
-      border-top:3px solid rgba(75,134,230,0.06);
+      border-top:1px solid rgba(0,0,0,0.03);
       padding:10px 12px;
       display:flex;
       justify-content:space-around;
       gap:10px;
       box-sizing:border-box;
+      z-index:30;
     }
     .nav-item { font-size:14px; color:var(--muted); }
 
-    /* Individual chat container (message view) */
     .chat-screen {
       display:none;
       flex-direction:column;
-      height:60vh;
       min-height:320px;
       margin-top:8px;
     }
@@ -266,7 +251,7 @@
       gap:10px;
       align-items:center;
       padding:8px 6px;
-      border-bottom:1px dashed rgba(75,134,230,0.06);
+      border-bottom:1px dashed rgba(75,134,230,0.04);
       margin-bottom:8px;
     }
     .chat-messages {
@@ -276,6 +261,7 @@
       flex-direction:column;
       gap:8px;
       padding:6px;
+      max-height:55vh;
     }
     .bubble {
       padding:10px 14px;
@@ -293,7 +279,7 @@
       align-self:flex-start;
       background:#fff;
       color:var(--primary);
-      border:1px solid rgba(75,134,230,0.06);
+      border:1px solid rgba(75,134,230,0.04);
     }
 
     .chat-input {
@@ -304,7 +290,7 @@
       border-radius:999px;
       padding:8px;
       background:#fff;
-      border:1px solid rgba(75,134,230,0.06);
+      border:1px solid rgba(75,134,230,0.04);
     }
     .chat-input input {
       flex:1;
@@ -330,15 +316,12 @@
       cursor:pointer;
     }
 
-    /* messages shown near inputs */
     .message.success{ background: #e6ffef; color: #0b6623; border:1px solid #c9f3d6; padding:8px; border-radius:8px; }
     .message.error{ background:#ffecec; color:#8b1a1a; border:1px solid #f5c6c6; padding:8px; border-radius:8px; }
     .message.info{ background:#eef6ff; color:#0b3a66; border:1px solid #cfe6ff; padding:8px; border-radius:8px; }
 
-    /* small screens responsiveness */
-    @media (max-width:420px){
-      .phone { width:94vw; }
-      .floating-new{ right:12px; top:86px; }
+    @media (max-width:700px){
+      .floating-new{ right:12px; bottom:88px; }
     }
   </style>
 </head>
@@ -351,7 +334,6 @@
     </div>
 
     <div class="wave-top" aria-hidden="true">
-      <!-- subtle wavy decorative SVG -->
       <svg viewBox="0 0 100 10" preserveAspectRatio="none"><path d="M0 5 C 20 9, 40 1, 60 5 C 80 9, 100 3, 100 3 L100 10 L0 10 Z" fill="#eef6ff" opacity="0.9"></path></svg>
     </div>
 
@@ -397,9 +379,8 @@
           <h3>My chats</h3>
           <div id="chat-message-area" class="message-area"></div>
 
-          <!-- Add chat area (can be toggled by floating +) -->
           <div id="add-chat-area" style="margin-top:8px;">
-            <input id="addChatIdentifier" type="text" placeholder="Enter user's email or phone number" style="padding:10px;border-radius:10px;border:1px solid rgba(75,134,230,0.08)" />
+            <input id="addChatIdentifier" type="text" placeholder="Enter user's email or phone number" style="padding:10px;border-radius:10px;border:1px solid rgba(75,134,230,0.06)" />
             <div style="display:flex;gap:8px;margin-top:8px">
               <button id="addChatBtn" class="btn primary" style="flex:1">Add Person to Chat</button>
             </div>
@@ -444,7 +425,7 @@
     </div>
   </div>
 
-  <!-- Firebase JS modules (same as your original file) -->
+  <!-- Firebase JS modules -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
     import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
@@ -554,7 +535,7 @@
       }
     }
 
-    // Signup / Signin handlers
+    // --- Authentication Section (kept behavior consistent with your original) ---
     signupBtn.onclick = async () => {
       const e = document.getElementById("email").value.trim(),
             p = document.getElementById("password").value.trim();
@@ -596,7 +577,7 @@
         await createUserProfile(u);
         authSection.style.display = "none";
         appSection.style.display = "block";
-        displayMessage(chatMessageArea, `Welcome, ${u.email}`, "success");
+        displayMessage(authMessageArea, `Welcome, ${u.email}`, "success");
         checkAndShowChatView(u);
       } else {
         authSection.style.display = "block";
@@ -693,12 +674,11 @@
       }
     };
 
-    // Load chat list for the logged-in user
+    // Load chat list (fixed variable name / no typo)
     function loadChatList() {
       const uid = auth.currentUser?.uid;
       if (!uid) return;
       chatListContainer.innerHTML = "";
-      no-chats-message = document.getElementById("no-chats-message");
       noChatsMessage.style.display = "block";
       onValue(chatsRef, (s) => {
         chatListContainer.innerHTML = "";
@@ -724,7 +704,6 @@
       });
     }
 
-    // Open chat screen
     function openIndividualChat(chatId, recipientUid, recipientEmail, recipientPhone) {
       currentChatId = chatId;
       currentChatRecipientUid = recipientUid;
@@ -791,19 +770,16 @@
       loadChatList();
     };
 
-    // Floating + toggles visibility of the add chat area
     floatingNewBtn.onclick = () => {
       const a = document.getElementById("add-chat-area");
       if (a.style.display === "none") a.style.display = "block";
       else a.style.display = a.style.display === "block" ? "none" : "block";
     };
 
-    // Ensure UI resets on page load
     (function init(){
       authSection.style.display = "block";
       appSection.style.display = "none";
     })();
-
   </script>
 </body>
 </html>
