@@ -3,120 +3,72 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Zag Messenger — Fullscreen</title>
+  <title>Zag Messenger — Final Adjusted</title>
 
-  <!-- Handwritten-style font like the mockup -->
   <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet">
-
   <style>
-    :root{
+    :root {
       --bg:#e9f1ff;
-      --primary:#4b86e6;
-      --accent:#8fb9ff;
-      --card-bg:#ffffff;
+      --primary:#0b60d6;
       --muted:#9aaecf;
-      --bubble:#f5f9ff;
-      --hand-font: "Patrick Hand", "Segoe UI", "Arial", sans-serif;
+      --hand-font:"Patrick Hand","Segoe UI","Arial",sans-serif;
     }
-    html,body{
+    html,body {
       height:100%;
       margin:0;
       font-family:var(--hand-font);
-      background:linear-gradient(180deg,var(--bg), #eef6ff 60%);
-      -webkit-font-smoothing:antialiased;
-      -moz-osx-font-smoothing:grayscale;
+      background:linear-gradient(180deg,var(--bg),#eef6ff 60%);
+      overflow:hidden; /* Prevent scrolling by default */
     }
-
-    /* Fullscreen app container (no blue border / frame) */
     .phone {
       width:100%;
       height:100vh;
-      background:var(--card-bg);
-      border-radius:0;
-      box-shadow: none;
-      border: none;
-      padding:18px;
+      background:#fff;
+      border:none;
+      display:flex;
+      flex-direction:column;
       box-sizing:border-box;
-      position:relative;
-      overflow:auto;
     }
-
     .header {
       display:flex;
       align-items:center;
+      padding:10px 14px;
       gap:10px;
-      padding:6px 6px 12px 6px;
     }
     .logo {
-      width:36px;
-      height:36px;
+      width:36px;height:36px;
       border-radius:50%;
-      border:2px solid rgba(0,0,0,0.04);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-weight:700;
-      color:var(--primary);
-      background:linear-gradient(180deg, #fff, #f7fbff);
+      display:flex;align-items:center;justify-content:center;
+      font-weight:700;color:var(--primary);
+      background:linear-gradient(180deg,#fff,#f7fbff);
     }
-    .title {
-      font-size:20px;
-      color:var(--primary);
-      font-weight:700;
-    }
-    .menu {
-      margin-left:auto;
-      font-size:20px;
-      color:var(--primary);
-      padding:6px;
-    }
-
-    .wave-top, .wave-bottom{
-      width:100%;
-      height:28px;
-      display:block;
-    }
-    .wave-top svg, .wave-bottom svg { width:100%; height:100%; display:block; }
-
-    /* Auth area */
+    .title {font-size:20px;color:var(--primary);font-weight:700;}
+    .menu {margin-left:auto;font-size:20px;color:var(--primary);}
+    .wave-top svg,.wave-bottom svg {width:100%;height:100%;display:block;}
+    .wave-top,.wave-bottom {width:100%;height:28px;}
     .auth {
-      padding:12px 12px 18px 12px;
-      text-align:center;
-    }
-    .welcome {
-      font-size:22px;
-      color:var(--primary);
-      margin:8px 0 6px;
-    }
-    .sub {
-      color:var(--muted);
-      font-size:13px;
-      margin-bottom:12px;
-    }
-
-    .form-box {
+      flex:1;
       display:flex;
       flex-direction:column;
-      gap:10px;
-      align-items:stretch;
-      margin-bottom:8px;
+      justify-content:center;
+      align-items:center;
+      text-align:center;
+      padding:20px;
+      overflow-y:auto; /* scroll only if content overflows */
     }
-    input[type="email"], input[type="password"], input[type="tel"]{
+    .welcome {font-size:22px;color:var(--primary);}
+    .sub {color:var(--muted);font-size:13px;margin-bottom:12px;}
+    input {
       border:1px solid rgba(75,134,230,0.08);
       border-radius:10px;
       padding:12px 14px;
       font-size:15px;
-      outline:none;
       background:linear-gradient(180deg,#fff,#fbfdff);
       font-family:var(--hand-font);
       color:var(--primary);
-    }
-
-    .action-row {
-      display:flex;
-      gap:12px;
-      flex-direction:column;
-      margin-top:6px;
+      width:90%;
+      max-width:320px;
+      margin-bottom:10px;
     }
     .btn {
       padding:10px 12px;
@@ -125,20 +77,16 @@
       cursor:pointer;
       font-weight:700;
       font-size:15px;
-      box-shadow: 0 6px 14px rgba(75,134,230,0.08);
+      box-shadow:0 6px 14px rgba(75,134,230,0.08);
+      width:90%;
+      max-width:320px;
+      margin-bottom:8px;
+      font-family:var(--hand-font);
     }
-    .btn.primary{
-      background:linear-gradient(180deg,var(--primary), #3a6ed6);
-      color:#fff;
-    }
-    .btn.ghost{
-      background:transparent;
-      border:2px solid rgba(75,134,230,0.08);
-      color:var(--primary);
-    }
-
+    .primary {background:linear-gradient(180deg,var(--primary),#0a56bf);color:#fff;}
+    .ghost {background:#f6f9ff;color:var(--primary);}
     .text-pill {
-      background:linear-gradient(180deg, #cfe7ff, #b8d9ff);
+      background:linear-gradient(180deg,#cfe7ff,#b8d9ff);
       padding:8px 10px;
       border-radius:8px;
       color:var(--primary);
@@ -146,290 +94,107 @@
       display:inline-block;
       margin:6px 0;
     }
-
     .foot-sign {
-      margin-top:8px;
       font-size:20px;
       color:var(--primary);
       text-align:center;
+      margin-top:auto;
+      margin-bottom:20px;
     }
-
+    /* App Section */
     .app {
-      padding:8px 6px 110px 6px;
       display:none;
+      flex:1;
+      overflow-y:auto;
+      padding:20px;
+      box-sizing:border-box;
     }
-
-    .phone-panel {
-      background:var(--bubble);
-      border-radius:12px;
-      padding:12px;
-      margin:8px 0;
-      border:1px solid rgba(75,134,230,0.04);
-    }
-
-    .message-area { min-height:28px; }
-
-    .chats {
-      margin-top:8px;
-    }
-    .chats h3 {
-      color:var(--primary);
-      margin:2px 0 8px;
-      font-size:18px;
-    }
+    .chats h3 {color:var(--primary);margin:10px 0;}
     .chat-item {
-      display:flex;
-      gap:10px;
-      align-items:center;
+      display:flex;gap:10px;align-items:center;
       padding:10px;
       background:linear-gradient(180deg,#fff,#fbfdff);
       border-radius:10px;
       margin-bottom:8px;
       border:1px solid rgba(75,134,230,0.04);
-      cursor:pointer;
     }
     .avatar {
-      width:44px;
-      height:44px;
-      border-radius:50%;
+      width:44px;height:44px;border-radius:50%;
       background:linear-gradient(180deg,#dbeeff,#c1ddff);
-      border:2px solid rgba(75,134,230,0.06);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-weight:700;
-      color:var(--primary);
-      font-size:16px;
+      display:flex;align-items:center;justify-content:center;
+      font-weight:700;color:var(--primary);
     }
-    .chat-meta { flex:1; }
-    .chat-meta .name { font-weight:700; color:var(--primary); }
-    .chat-meta .sub { font-size:12px; color:var(--muted); margin-top:2px; }
-
+    .chat-meta .name {font-weight:700;color:var(--primary);}
+    .chat-meta .sub {font-size:12px;color:var(--muted);}
     .floating-new {
       position:fixed;
-      right:20px;
-      bottom:88px;
-      width:52px;
-      height:52px;
+      right:18px;
+      bottom:96px;
+      width:56px;height:56px;
       border-radius:50%;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      background:linear-gradient(180deg,#4b86e6,#3a6ed6);
+      display:flex;align-items:center;justify-content:center;
+      background:linear-gradient(180deg,var(--primary),#0a56bf);
       color:#fff;
-      box-shadow:0 10px 24px rgba(75,134,230,0.18);
+      box-shadow:0 12px 28px rgba(11,96,214,0.2);
       border:4px solid #fff;
       font-weight:700;
       cursor:pointer;
       z-index:40;
     }
-
     .bottom-nav {
       position:fixed;
-      left:0;
-      bottom:0;
-      width:100%;
+      left:0;bottom:0;width:100%;
       background:linear-gradient(180deg,#fff,#f6fbff);
       border-top:1px solid rgba(0,0,0,0.03);
-      padding:10px 12px;
-      display:flex;
-      justify-content:space-around;
-      gap:10px;
-      box-sizing:border-box;
-      z-index:30;
-    }
-    .nav-item { font-size:14px; color:var(--muted); }
-
-    .chat-screen {
-      display:none;
-      flex-direction:column;
-      min-height:320px;
-      margin-top:8px;
-    }
-    .chat-header {
-      display:flex;
-      gap:10px;
-      align-items:center;
-      padding:8px 6px;
-      border-bottom:1px dashed rgba(75,134,230,0.04);
-      margin-bottom:8px;
-    }
-    .chat-messages {
-      flex:1;
-      overflow:auto;
-      display:flex;
-      flex-direction:column;
-      gap:8px;
-      padding:6px;
-      max-height:55vh;
-    }
-    .bubble {
-      padding:10px 14px;
-      border-radius:18px;
-      max-width:78%;
-      line-height:1.4;
-      box-shadow:0 6px 14px rgba(10,30,80,0.04);
-    }
-    .bubble.sent {
-      align-self:flex-end;
-      background:linear-gradient(180deg,#4b86e6,#3a6ed6);
-      color:#fff;
-    }
-    .bubble.received {
-      align-self:flex-start;
-      background:#fff;
+      padding:14px;
+      text-align:center;
       color:var(--primary);
-      border:1px solid rgba(75,134,230,0.04);
-    }
-
-    .chat-input {
-      display:flex;
-      gap:8px;
-      align-items:center;
-      margin-top:8px;
-      border-radius:999px;
-      padding:8px;
-      background:#fff;
-      border:1px solid rgba(75,134,230,0.04);
-    }
-    .chat-input input {
-      flex:1;
-      border:none;
-      outline:none;
-      font-size:15px;
-      padding:10px 6px;
-      font-family:var(--hand-font);
-      color:var(--primary);
-      background:transparent;
-    }
-    .send-btn {
-      width:44px;
-      height:44px;
-      border-radius:50%;
-      border:none;
-      background:linear-gradient(180deg,#4b86e6,#3a6ed6);
-      color:#fff;
-      display:flex;
-      align-items:center;
-      justify-content:center;
+      font-size:18px;
       font-weight:700;
-      cursor:pointer;
-    }
-
-    .message.success{ background: #e6ffef; color: #0b6623; border:1px solid #c9f3d6; padding:8px; border-radius:8px; }
-    .message.error{ background:#ffecec; color:#8b1a1a; border:1px solid #f5c6c6; padding:8px; border-radius:8px; }
-    .message.info{ background:#eef6ff; color:#0b3a66; border:1px solid #cfe6ff; padding:8px; border-radius:8px; }
-
-    @media (max-width:700px){
-      .floating-new{ right:12px; bottom:88px; }
     }
   </style>
 </head>
 <body>
-  <div class="phone" id="phoneFrame">
+  <div class="phone">
     <div class="header">
       <div class="logo">Zg</div>
       <div class="title">Zag Messenger</div>
       <div class="menu">☰</div>
     </div>
-
-    <div class="wave-top" aria-hidden="true">
-      <svg viewBox="0 0 100 10" preserveAspectRatio="none"><path d="M0 5 C 20 9, 40 1, 60 5 C 80 9, 100 3, 100 3 L100 10 L0 10 Z" fill="#eef6ff" opacity="0.9"></path></svg>
+    <div class="wave-top">
+      <svg viewBox="0 0 100 10" preserveAspectRatio="none"><path d="M0 5 C 20 9, 40 1, 60 5 C 80 9, 100 3, 100 3 L100 10 L0 10 Z" fill="#eef6ff"></path></svg>
     </div>
 
-    <!-- AUTH SECTION -->
+    <!-- Sign up/in section -->
     <div class="auth" id="auth-section">
-      <div class="welcome">Welcome, <br/>to Zag Messanger.</div>
+      <div class="welcome">Welcome,<br>to Zag Messanger.</div>
       <div class="sub">Write your World</div>
-
-      <div id="auth-message-area" class="message-area"></div>
-
-      <div class="form-box">
-        <input id="email" type="email" placeholder="Email" />
-        <input id="password" type="password" placeholder="Password" />
-      </div>
-
-      <div class="action-row">
-        <button id="signupBtn" class="btn primary">Sign Up</button>
-        <button id="loginBtn" class="btn ghost">Sign In</button>
-      </div>
-
-      <div style="margin-top:10px;">
-        <div class="text-pill">If you don't have account Sing up</div><br/>
-        <div class="text-pill" style="margin-top:6px;">If you have a account Singin</div>
-      </div>
-
+      <input id="email" type="email" placeholder="Email">
+      <input id="password" type="password" placeholder="Password">
+      <button id="signupBtn" class="btn primary">Sign Up</button>
+      <button id="loginBtn" class="btn ghost">Sign In</button>
+      <div class="text-pill">If you don't have account Sing up</div>
+      <div class="text-pill">If you have a account Singin</div>
       <div class="foot-sign">Write your World</div>
     </div>
 
-    <!-- APP SECTION (hidden until sign in) -->
+    <!-- Homepage -->
     <div class="app" id="app-section">
-      <div id="phone-section" class="phone-panel" style="display:none;">
-        <h4 style="margin:0;color:var(--primary)">Add Your Phone Number</h4>
-        <div id="phone-message-area" class="message-area"></div>
-        <input id="phoneNumber" type="tel" placeholder="Phone number (e.g., +1234567890)" style="margin-top:10px" />
-        <div style="display:flex;gap:8px;margin-top:10px">
-          <button id="savePhoneNumberBtn" class="btn primary" style="flex:1">Save Phone Number</button>
-          <button id="skipPhoneNumberBtn" class="btn ghost" style="flex:1">Skip for now</button>
+      <div class="chats">
+        <h3>My chats</h3>
+        <div id="chat-list-container">
+          <div class="chat-item"><div class="avatar">A</div><div class="chat-meta"><div class="name">Alex</div><div class="sub">alex@gmail.com</div></div></div>
         </div>
-      </div>
-
-      <div id="main-chat-view">
-        <div class="chats">
-          <h3>My chats</h3>
-          <div id="chat-message-area" class="message-area"></div>
-
-          <div id="add-chat-area" style="margin-top:8px;">
-            <input id="addChatIdentifier" type="text" placeholder="Enter user's email or phone number" style="padding:10px;border-radius:10px;border:1px solid rgba(75,134,230,0.06)" />
-            <div style="display:flex;gap:8px;margin-top:8px">
-              <button id="addChatBtn" class="btn primary" style="flex:1">Add Person to Chat</button>
-            </div>
-          </div>
-
-          <div id="no-chats-message" style="color:var(--muted);margin-top:12px">No active chats. Add someone to start chatting!</div>
-          <div id="chat-list-container" style="margin-top:12px"></div>
-        </div>
-      </div>
-
-      <!-- Individual Chat Screen -->
-      <div id="individual-chat-container" class="chat-screen">
-        <div class="chat-header">
-          <button id="backToChatListBtn" class="btn ghost" style="padding:6px 10px;border-radius:8px">&lt; Back</button>
-          <div id="current-chat-avatar" class="avatar"></div>
-          <div>
-            <div id="current-chat-name" style="font-weight:700;color:var(--primary);"></div>
-            <div id="current-chat-sub" style="font-size:12px;color:var(--muted)"></div>
-          </div>
-        </div>
-
-        <div id="chat-messages" class="chat-messages"></div>
-
-        <div id="chat-input-area" class="chat-input">
-          <input id="chatMessageInput" type="text" placeholder="Type a message..." />
-          <button id="sendChatMessageBtn" class="send-btn">➤</button>
-        </div>
-      </div>
-
-      <div class="floating-new" id="floatingNewBtn" title="Add new chat">+</div>
-
-      <div class="bottom-nav" aria-hidden="true">
-        <div class="nav-item">Home</div>
-        <div class="nav-item">Groups</div>
-        <div class="nav-item">Games</div>
-        <div class="nav-item">@You</div>
       </div>
     </div>
 
-    <div class="wave-bottom" aria-hidden="true" style="margin-top:8px;">
-      <svg viewBox="0 0 100 10" preserveAspectRatio="none"><path d="M0 3 C 20 0, 40 9, 60 3 C 80 0, 100 6, 100 6 L100 10 L0 10 Z" fill="#eef6ff" opacity="0.9"></path></svg>
-    </div>
+    <div class="bottom-nav">Write your World</div>
+    <div class="floating-new" id="floatingNewBtn" title="Add new chat" style="display:none;">+</div>
   </div>
 
-  <!-- Firebase JS modules -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
-    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
-    import { getDatabase, ref as dbRef, push, onValue, set, query, orderByChild, equalTo, get, onChildAdded } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-database.js";
+    import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBUH95hXYxMVCfhJglN4j3CReXy-CLYwmA",
@@ -440,346 +205,41 @@
       messagingSenderId: "537475612761",
       appId: "1:537475612761:web:d00723c117383e54027148"
     };
-
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
-    const db = getDatabase(app);
-    const usersRef = dbRef(db, "users");
-    const chatsRef = dbRef(db, "chats");
 
-    // DOM
     const authSection = document.getElementById("auth-section");
     const appSection = document.getElementById("app-section");
-    const authMessageArea = document.getElementById("auth-message-area");
     const signupBtn = document.getElementById("signupBtn");
     const loginBtn = document.getElementById("loginBtn");
-    const phoneSection = document.getElementById("phone-section");
-    const phoneNumberInput = document.getElementById("phoneNumber");
-    const savePhoneNumberBtn = document.getElementById("savePhoneNumberBtn");
-    const skipPhoneNumberBtn = document.getElementById("skipPhoneNumberBtn");
-    const phoneMessageArea = document.getElementById("phone-message-area");
-    const mainChatView = document.getElementById("main-chat-view");
-    const addChatIdentifierInput = document.getElementById("addChatIdentifier");
-    const addChatBtn = document.getElementById("addChatBtn");
-    const chatMessageArea = document.getElementById("chat-message-area");
-    const chatListContainer = document.getElementById("chat-list-container");
-    const noChatsMessage = document.getElementById("no-chats-message");
-    const individualChatContainer = document.getElementById("individual-chat-container");
-    const chatMessagesContainer = document.getElementById("chat-messages");
-    const chatMessageInput = document.getElementById("chatMessageInput");
-    const sendChatMessageBtn = document.getElementById("sendChatMessageBtn");
-    const backToChatListBtn = document.getElementById("backToChatListBtn");
-    const currentChatName = document.getElementById("current-chat-name");
-    const currentChatAvatar = document.getElementById("current-chat-avatar");
-    const currentChatSub = document.getElementById("current-chat-sub");
-    const floatingNewBtn = document.getElementById("floatingNewBtn");
+    const plusBtn = document.getElementById("floatingNewBtn");
 
-    let currentChatId = null, currentChatRecipientUid = null, currentChatRecipientEmail = null, currentChatRecipientPhone = null;
-
-    function displayMessage(area, msg, type = "info") {
-      area.innerHTML = `<div class="message ${type}">${msg}</div>`;
-      setTimeout(() => (area.innerHTML = ""), 4500);
-    }
-
-    async function createUserProfile(user) {
-      if (user) {
-        const userRef = dbRef(db, "users/" + user.uid);
-        const snapshot = await get(userRef);
-        if (!snapshot.exists()) {
-          await set(userRef, { email: user.email, uid: user.uid });
-        }
-      }
-    }
-
-    async function getUserByEmail(email) {
-      const q = query(usersRef, orderByChild("email"), equalTo(email));
-      const s = await get(q);
-      if (s.exists()) {
-        let u = null;
-        s.forEach((c) => (u = c.val()));
-        return u;
-      }
-      return null;
-    }
-
-    async function getUserByPhoneNumber(phoneNumber) {
-      const normalizedPhone = phoneNumber.replace(/[\s-()]/g, '');
-      const q = query(usersRef, orderByChild("phoneNumber"), equalTo(normalizedPhone));
-      const s = await get(q);
-      if (s.exists()) {
-        let u = null;
-        s.forEach((c) => (u = c.val()));
-        return u;
-      }
-      return null;
-    }
-
-    function isValidEmail(email) {
-      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-    }
-    function isValidPhoneNumber(phone) {
-      return /^\+?\d{7,15}$/.test(phone.replace(/[\s-()]/g, ''));
-    }
-
-    async function checkAndShowChatView(user) {
-      const userRef = dbRef(db, "users/" + user.uid);
-      const snapshot = await get(userRef);
-      const userData = snapshot.val();
-      if (userData && userData.phoneNumber) {
-        phoneSection.style.display = "none";
-        mainChatView.style.display = "block";
-        loadChatList();
-      } else {
-        phoneSection.style.display = "block";
-        mainChatView.style.display = "none";
-      }
-    }
-
-    // --- Authentication Section (kept behavior consistent with your original) ---
     signupBtn.onclick = async () => {
-      const e = document.getElementById("email").value.trim(),
-            p = document.getElementById("password").value.trim();
-      if (!e || !p) return displayMessage(authMessageArea, "Email/password required", "error");
-      signupBtn.disabled = true;
+      const e = email.value.trim(), p = password.value.trim();
+      if (!e || !p) return alert("Enter email & password");
       try {
-        const c = await createUserWithEmailAndPassword(auth, e, p);
-        await createUserProfile(c.user);
-        authSection.style.display = "none";
-        appSection.style.display = "block";
-        checkAndShowChatView(c.user);
-      } catch (err) {
-        displayMessage(authMessageArea, "Sign up failed: " + err.message, "error");
-      } finally {
-        signupBtn.disabled = false;
-      }
+        await createUserWithEmailAndPassword(auth, e, p);
+      } catch (err) { alert("Sign up failed: " + err.message); }
     };
-
     loginBtn.onclick = async () => {
-      const e = document.getElementById("email").value.trim(),
-            p = document.getElementById("password").value.trim();
-      if (!e || !p) return displayMessage(authMessageArea, "Email/password required", "error");
-      loginBtn.disabled = true;
+      const e = email.value.trim(), p = password.value.trim();
+      if (!e || !p) return alert("Enter email & password");
       try {
-        const c = await signInWithEmailAndPassword(auth, e, p);
-        await createUserProfile(c.user);
-        authSection.style.display = "none";
-        appSection.style.display = "block";
-        checkAndShowChatView(c.user);
-      } catch (err) {
-        displayMessage(authMessageArea, "Sign in failed: " + err.message, "error");
-      } finally {
-        loginBtn.disabled = false;
-      }
+        await signInWithEmailAndPassword(auth, e, p);
+      } catch (err) { alert("Sign in failed: " + err.message); }
     };
 
-    onAuthStateChanged(auth, async (u) => {
-      if (u) {
-        await createUserProfile(u);
+    onAuthStateChanged(auth, user => {
+      if (user) {
         authSection.style.display = "none";
         appSection.style.display = "block";
-        displayMessage(authMessageArea, `Welcome, ${u.email}`, "success");
-        checkAndShowChatView(u);
+        plusBtn.style.display = "flex"; // only show + on homepage
       } else {
-        authSection.style.display = "block";
+        authSection.style.display = "flex";
         appSection.style.display = "none";
-        individualChatContainer.style.display = "none";
-        phoneSection.style.display = "none";
-        mainChatView.style.display = "none";
+        plusBtn.style.display = "none"; // hide + on login
       }
     });
-
-    // Phone number save/skip
-    savePhoneNumberBtn.onclick = async () => {
-      const phone = phoneNumberInput.value.trim();
-      const user = auth.currentUser;
-      if (!user) return displayMessage(phoneMessageArea, "Login first", "error");
-      if (!phone) return displayMessage(phoneMessageArea, "Phone number required", "error");
-      if (!isValidPhoneNumber(phone)) return displayMessage(phoneMessageArea, "Please enter a valid phone number (e.g., +1234567890)", "error");
-      savePhoneNumberBtn.disabled = true;
-      try {
-        const normalizedPhone = phone.replace(/[\s-()]/g, '');
-        await set(dbRef(db, "users/" + user.uid + "/phoneNumber"), normalizedPhone);
-        displayMessage(phoneMessageArea, "Phone number saved successfully!", "success");
-        phoneSection.style.display = "none";
-        mainChatView.style.display = "block";
-        loadChatList();
-      } catch (error) {
-        console.error("Failed to save phone number:", error);
-        displayMessage(phoneMessageArea, "Failed to save phone number: " + error.message, "error");
-      } finally {
-        savePhoneNumberBtn.disabled = false;
-      }
-    };
-
-    skipPhoneNumberBtn.onclick = () => {
-      phoneSection.style.display = "none";
-      mainChatView.style.display = "block";
-      loadChatList();
-    };
-
-    // Add chat by email or phone
-    addChatBtn.onclick = async () => {
-      const identifier = addChatIdentifierInput.value.trim();
-      const u = auth.currentUser;
-      if (!u) return displayMessage(chatMessageArea, "Login first", "error");
-      if (!identifier) return displayMessage(chatMessageArea, "Enter email or phone number", "error");
-      addChatBtn.disabled = true;
-      let recipient = null;
-      try {
-        let isEmail = isValidEmail(identifier);
-        let isPhone = isValidPhoneNumber(identifier);
-        if (isEmail) {
-          recipient = await getUserByEmail(identifier);
-          if (u.email === identifier) {
-            addChatBtn.disabled = false;
-            return displayMessage(chatMessageArea, "Cannot chat with yourself", "error");
-          }
-        } else if (isPhone) {
-          recipient = await getUserByPhoneNumber(identifier);
-          const currentUserData = (await get(dbRef(db, "users/" + u.uid))).val();
-          if (currentUserData && currentUserData.phoneNumber && currentUserData.phoneNumber === identifier.replace(/[\s-()]/g, '')) {
-            addChatBtn.disabled = false;
-            return displayMessage(chatMessageArea, "Cannot chat with yourself", "error");
-          }
-        } else {
-          addChatBtn.disabled = false;
-          return displayMessage(chatMessageArea, "Please enter a valid email or phone number", "error");
-        }
-        if (!recipient) {
-          addChatBtn.disabled = false;
-          return displayMessage(chatMessageArea, "User not found", "error");
-        }
-        const ids = [u.uid, recipient.uid].sort();
-        const id = ids.join("_");
-        const ex = await get(dbRef(db, "chats/" + id));
-        if (ex.exists()) {
-          displayMessage(chatMessageArea, "Chat already exists", "info");
-        } else {
-          const currentUserData = (await get(dbRef(db, "users/" + u.uid))).val();
-          const currentUserPhone = currentUserData ? currentUserData.phoneNumber : null;
-          await set(dbRef(db, "chats/" + id), {
-            members: ids,
-            memberEmails: { [u.uid]: u.email, [recipient.uid]: recipient.email },
-            memberPhones: { [u.uid]: currentUserPhone, [recipient.uid]: recipient.phoneNumber || null },
-            createdAt: Date.now(),
-          });
-          displayMessage(chatMessageArea, "Chat added", "success");
-        }
-        addChatIdentifierInput.value = "";
-      } catch (er) {
-        console.error("Add chat error", er);
-        displayMessage(chatMessageArea, "Failed to add person: " + (er.message || er), "error");
-      } finally {
-        addChatBtn.disabled = false;
-      }
-    };
-
-    // Load chat list (fixed variable name / no typo)
-    function loadChatList() {
-      const uid = auth.currentUser?.uid;
-      if (!uid) return;
-      chatListContainer.innerHTML = "";
-      noChatsMessage.style.display = "block";
-      onValue(chatsRef, (s) => {
-        chatListContainer.innerHTML = "";
-        let found = false;
-        s.forEach((c) => {
-          const v = c.val();
-          const k = c.key;
-          if (v.members && v.members.includes(uid)) {
-            found = true;
-            const other = v.members.find((x) => x !== uid);
-            const email = v.memberEmails ? v.memberEmails[other] : "";
-            const phone = (v.memberPhones && v.memberPhones[other]) ? v.memberPhones[other] : "";
-            const name = email ? email.split("@")[0] : (phone ? phone : "Unknown");
-            const identifierText = email ? email : (phone ? phone : "No identifier");
-            const div = document.createElement("div");
-            div.className = "chat-item";
-            div.innerHTML = `<div class='avatar'>${name.charAt(0).toUpperCase()}</div><div class='chat-meta'><div class='name'>${name}</div><div class='sub'>${identifierText}</div></div>`;
-            div.onclick = () => openIndividualChat(k, other, email, phone);
-            chatListContainer.appendChild(div);
-          }
-        });
-        noChatsMessage.style.display = found ? "none" : "block";
-      });
-    }
-
-    function openIndividualChat(chatId, recipientUid, recipientEmail, recipientPhone) {
-      currentChatId = chatId;
-      currentChatRecipientUid = recipientUid;
-      currentChatRecipientEmail = recipientEmail;
-      currentChatRecipientPhone = recipientPhone;
-
-      mainChatView.style.display = "none";
-      individualChatContainer.style.display = "flex";
-
-      const displayName = recipientEmail ? recipientEmail.split("@")[0] : (recipientPhone || "Unknown");
-      currentChatName.textContent = displayName;
-      currentChatSub.textContent = recipientEmail ? recipientEmail : (recipientPhone || "");
-      currentChatAvatar.textContent = displayName.charAt(0).toUpperCase();
-
-      chatMessagesContainer.innerHTML = "";
-      loadMessages(chatId);
-    }
-
-    function loadMessages(chatId) {
-      chatMessagesContainer.innerHTML = "";
-      const q = query(dbRef(db, "privateMessages/" + chatId), orderByChild("timestamp"));
-      onChildAdded(q, async (s) => {
-        const m = s.val();
-        const el = document.createElement("div");
-        el.className = "bubble " + (m.senderUid === auth.currentUser?.uid ? "sent" : "received");
-
-        let senderDisplayName = "Unknown";
-        if (m.senderEmail) senderDisplayName = m.senderEmail.split("@")[0];
-        else if (m.senderUid) {
-          const senderProfile = (await get(dbRef(db, "users/" + m.senderUid))).val();
-          if (senderProfile && senderProfile.phoneNumber) senderDisplayName = senderProfile.phoneNumber;
-        }
-
-        const time = m.timestamp ? new Date(m.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "";
-        el.innerHTML = `${m.text || ""}<div style='font-size:11px;margin-top:6px;color:rgba(0,0,0,0.35)'>${senderDisplayName} • ${time}</div>`;
-        chatMessagesContainer.appendChild(el);
-        chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
-      });
-    }
-
-    sendChatMessageBtn.onclick = async () => {
-      const text = chatMessageInput.value.trim();
-      if (!text || !currentChatId || !auth.currentUser) return;
-      sendChatMessageBtn.disabled = true;
-      try {
-        await push(dbRef(db, "privateMessages/" + currentChatId), {
-          text,
-          senderUid: auth.currentUser.uid,
-          senderEmail: auth.currentUser.email,
-          timestamp: Date.now(),
-        });
-        chatMessageInput.value = "";
-      } catch (e) {
-        console.error("send error", e);
-        displayMessage(chatMessageArea, "Failed to send message", "error");
-      } finally {
-        sendChatMessageBtn.disabled = false;
-      }
-    };
-
-    backToChatListBtn.onclick = () => {
-      individualChatContainer.style.display = "none";
-      mainChatView.style.display = "block";
-      loadChatList();
-    };
-
-    floatingNewBtn.onclick = () => {
-      const a = document.getElementById("add-chat-area");
-      if (a.style.display === "none") a.style.display = "block";
-      else a.style.display = a.style.display === "block" ? "none" : "block";
-    };
-
-    (function init(){
-      authSection.style.display = "block";
-      appSection.style.display = "none";
-    })();
   </script>
 </body>
 </html>
