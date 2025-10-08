@@ -6,14 +6,30 @@
   <title>Zag Messenger — Final BD Version</title>
   <link href='https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap' rel='stylesheet'>
   <style>
-    :root {--bg:#e9f1ff;--primary:#0b60d6;--muted:#9aaecf;--hand-font:'Patrick Hand','Segoe UI','Arial',sans-serif;}
+    :root {
+      --bg:#e9f1ff;
+      --primary:#0b60d6; /* Original primary blue */
+      --primary-darker-wave: #0849a6; /* Darker blue specifically for the wave */
+      --muted:#9aaecf;
+      --hand-font:'Patrick Hand','Segoe UI','Arial',sans-serif;
+    }
     html,body{height:100%;margin:0;font-family:var(--hand-font);background:linear-gradient(180deg,var(--bg),#eef6ff 60%);overflow:hidden;}
     .phone{width:100%;height:100vh;background:#fff;display:flex;flex-direction:column;box-sizing:border-box;}
-    .header{display:flex;align-items:center;padding:10px 14px;gap:10px;}
-    .logo{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--primary);background:linear-gradient(180deg,#fff,#f7fbff);}
-    .title{font-size:20px;color:var(--primary);font-weight:700;}
-    .menu{margin-left:auto;font-size:20px;color:var(--primary);}
+    .header{
+      display:flex;align-items:center;padding:10px 14px;gap:10px;
+      background:linear-gradient(180deg,var(--primary),#0a56bf); /* Reverted to previous primary blue */
+      color: #fff;
+    }
+    .logo{
+      width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+      font-weight:700;color:var(--primary); /* Logo text color based on primary */
+      background:linear-gradient(180deg,#fff,#f7fbff);
+    }
+    .title{font-size:20px;color:#fff;font-weight:700;}
+    .menu{margin-left:auto;font-size:20px;color:#fff;}
     .wave-top svg,.wave-bottom svg{width:100%;height:100%;display:block;}
+    .wave-top path { fill: var(--primary-darker-wave); } /* Apply darker blue to the wave path */
+    .wave-bottom path { fill: #eef6ff; } /* Assuming bottom wave is still light */
     .wave-top,.wave-bottom{width:100%;height:28px;}
     .auth{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:20px;overflow-y:auto;}
     .welcome{font-size:22px;color:var(--primary);}
@@ -25,7 +41,6 @@
     .primary{background:linear-gradient(180deg,var(--primary),#0a56bf);color:#fff;}
     .ghost{background:#f6f9ff;color:var(--primary);}
     .text-pill{background:linear-gradient(180deg,#cfe7ff,#b8d9ff);padding:8px 10px;border-radius:8px;color:var(--primary);font-weight:700;display:inline-block;margin:6px 0;}
-    .foot-sign{font-size:18px;color:var(--muted);text-align:center;margin-top:auto;margin-bottom:20px;}
     .app{display:none;flex:1;overflow-y:auto;padding:16px 18px 120px 18px;box-sizing:border-box;}
     .top-controls{display:flex;align-items:center;gap:12px;margin-bottom:8px;}
     .chats h3{color:var(--primary);margin:8px 0 12px;}
@@ -36,16 +51,78 @@
     #add-chat-area{display:none;margin-bottom:12px;position:relative;}
     #closeAddChat{position:absolute;top:-10px;right:-10px;background:#fff;border:2px solid #ccc;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-weight:bold;color:#777;}
     .floating-new{position:fixed;right:18px;bottom:96px;width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,var(--primary),#0a56bf);color:#fff;box-shadow:0 12px 28px rgba(11,96,214,0.2);border:4px solid #fff;font-weight:700;cursor:pointer;z-index:40;}
-    .bottom-nav{position:fixed;left:0;bottom:0;width:100%;background:linear-gradient(180deg,#fff,#f6fbff);border-top:1px solid rgba(0,0,0,0.03);padding:14px;text-align:center;color:var(--primary);font-size:18px;font-weight:700;}
-    .chat-screen{display:none;flex-direction:column;min-height:320px;margin-top:8px;}
+    .bottom-nav{position:fixed;left:0;bottom:0;width:100%;background:linear-gradient(180deg,#fff,#f6fbff);border-top:1px solid rgba(0,0,0,0.03);padding:14px;text-align:center;color:var(--primary);font-size:18px;font-weight:700;z-index: 50;}
+    
+    /* Chat Screen Styles */
+    .chat-screen{
+      display:none;
+      flex-direction:column;
+      flex:1; /* Allow chat screen to fill available space */
+      overflow:hidden; /* Hide overflow for the whole chat screen */
+      padding: 8px 18px 0 18px;
+      box-sizing: border-box;
+      /* Remove padding-bottom, let chat-messages handle its scroll area */
+    }
     .chat-header{display:flex;gap:10px;align-items:center;padding:8px 6px;border-bottom:1px dashed rgba(75,134,230,0.04);margin-bottom:8px;}
-    .chat-messages{flex:1;overflow:auto;display:flex;flex-direction:column;gap:8px;padding:6px;max-height:55vh;}
+    
+    /* Small back button */
+    #backToChatListBtn{
+      padding: 4px 8px !important;
+      border-radius: 6px !important;
+      font-size: 13px !important;
+    }
+
+    /* Proper circular profile picture in chat header */
+    #current-chat-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: linear-gradient(180deg,#dbeeff,#c1ddff);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      color: var(--primary);
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .chat-messages{
+      flex:1; /* Crucial for scrolling messages above the input */
+      overflow-y:auto; /* Enable vertical scrolling for messages */
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      padding:6px;
+      padding-bottom: 20px; /* Space between last message and input field */
+      box-sizing: border-box;
+    }
     .bubble{padding:10px 14px;border-radius:18px;max-width:78%;line-height:1.4;box-shadow:0 6px 14px rgba(10,30,80,0.04);}
-    .bubble.sent{align-self:flex-end;background:linear-gradient(180deg,var(--primary),#0a56bf);color:#fff;}
+    .bubble.sent{
+      align-self:flex-end;
+      background:linear-gradient(180deg,var(--primary),#0a56bf); /* Reverted to previous primary blue */
+      color:#fff;
+    }
     .bubble.received{align-self:flex-start;background:#fff;color:var(--primary);border:1px solid rgba(75,134,230,0.04);}
-    .chat-input{display:flex;gap:8px;align-items:center;margin-top:8px;border-radius:999px;padding:8px;background:#fff;border:1px solid rgba(75,134,230,0.04);margin-bottom:10px;}
+    
+    /* Input bar at bottom of chat screen, above bottom-nav */
+    .chat-input-area-wrapper {
+      /* Removed position:absolute or sticky, relying on flexbox to push it down */
+      margin-top: auto; /* Pushes this element to the bottom within the flex column */
+      flex-shrink: 0; /* Prevents it from shrinking */
+      padding: 8px 18px 10px 18px; /* Match screen padding */
+      background: #fff;
+      box-sizing: border-box;
+      width: 100%;
+      z-index: 45;
+    }
+    .chat-input{display:flex;gap:8px;align-items:center;border-radius:999px;padding:8px;background:#fff;border:1px solid rgba(75,134,230,0.04);}
     .chat-input input{flex:1;border:none;outline:none;font-size:15px;padding:10px 6px;font-family:var(--hand-font);color:var(--primary);background:transparent;}
-    .send-btn{width:44px;height:44px;border-radius:50%;border:none;background:linear-gradient(180deg,var(--primary),#0a56bf);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;cursor:pointer;}
+    .send-btn{
+      width:44px;height:44px;border-radius:50%;border:none;
+      background:linear-gradient(180deg,var(--primary),#0a56bf); /* Reverted to previous primary blue */
+      color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;cursor:pointer;
+    }
   </style>
 </head>
 <body>
@@ -55,7 +132,7 @@
       <div class='title'>Zag Messenger</div>
       <div class='menu'>☰</div>
     </div>
-    <div class='wave-top'><svg viewBox='0 0 100 10' preserveAspectRatio='none'><path d='M0 5 C20 9,40 1,60 5 C80 9,100 3,100 3 L100 10 L0 10 Z' fill='#eef6ff'></path></svg></div>
+    <div class='wave-top'><svg viewBox='0 0 100 10' preserveAspectRatio='none'><path d='M0 5 C20 9,40 1,60 5 C80 9,100 3,100 3 L100 10 L0 10 Z'></path></svg></div>
     <!-- Auth -->
     <div class='auth' id='auth-section'>
       <div class='welcome'>Welcome,<br>to Zag Messanger.</div>
@@ -70,7 +147,6 @@
       <button id='loginBtn' class='btn ghost'>Sign In</button>
       <div class='text-pill'>If you don't have account Sing up</div>
       <div class='text-pill'>If you have a account Singin</div>
-      <div class='foot-sign' id='auth-footer'>Home | Groups | Games | @You</div>
     </div>
     <!-- App -->
     <div class='app' id='app-section'>
@@ -86,17 +162,19 @@
     </div>
     <div class='chat-screen' id='individual-chat-container'>
       <div class='chat-header'>
-        <button id='backToChatListBtn' class='btn ghost' style='padding:6px 10px;border-radius:8px'>&lt; Back</button>
+        <button id='backToChatListBtn' class='btn ghost'>&lt; Back</button>
         <div id='current-chat-avatar' class='avatar'></div>
         <div><div id='current-chat-name' style='font-weight:700;color:var(--primary);'></div><div id='current-chat-sub' style='font-size:12px;color:var(--muted)'></div></div>
       </div>
       <div id='chat-messages' class='chat-messages'></div>
-      <div id='chat-input-area' class='chat-input'>
-        <input id='chatMessageInput' type='text' placeholder='Type a message...'>
-        <button id='sendChatMessageBtn' class='send-btn'>➤</button>
+      <div class='chat-input-area-wrapper'>
+        <div id='chat-input-area' class='chat-input'>
+          <input id='chatMessageInput' type='text' placeholder='Type a message...'>
+          <button id='sendChatMessageBtn' class='send-btn'>➤</button>
+        </div>
       </div>
     </div>
-    <div class='bottom-nav' id='bottom-nav'>Write your World</div>
+    <div class='bottom-nav' id='bottom-nav'></div>
     <div class='floating-new' id='floatingNewBtn' title='Add new chat' style='display:none;'>+</div>
   </div>
   <script type='module'>
@@ -152,15 +230,27 @@
       try{await signInWithEmailAndPassword(auth,e,p);}catch(err){alert('Sign in failed:'+err.message);}
     };
 
-    onAuthStateChanged(auth,u=>{
-      if(u){
-        authSection.style.display='none';appSection.style.display='block';individualChat.style.display='none';
-        floatingBtn.style.display='flex';bottomNav.innerText='Write your World';
+    function updateUI(user) {
+      if (user) {
+        // User is signed in
+        authSection.style.display='none';
+        appSection.style.display='block'; // Show app section (chat list)
+        individualChat.style.display='none';
+        floatingBtn.style.display='flex';
+        bottomNav.innerText='Home | Groups | Games | @You'; // Home page text
         loadChats();
-      }else{
-        authSection.style.display='flex';appSection.style.display='none';individualChat.style.display='none';
-        floatingBtn.style.display='none';bottomNav.innerText='Home | Groups | Games | @You';
+      } else {
+        // User is signed out
+        authSection.style.display='flex'; // Show auth section
+        appSection.style.display='none';
+        individualChat.style.display='none';
+        floatingBtn.style.display='none';
+        bottomNav.innerText='Write your World'; // Login/Sign Up page text
       }
+    }
+
+    onAuthStateChanged(auth,u=>{
+      updateUI(u);
     });
 
     function loadChats(){
@@ -184,7 +274,11 @@
     }
 
     function openChat(id,uid,name,email){
-      appSection.style.display='none';individualChat.style.display='flex';floatingBtn.style.display='none';
+      appSection.style.display='none';
+      individualChat.style.display='flex';
+      floatingBtn.style.display='none';
+      bottomNav.innerText='AD'; // Chat screen text
+      
       document.getElementById('current-chat-name').innerText=name;
       document.getElementById('current-chat-sub').innerText=email;
       document.getElementById('current-chat-avatar').innerText=name.charAt(0).toUpperCase();
@@ -203,7 +297,12 @@
       };
     }
 
-    backBtn.onclick=()=>{individualChat.style.display='none';appSection.style.display='block';floatingBtn.style.display='flex';};
+    backBtn.onclick=()=>{
+      individualChat.style.display='none';
+      appSection.style.display='block';
+      floatingBtn.style.display='flex';
+      bottomNav.innerText='Home | Groups | Games | @You'; // Back to home page text
+    };
 
     floatingBtn.onclick=()=>{addChatArea.style.display='block';};
     closeAdd.onclick=()=>{addChatArea.style.display='none';};
