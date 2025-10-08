@@ -1,312 +1,363 @@
 <!DOCTYPE html>
-<html lang='en'>
+<html lang="en">
 <head>
-  <meta charset='utf-8'>
-  <meta name='viewport' content='width=device-width,initial-scale=1'>
-  <title>Zag Messenger — Final BD Version</title>
-  <link href='https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap' rel='stylesheet'>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Zag Messenger — With Groups</title>
+  <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet" />
   <style>
-    :root {
+    :root{
       --bg:#e9f1ff;
-      --primary:#0b60d6; /* Original primary blue */
-      --primary-darker-wave: #0849a6; /* Darker blue specifically for the wave */
+      --primary:#0b60d6;
+      --primary-dark:#0849a6;
       --muted:#9aaecf;
-      --hand-font:'Patrick Hand','Segoe UI','Arial',sans-serif;
+      --hand-font:'Patrick Hand', 'Segoe UI', Arial, sans-serif;
     }
     html,body{height:100%;margin:0;font-family:var(--hand-font);background:linear-gradient(180deg,var(--bg),#eef6ff 60%);overflow:hidden;}
     .phone{width:100%;height:100vh;background:#fff;display:flex;flex-direction:column;box-sizing:border-box;}
-    .header{
-      display:flex;align-items:center;padding:10px 14px;gap:10px;
-      background:linear-gradient(180deg,var(--primary),#0a56bf); /* Reverted to previous primary blue */
-      color: #fff;
-    }
-    .logo{
-      width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;
-      font-weight:700;color:var(--primary); /* Logo text color based on primary */
-      background:linear-gradient(180deg,#fff,#f7fbff);
-    }
+    .header{display:flex;align-items:center;padding:10px 14px;gap:10px;background:linear-gradient(180deg,var(--primary),var(--primary-dark));color:#fff;}
+    .logo{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--primary);background:linear-gradient(180deg,#fff,#f7fbff);}
     .title{font-size:20px;color:#fff;font-weight:700;}
     .menu{margin-left:auto;font-size:20px;color:#fff;}
-    .wave-top svg,.wave-bottom svg{width:100%;height:100%;display:block;}
-    .wave-top path { fill: var(--primary-darker-wave); } /* Apply darker blue to the wave path */
-    .wave-bottom path { fill: #eef6ff; } /* Assuming bottom wave is still light */
-    .wave-top,.wave-bottom{width:100%;height:28px;}
-    .auth{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:20px;overflow-y:auto;}
+    .wave-top svg{width:100%;height:100%;display:block;}
+    .wave-top path{fill:var(--primary-dark);}
+    .wave-top{width:100%;height:28px;}
+    .auth{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:20px;overflow-y:auto;background:#f0f4fc;}
     .welcome{font-size:22px;color:var(--primary);}
     .sub{color:var(--muted);font-size:13px;margin-bottom:12px;}
-    input{border:1px solid rgba(75,134,230,0.08);border-radius:10px;padding:12px 14px;font-size:15px;background:linear-gradient(180deg,#fff,#fbfdff);font-family:var(--hand-font);color:var(--primary);width:90%;max-width:360px;margin-bottom:10px;}
+    input{border:1px solid rgba(75,134,230,0.08);border-radius:10px;padding:12px 14px;font-size:15px;background:linear-gradient(180deg,#fff,#fbfdff);font-family:var(--hand-font);color:var(--primary);width:90%;max-width:360px;margin-bottom:10px;box-sizing:border-box;}
     .phone-group{display:flex;align-items:center;gap:8px;width:90%;max-width:360px;margin-bottom:10px;}
     .country-code{border:1px solid rgba(75,134,230,0.08);border-radius:10px;padding:12px;width:70px;text-align:center;background:linear-gradient(180deg,#fff,#fbfdff);color:var(--primary);}
     .btn{padding:10px 12px;border-radius:10px;border:none;cursor:pointer;font-weight:700;font-size:15px;box-shadow:0 6px 14px rgba(75,134,230,0.08);width:90%;max-width:360px;margin-bottom:8px;font-family:var(--hand-font);}
-    .primary{background:linear-gradient(180deg,var(--primary),#0a56bf);color:#fff;}
+    .primary{background:linear-gradient(180deg,var(--primary),var(--primary-dark));color:#fff;}
     .ghost{background:#f6f9ff;color:var(--primary);}
-    .text-pill{background:linear-gradient(180deg,#cfe7ff,#b8d9ff);padding:8px 10px;border-radius:8px;color:var(--primary);font-weight:700;display:inline-block;margin:6px 0;}
+    .toggle-btns{display:flex;gap:12px;margin-top:12px;}
+    .toggle-btns .btn{width:auto;padding:8px 16px;}
     .app{display:none;flex:1;overflow-y:auto;padding:16px 18px 120px 18px;box-sizing:border-box;}
-    .top-controls{display:flex;align-items:center;gap:12px;margin-bottom:8px;}
+    .top-controls{display:flex;align-items:center;gap:12px;margin-bottom:8px;justify-content:space-between;}
     .chats h3{color:var(--primary);margin:8px 0 12px;}
     .chat-item{display:flex;gap:10px;align-items:center;padding:12px;background:linear-gradient(180deg,#fff,#fbfdff);border-radius:10px;margin-bottom:12px;border:1px solid rgba(75,134,230,0.06);cursor:pointer;}
     .avatar{width:52px;height:52px;border-radius:50%;background:linear-gradient(180deg,#dbeeff,#c1ddff);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--primary);font-size:18px;}
-    .chat-meta{flex:1;}.chat-meta .name{font-weight:700;color:var(--primary);font-size:16px;}
+    .chat-meta{flex:1;}
+    .chat-meta .name{font-weight:700;color:var(--primary);font-size:16px;}
     .chat-meta .sub{font-size:13px;color:var(--muted);margin-top:4px;}
     #add-chat-area{display:none;margin-bottom:12px;position:relative;}
     #closeAddChat{position:absolute;top:-10px;right:-10px;background:#fff;border:2px solid #ccc;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-weight:bold;color:#777;}
-    .floating-new{position:fixed;right:18px;bottom:96px;width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,var(--primary),#0a56bf);color:#fff;box-shadow:0 12px 28px rgba(11,96,214,0.2);border:4px solid #fff;font-weight:700;cursor:pointer;z-index:40;}
-    .bottom-nav{position:fixed;left:0;bottom:0;width:100%;background:linear-gradient(180deg,#fff,#f6fbff);border-top:1px solid rgba(0,0,0,0.03);padding:14px;text-align:center;color:var(--primary);font-size:18px;font-weight:700;z-index: 50;}
-    
-    /* Chat Screen Styles */
-    .chat-screen{
-      display:none;
-      flex-direction:column;
-      flex:1; /* Allow chat screen to fill available space */
-      overflow:hidden; /* Hide overflow for the whole chat screen */
-      padding: 8px 18px 0 18px;
-      box-sizing: border-box;
-      /* Remove padding-bottom, let chat-messages handle its scroll area */
-    }
+    .floating-new{position:fixed;right:18px;bottom:96px;width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,var(--primary),var(--primary-dark));color:#fff;box-shadow:0 12px 28px rgba(11,96,214,0.2);border:4px solid #fff;font-weight:700;cursor:pointer;z-index:40;}
+    .bottom-nav{position:fixed;left:0;bottom:0;width:100%;background:linear-gradient(180deg,#fff,#f6fbff);border-top:1px solid rgba(0,0,0,0.03);padding:14px;text-align:center;color:var(--primary);font-size:18px;font-weight:700;z-index:45;display:flex;gap:10px;justify-content:center;align-items:center;}
+    .bottom-nav span{cursor:pointer;padding:6px 10px;border-radius:8px;}
+    .bottom-nav .active{background:linear-gradient(180deg,#eff7ff,#dfeffe);box-shadow:0 6px 14px rgba(11,96,214,0.06);}
+    /* chat screen */
+    .chat-screen{display:none;flex-direction:column;flex:1;overflow:hidden;padding:8px 18px 0 18px;box-sizing:border-box;}
     .chat-header{display:flex;gap:10px;align-items:center;padding:8px 6px;border-bottom:1px dashed rgba(75,134,230,0.04);margin-bottom:8px;}
-    
-    /* Small back button */
-    #backToChatListBtn{
-      padding: 4px 8px !important;
-      border-radius: 6px !important;
-      font-size: 13px !important;
-    }
-
-    /* Proper circular profile picture in chat header */
-    #current-chat-avatar {
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      background: linear-gradient(180deg,#dbeeff,#c1ddff);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      color: var(--primary);
-      font-size: 16px;
-      flex-shrink: 0;
-    }
-
-    .chat-messages{
-      flex:1; /* Crucial for scrolling messages above the input */
-      overflow-y:auto; /* Enable vertical scrolling for messages */
-      display:flex;
-      flex-direction:column;
-      gap:8px;
-      padding:6px;
-      padding-bottom: 20px; /* Space between last message and input field */
-      box-sizing: border-box;
-    }
+    #backToChatListBtn{padding:4px 8px !important;border-radius:6px !important;font-size:13px !important;}
+    #current-chat-avatar{width:44px;height:44px;border-radius:50%;background:linear-gradient(180deg,#dbeeff,#c1ddff);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--primary);font-size:16px;flex-shrink:0;}
+    .chat-messages{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:6px;padding-bottom:20px;box-sizing:border-box;}
     .bubble{padding:10px 14px;border-radius:18px;max-width:78%;line-height:1.4;box-shadow:0 6px 14px rgba(10,30,80,0.04);}
-    .bubble.sent{
-      align-self:flex-end;
-      background:linear-gradient(180deg,var(--primary),#0a56bf); /* Reverted to previous primary blue */
-      color:#fff;
-    }
+    .bubble.sent{align-self:flex-end;background:linear-gradient(180deg,var(--primary),var(--primary-dark));color:#fff;}
     .bubble.received{align-self:flex-start;background:#fff;color:var(--primary);border:1px solid rgba(75,134,230,0.04);}
-    
-    /* Input bar at bottom of chat screen, above bottom-nav */
-    .chat-input-area-wrapper {
-      /* Removed position:absolute or sticky, relying on flexbox to push it down */
-      margin-top: auto; /* Pushes this element to the bottom within the flex column */
-      flex-shrink: 0; /* Prevents it from shrinking */
-      padding: 8px 18px 10px 18px; /* Match screen padding */
-      background: #fff;
-      box-sizing: border-box;
-      width: 100%;
-      z-index: 45;
-    }
-    .chat-input{display:flex;gap:8px;align-items:center;border-radius:999px;padding:8px;background:#fff;border:1px solid rgba(75,134,230,0.04);}
+    /* Message Input Area */
+    .chat-input-area-wrapper{margin-top:auto;flex-shrink:0;padding:8px 18px 10px 18px;background:#fff;box-sizing:border-box;width:100%;z-index:49;border-top:1px solid rgba(11,96,214,0.08);}
+    .chat-input{display:flex;gap:8px;align-items:center;border-radius:999px;padding:8px;background:#fff;border:2px solid var(--primary);transition:border-color 0.3s, transform 0.1s;}
+    @keyframes gentleShake{0%,100%{transform:translateX(0);}25%{transform:translateX(-2px);}75%{transform:translateX(2px);}}
+    .chat-input.typing{animation:gentleShake 0.25s ease-in-out;}
     .chat-input input{flex:1;border:none;outline:none;font-size:15px;padding:10px 6px;font-family:var(--hand-font);color:var(--primary);background:transparent;}
-    .send-btn{
-      width:44px;height:44px;border-radius:50%;border:none;
-      background:linear-gradient(180deg,var(--primary),#0a56bf); /* Reverted to previous primary blue */
-      color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;cursor:pointer;
+    .send-btn{width:44px;height:44px;border-radius:50%;border:none;background:linear-gradient(180deg,var(--primary),var(--primary-dark));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;cursor:pointer;box-shadow:0 4px 10px rgba(11,96,214,0.15);}
+    /* Group modal */
+    .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.35);display:none;align-items:center;justify-content:center;z-index:60;}
+    .modal{width:92%;max-width:520px;background:#fff;border-radius:12px;padding:16px;box-sizing:border-box;box-shadow:0 20px 60px rgba(0,0,0,0.12);}
+    .modal h4{margin:0 0 8px 0;color:var(--primary);}
+    .contacts-list{max-height:180px;overflow:auto;border:1px dashed rgba(75,134,230,0.06);padding:8px;border-radius:8px;margin-top:8px;}
+    .contact-item{display:flex;align-items:center;gap:8px;padding:8px;border-radius:8px;cursor:pointer;}
+    .small{font-size:13px;color:var(--muted);}
+    .section-title{font-size:13px;color:var(--muted);margin-top:8px;margin-bottom:6px;}
+    /* responsive tweaks */
+    @media (min-width:900px){
+      .phone{max-width:420px;margin:0 auto;box-shadow:0 20px 60px rgba(0,0,0,0.08);}
     }
   </style>
 </head>
 <body>
-  <div class='phone'>
-    <div class='header'>
-      <div class='logo'>Zg</div>
-      <div class='title'>Zag Messenger</div>
-      <div class='menu'>☰</div>
+  <div class="phone">
+    <div class="header">
+      <div class="logo">Zg</div>
+      <div class="title">Zag Messenger</div>
+      <div class="menu">☰</div>
     </div>
-    <div class='wave-top'><svg viewBox='0 0 100 10' preserveAspectRatio='none'><path d='M0 5 C20 9,40 1,60 5 C80 9,100 3,100 3 L100 10 L0 10 Z'></path></svg></div>
+
+    <div class="wave-top">
+      <svg viewBox="0 0 100 10" preserveAspectRatio="none"><path d="M0 5 C20 9,40 1,60 5 C80 9,100 3,100 3 L100 10 L0 10 Z"></path></svg>
+    </div>
+
     <!-- Auth -->
-    <div class='auth' id='auth-section'>
-      <div class='welcome'>Welcome,<br>to Zag Messanger.</div>
-      <div class='sub'>Write your World</div>
-      <input id='email' type='email' placeholder='Email'>
-      <div class='phone-group'>
-        <input class='country-code' value='+880' disabled>
-        <input id='phoneNumber' type='tel' placeholder='Phone number'>
+    <div class="auth" id="auth-section">
+      <div class="welcome">Welcome,<br>to Zag Messenger.</div>
+      <div class="sub">Write your World</div>
+      <input id="email" type="email" placeholder="Email">
+      <div class="phone-group">
+        <input class="country-code" value="+880" disabled>
+        <input id="phoneNumber" type="tel" placeholder="Phone number">
       </div>
-      <input id='password' type='password' placeholder='Password'>
-      <button id='signupBtn' class='btn primary'>Sign Up</button>
-      <button id='loginBtn' class='btn ghost'>Sign In</button>
-      <div class='text-pill'>If you don't have account Sing up</div>
-      <div class='text-pill'>If you have a account Singin</div>
+      <input id="password" type="password" placeholder="Password">
+
+      <button id="signupBtn" class="btn primary">Sign Up</button>
+      <button id="loginBtn" class="btn ghost" style="display:none;">Sign In</button>
+
+      <div class="toggle-btns">
+        <button id="toSignIn" class="btn ghost">If you don't have account → Sign In</button>
+        <button id="toSignUp" class="btn ghost">If you have an account → Sign Up</button>
+      </div>
     </div>
-    <!-- App -->
-    <div class='app' id='app-section'>
-      <div class='top-controls'>
-        <h3 style='margin:0'>My chats</h3>
+
+    <!-- App (Chats & Groups) -->
+    <div class="app" id="app-section">
+      <div class="top-controls">
+        <h3 style="margin:0" id="list-title">My chats</h3>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <div style="font-size:14px;color:var(--muted);">Switch</div>
+          <!-- floatingNew will act as add for both -->
+        </div>
       </div>
-      <div id='add-chat-area'>
-        <div id='closeAddChat'>×</div>
-        <input id='addChatIdentifier' type='text' placeholder='Enter user email or phone'>
-        <button id='addChatBtn' class='btn primary'>Add Person</button>
+
+      <!-- Add (for Individual & Group) -->
+      <div id="add-chat-area">
+        <div id="closeAddChat">×</div>
+        <input id="addChatIdentifier" type="text" placeholder="Enter user email or phone">
+        <button id="addChatBtn" class="btn primary">Add Person</button>
       </div>
-      <div id='chat-list-container'></div>
+
+      <!-- Lists -->
+      <div id="chat-list-container"></div>
+      <div id="group-list-container" style="display:none;"></div>
     </div>
-    <div class='chat-screen' id='individual-chat-container'>
-      <div class='chat-header'>
-        <button id='backToChatListBtn' class='btn ghost'>&lt; Back</button>
-        <div id='current-chat-avatar' class='avatar'></div>
-        <div><div id='current-chat-name' style='font-weight:700;color:var(--primary);'></div><div id='current-chat-sub' style='font-size:12px;color:var(--muted)'></div></div>
+
+    <!-- Chat Screen -->
+    <div class="chat-screen" id="individual-chat-container">
+      <div class="chat-header">
+        <button id="backToChatListBtn" class="btn ghost">&lt; Back</button>
+        <div id="current-chat-avatar" class="avatar"></div>
+        <div>
+          <div id="current-chat-name" style="font-weight:700;color:var(--primary);"></div>
+          <div id="current-chat-sub" style="font-size:12px;color:var(--muted)"></div>
+        </div>
       </div>
-      <div id='chat-messages' class='chat-messages'></div>
-      <div class='chat-input-area-wrapper'>
-        <div id='chat-input-area' class='chat-input'>
-          <input id='chatMessageInput' type='text' placeholder='Type a message...'>
-          <button id='sendChatMessageBtn' class='send-btn'>➤</button>
+      <div id="chat-messages" class="chat-messages"></div>
+
+      <div class="chat-input-area-wrapper">
+        <div id="chat-input-area" class="chat-input">
+          <input id="chatMessageInput" type="text" placeholder="Type a message...">
+          <button id="sendChatMessageBtn" class="send-btn">➤</button>
         </div>
       </div>
     </div>
-    <div class='bottom-nav' id='bottom-nav'></div>
-    <div class='floating-new' id='floatingNewBtn' title='Add new chat' style='display:none;'>+</div>
+
+    <div class="bottom-nav" id="bottom-nav">
+      <span id="nav-home" class="active">Home</span>
+      <span id="nav-groups">Groups</span>
+      <span id="nav-games">Games</span>
+      <span id="nav-you">@You</span>
+    </div>
+
+    <div class="floating-new" id="floatingNewBtn" title="Add new" style="display:none;">+</div>
   </div>
-  <script type='module'>
+
+  <!-- Group Modal -->
+  <div class="modal-backdrop" id="modalBackdrop">
+    <div class="modal" role="dialog" aria-modal="true">
+      <h4 id="modalTitle">New Group</h4>
+      <div class="section-title">Group name</div>
+      <input id="groupName" placeholder="Type group name..." />
+
+      <div class="section-title">Add people (type email or phone and press Enter)</div>
+      <input id="addMemberInput" placeholder="Email or phone" />
+
+      <div class="section-title">Selected members</div>
+      <div id="selectedMembers" style="min-height:40px;margin-bottom:8px;"></div>
+
+      <div class="section-title">Contacts (tap to toggle)</div>
+      <div class="contacts-list" id="contactsList"></div>
+
+      <div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end;">
+        <button id="cancelCreateGroup" class="btn ghost" style="width:auto;padding:8px 12px;">Cancel</button>
+        <button id="createGroupBtn" class="btn primary" style="width:auto;padding:8px 12px;">Create Group</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    // Firebase imports
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js';
     import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js';
-    import { getDatabase, ref as dbRef, set, get, query, orderByChild, equalTo, push, onValue, onChildAdded } from 'https://www.gstatic.com/firebasejs/10.13.2/firebase-database.js';
+    import { getDatabase, ref as dbRef, set, get, push, onValue, onChildAdded, update } from 'https://www.gstatic.com/firebasejs/10.13.2/firebase-database.js';
 
-    const firebaseConfig={apiKey:'AIzaSyBUH95hXYxMVCfhJglN4j3CReXy-CLYwmA',authDomain:'live-messageinggkkh.firebaseapp.com',databaseURL:'https://live-messageinggkkh-default-rtdb.firebaseio.com',projectId:'live-messageinggkkh',storageBucket:'live-messageinggkkh.appspot.com',messagingSenderId:'537475612761',appId:'1:537475612761:web:d00723c117383e54027148'};
-    const app=initializeApp(firebaseConfig);const auth=getAuth(app);const db=getDatabase(app);
+    const firebaseConfig = {
+      apiKey: 'AIzaSyBUH95hXYxMVCfhJglN4j3CReXy-CLYwmA',
+      authDomain: 'live-messageinggkkh.firebaseapp.com',
+      databaseURL: 'https://live-messageinggkkh-default-rtdb.firebaseio.com',
+      projectId: 'live-messageinggkkh',
+      storageBucket: 'live-messageinggkkh.appspot.com',
+      messagingSenderId: '537475612761',
+      appId: '1:537475612761:web:d00723c117383e54027148'
+    };
 
-    const authSection=document.getElementById('auth-section');
-    const appSection=document.getElementById('app-section');
-    const individualChat=document.getElementById('individual-chat-container');
-    const floatingBtn=document.getElementById('floatingNewBtn');
-    const addChatArea=document.getElementById('add-chat-area');
-    const addBtn=document.getElementById('addChatBtn');
-    const closeAdd=document.getElementById('closeAddChat');
-    const addInput=document.getElementById('addChatIdentifier');
-    const chatList=document.getElementById('chat-list-container');
-    const backBtn=document.getElementById('backToChatListBtn');
-    const sendBtn=document.getElementById('sendChatMessageBtn');
-    const msgInput=document.getElementById('chatMessageInput');
-    const msgContainer=document.getElementById('chat-messages');
-    const bottomNav=document.getElementById('bottom-nav');
-    const signupBtn=document.getElementById('signupBtn');
-    const loginBtn=document.getElementById('loginBtn');
-    const email=document.getElementById('email');
-    const pass=document.getElementById('password');
-    const phone=document.getElementById('phoneNumber');
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
 
+    // DOM refs
+    const authSection = document.getElementById('auth-section');
+    const appSection = document.getElementById('app-section');
+    const individualChat = document.getElementById('individual-chat-container');
+    const floatingBtn = document.getElementById('floatingNewBtn');
+    const addChatArea = document.getElementById('add-chat-area');
+    const addBtn = document.getElementById('addChatBtn');
+    const closeAdd = document.getElementById('closeAddChat');
+    const chatList = document.getElementById('chat-list-container');
+    const groupList = document.getElementById('group-list-container');
+    const backBtn = document.getElementById('backToChatListBtn');
+    const sendBtn = document.getElementById('sendChatMessageBtn');
+    const msgInput = document.getElementById('chatMessageInput');
+    const msgContainer = document.getElementById('chat-messages');
+    const bottomNav = document.getElementById('bottom-nav');
+    const signupBtn = document.getElementById('signupBtn');
+    const loginBtn = document.getElementById('loginBtn');
+    const email = document.getElementById('email');
+    const pass = document.getElementById('password');
+    const phone = document.getElementById('phoneNumber');
+    const toSignIn = document.getElementById('toSignIn');
+    const toSignUp = document.getElementById('toSignUp');
+    const navHome = document.getElementById('nav-home');
+    const navGroups = document.getElementById('nav-groups');
+    const navGames = document.getElementById('nav-games');
+    const navYou = document.getElementById('nav-you');
+    const listTitle = document.getElementById('list-title');
+
+    // Modal refs
+    const modalBackdrop = document.getElementById('modalBackdrop');
+    const createGroupBtn = document.getElementById('createGroupBtn');
+    const cancelCreateGroup = document.getElementById('cancelCreateGroup');
+    const groupNameInput = document.getElementById('groupName');
+    const addMemberInput = document.getElementById('addMemberInput');
+    const selectedMembersDiv = document.getElementById('selectedMembers');
+    const contactsListDiv = document.getElementById('contactsList');
+
+    // state
+    let currentChat = null; // { type: 'private'|'group', id: string }
+    let currentUser = null;
+    let usersCache = {}; // uid -> {email, phoneNumber, uid}
+    let selectedGroupMembers = {}; // uid -> user object
+
+    // UI toggles for auth
+    function showSignUp(){ signupBtn.style.display='block'; loginBtn.style.display='none'; }
+    function showSignIn(){ signupBtn.style.display='none'; loginBtn.style.display='block'; }
+    toSignIn.addEventListener('click', showSignIn);
+    toSignUp.addEventListener('click', showSignUp);
+    showSignUp();
+
+    // Auth create profile helper
     async function createUserProfile(user){
-      if(user){
-        const userRef=dbRef(db,'users/'+user.uid);
-        const snap=await get(userRef);
-        if(!snap.exists()){
-          await set(userRef,{email:user.email,uid:user.uid,phoneNumber:'+880'+phone.value.trim()});
-        }
+      if(!user) return;
+      const userRef = dbRef(db, 'users/' + user.uid);
+      const snap = await get(userRef);
+      if(!snap.exists()){
+        await set(userRef, {
+          email: user.email || '',
+          uid: user.uid,
+          phoneNumber: '+880' + (phone.value.trim()||'')
+        });
       }
     }
 
-    signupBtn.onclick=async()=>{
-      const e=email.value.trim(),p=pass.value.trim();
-      if(!e||!p||!phone.value.trim())return alert('Fill all fields');
+    // Sign up
+    signupBtn.addEventListener('click', async ()=>{
+      const e = email.value.trim(), p = pass.value.trim();
+      if(!e || !p || !phone.value.trim()) return alert('Fill all fields');
       try{
-        const c=await createUserWithEmailAndPassword(auth,e,p);
-        await createUserProfile(c.user);
-      }catch(err){alert('Sign up failed:'+err.message);}
-    };
+        const res = await createUserWithEmailAndPassword(auth, e, p);
+        await createUserProfile(res.user);
+      }catch(err){ alert('Sign up failed: ' + err.message); }
+    });
 
-    loginBtn.onclick=async()=>{
-      const e=email.value.trim(),p=pass.value.trim();
-      if(!e||!p)return alert('Enter email and password');
-      try{await signInWithEmailAndPassword(auth,e,p);}catch(err){alert('Sign in failed:'+err.message);}
-    };
+    // Sign in
+    loginBtn.addEventListener('click', async ()=>{
+      const e = email.value.trim(), p = pass.value.trim();
+      if(!e || !p) return alert('Enter email and password');
+      try{
+        await signInWithEmailAndPassword(auth, e, p);
+      }catch(err){ alert('Sign in failed: ' + err.message); }
+    });
 
-    function updateUI(user) {
-      if (user) {
-        // User is signed in
+    // Auth state
+    onAuthStateChanged(auth, user=>{
+      currentUser = user;
+      updateUI(user);
+      if(user) loadUsersCache();
+    });
+
+    function updateUI(user){
+      if(user){
         authSection.style.display='none';
-        appSection.style.display='block'; // Show app section (chat list)
+        appSection.style.display='block';
         individualChat.style.display='none';
         floatingBtn.style.display='flex';
-        bottomNav.innerText='Home | Groups | Games | @You'; // Home page text
+        bottomNav.style.display='flex';
+        navHome.classList.add('active'); navGroups.classList.remove('active');
+        listTitle.innerText = 'My chats';
         loadChats();
+        loadGroups();
       } else {
-        // User is signed out
-        authSection.style.display='flex'; // Show auth section
+        authSection.style.display='flex';
         appSection.style.display='none';
         individualChat.style.display='none';
         floatingBtn.style.display='none';
-        bottomNav.innerText='Write your World'; // Login/Sign Up page text
+        bottomNav.style.display='flex';
+        navHome.classList.remove('active'); navGroups.classList.remove('active');
       }
     }
 
-    onAuthStateChanged(auth,u=>{
-      updateUI(u);
-    });
-
-    function loadChats(){
-      chatList.innerHTML='<div style="color:#999;text-align:center;">Loading chats...</div>';
-      onValue(dbRef(db,'chats'),snap=>{
-        chatList.innerHTML='';
-        snap.forEach(c=>{
-          const v=c.val(),k=c.key;
-          if(v.members&&v.members.includes(auth.currentUser.uid)){
-            const other=v.members.find(x=>x!==auth.currentUser.uid);
-            const name=(v.memberEmails&&v.memberEmails[other])?v.memberEmails[other].split('@')[0]:'Unknown';
-            const email=(v.memberEmails&&v.memberEmails[other])?v.memberEmails[other]:'';
-            const div=document.createElement('div');
-            div.className='chat-item';
-            div.innerHTML=`<div class='avatar'>${name.charAt(0).toUpperCase()}</div><div class='chat-meta'><div class='name'>${name}</div><div class='sub'>${email}</div></div>`;
-            div.onclick=()=>openChat(k,other,name,email);
-            chatList.appendChild(div);
+    // Load all user profiles (cache) to use for group creation contact list
+    function loadUsersCache(){
+      onValue(dbRef(db,'users'), snap=>{
+        usersCache = {};
+        contactsListDiv.innerHTML = '';
+        snap.forEach(s=>{
+          const u = s.val();
+          if(!u || !u.uid) return;
+          usersCache[u.uid] = u;
+          // show contact item (exclude current user)
+          if(currentUser && u.uid !== currentUser.uid){
+            const div = document.createElement('div');
+            div.className = 'contact-item';
+            div.dataset.uid = u.uid;
+            div.innerHTML = `<div class="avatar" style="width:36px;height:36px;font-size:14px;border-radius:6px">${(u.email||'U').charAt(0).toUpperCase()}</div>
+                             <div style="flex:1;">
+                               <div style="font-weight:700;color:var(--primary);font-size:14px">${(u.email||'Unknown').split('@')[0]}</div>
+                               <div class="small">${u.email || u.phoneNumber || ''}</div>
+                             </div>`;
+            // toggle selection
+            div.addEventListener('click', ()=>{
+              const uid = div.dataset.uid;
+              if(selectedGroupMembers[uid]) delete selectedGroupMembers[uid];
+              else selectedGroupMembers[uid] = u;
+              renderSelectedMembers();
+            });
+            contactsListDiv.appendChild(div);
           }
         });
       });
     }
 
-    function openChat(id,uid,name,email){
-      appSection.style.display='none';
-      individualChat.style.display='flex';
-      floatingBtn.style.display='none';
-      bottomNav.innerText='AD'; // Chat screen text
-      
-      document.getElementById('current-chat-name').innerText=name;
-      document.getElementById('current-chat-sub').innerText=email;
-      document.getElementById('current-chat-avatar').innerText=name.charAt(0).toUpperCase();
-      msgContainer.innerHTML='';
-      const q=dbRef(db,'privateMessages/'+id);
-      onChildAdded(q,s=>{
-        const m=s.val();const el=document.createElement('div');
-        el.className='bubble '+(m.senderUid===auth.currentUser.uid?'sent':'received');
-        el.innerText=m.text;msgContainer.appendChild(el);
-        msgContainer.scrollTop=msgContainer.scrollHeight;
-      });
-      sendBtn.onclick=async()=>{
-        const text=msgInput.value.trim();if(!text)return;
-        await push(dbRef(db,'privateMessages/'+id),{text, senderUid:auth.currentUser.uid, senderEmail:auth.currentUser.email, timestamp:Date.now()});
-        msgInput.value='';
-      };
-    }
-
-    backBtn.onclick=()=>{
-      individualChat.style.display='none';
-      appSection.style.display='block';
-      floatingBtn.style.display='flex';
-      bottomNav.innerText='Home | Groups | Games | @You'; // Back to home page text
-    };
-
-    floatingBtn.onclick=()=>{addChatArea.style.display='block';};
-    closeAdd.onclick=()=>{addChatArea.style.display='none';};
-    addBtn.onclick=()=>alert('Add person logic same as before');
-  </script>
-</body>
-</html>
+    // Load individual chats (existing chats where current user is member)
+    function loadChats(){
+      chatList.innerHTML = '<div style="color:#999;text-align:center;">Loading chats...</div>';
+      onValue(dbRef(db,'chats'), snap=>{
+        chatList.innerHTML = '';
+        snap.forEach(c=>{
+          const v = c.val(), k = c.key;
+          if(!v) return;
+          if(v.members && v.members.includes(currentUser.uid)){
+            const other = v.members.find(x => x !== currentUser.uid) || currentUser.uid;
+            const name = (v.memberEmails && v.memberEmails[other]) ? (v.memberEmails[other].split('@')[0]) : 'Unknown';
+            const email_ = (v.memberEmails && v.memberEmails[other]) ? v.memberEmails[other] : '';
+            const div = document.createElement('div'); div.className='chat-item';
+            div.innerHTML = `<div class='a
