@@ -44,6 +44,8 @@
     #add-chat-area{display:none;margin-bottom:12px;position:relative;}
     #closeAddChat{position:absolute;top:-10px;right:-10px;background:#fff;border:2px solid #ccc;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-weight:bold;color:#777;}
     .floating-new{position:fixed;right:18px;bottom:96px;width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,var(--primary),var(--primary-dark));color:#fff;box-shadow:0 12px 28px rgba(11,96,214,0.2);border:4px solid #fff;font-weight:700;cursor:pointer;z-index:40;}
+    .plus-menu{position:fixed;right:18px;bottom:160px;width:200px;background:#fff;border-radius:10px;padding:8px;box-shadow:0 20px 60px rgba(0,0,0,0.12);z-index:50;display:none;flex-direction:column;gap:8px;}
+    .plus-menu button{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(11,96,214,0.06);background:#f6fbff;cursor:pointer;font-weight:700;color:var(--primary);}
     .bottom-nav{position:fixed;left:0;bottom:0;width:100%;background:linear-gradient(180deg,#fff,#f6fbff);border-top:1px solid rgba(0,0,0,0.03);padding:14px;text-align:center;color:var(--primary);font-size:18px;font-weight:700;z-index:45;display:flex;gap:10px;justify-content:center;align-items:center;}
     .bottom-nav span{cursor:pointer;padding:6px 10px;border-radius:8px;}
     .bottom-nav .active{background:linear-gradient(180deg,#eff7ff,#dfeffe);box-shadow:0 6px 14px rgba(11,96,214,0.06);}
@@ -74,6 +76,7 @@
     /* responsive tweaks */
     @media (min-width:900px){
       .phone{max-width:420px;margin:0 auto;box-shadow:0 20px 60px rgba(0,0,0,0.08);}
+      .plus-menu{right:calc(50% - 210px);}
     }
   </style>
 </head>
@@ -114,7 +117,6 @@
         <h3 style="margin:0" id="list-title">My chats</h3>
         <div style="display:flex;gap:8px;align-items:center;">
           <div style="font-size:14px;color:var(--muted);">Switch</div>
-          <!-- floatingNew will act as add for both -->
         </div>
       </div>
 
@@ -158,6 +160,12 @@
     </div>
 
     <div class="floating-new" id="floatingNewBtn" title="Add new" style="display:none;">+</div>
+
+    <!-- small popup menu for + button -->
+    <div class="plus-menu" id="plusMenu">
+      <button id="plusIndividualBtn">Individual Chat</button>
+      <button id="plusGroupBtn">Group Chat</button>
+    </div>
   </div>
 
   <!-- Group Modal -->
@@ -209,6 +217,7 @@
     const appSection = document.getElementById('app-section');
     const individualChat = document.getElementById('individual-chat-container');
     const floatingBtn = document.getElementById('floatingNewBtn');
+    const plusMenu = document.getElementById('plusMenu');
     const addChatArea = document.getElementById('add-chat-area');
     const addChatIdentifier = document.getElementById('addChatIdentifier');
     const addBtn = document.getElementById('addChatBtn');
@@ -241,6 +250,10 @@
     const addMemberInput = document.getElementById('addMemberInput');
     const selectedMembersDiv = document.getElementById('selectedMembers');
     const contactsListDiv = document.getElementById('contactsList');
+
+    // Plus menu buttons
+    const plusIndividualBtn = document.getElementById('plusIndividualBtn');
+    const plusGroupBtn = document.getElementById('plusGroupBtn');
 
     // --- App state ---
     let currentChat = null; // { type: 'private'|'group', id: string }
@@ -312,11 +325,9 @@
           const userCredential = await createUserWithEmailAndPassword(auth, e, p);
           // create profile
           await createUserProfile(userCredential.user);
-          // onAuthStateChanged will update UI and go to homepage automatically
         } else {
           // Sign in
           await signInWithEmailAndPassword(auth, e, p);
-          // onAuthStateChanged will update UI and go to homepage automatically
         }
       } catch (err) {
         alert((isSigningUp ? 'Sign up' : 'Sign in') + ' failed: ' + err.message);
@@ -336,6 +347,7 @@
         loadGroups();
       }
       updateUI(user);
+      updateFloatingVisibility();
     });
 
     // --- Update UI based on auth state ---
@@ -344,7 +356,6 @@
         authSection.style.display = 'none';
         appSection.style.display = 'block';
         individualChat.style.display = 'none';
-        floatingBtn.style.display = 'flex';
         bottomNav.style.display = 'flex';
         navHome.classList.add('active');
         navGroups.classList.remove('active');
@@ -359,6 +370,25 @@
         bottomNav.style.display = 'flex';
         navHome.classList.remove('active');
         navGroups.classList.remove('active');
+      }
+    }
+
+    // --- Floating visibility control ---
+    function updateFloatingVisibility() {
+      // Show floating + only when:
+      // - user is signed in (currentUser)
+      // - appSection is visible (not in auth)
+      // - individualChat (chat screen) is NOT visible
+      // - either navHome or navGroups is active
+      const appVisible = appSection.style.display !== 'none';
+      const chatVisible = individualChat.style.display !== 'none';
+      const allowedNav = navHome.classList.contains('active') || navGroups.classList.contains('active');
+
+      if (currentUser && appVisible && !chatVisible && allowedNav) {
+        floatingBtn.style.display = 'flex';
+      } else {
+        floatingBtn.style.display = 'none';
+        plusMenu.style.display = 'none';
       }
     }
 
@@ -465,6 +495,7 @@
       appSection.style.display = 'none';
       individualChat.style.display = 'flex';
       msgContainer.innerHTML = '';
+      updateFloatingVisibility();
 
       // load messages from DB (messages/{chatId})
       const messagesRef = dbRef(db, 'messages/' + chatId);
@@ -487,6 +518,7 @@
       individualChat.style.display = 'none';
       appSection.style.display = 'block';
       currentChat = null;
+      updateFloatingVisibility();
     });
 
     // --- Send message handler ---
@@ -513,18 +545,35 @@
       }
     });
 
-    // --- Floating add button behavior (show add chat area or open group modal) ---
-    floatingBtn.addEventListener('click', () => {
-      // toggle add chat area
-      if (addChatArea.style.display === 'block') {
-        addChatArea.style.display = 'none';
+    // --- Floating add button behavior (show add menu) ---
+    floatingBtn.addEventListener('click', (e) => {
+      // toggle plus menu
+      if (plusMenu.style.display === 'flex') {
+        plusMenu.style.display = 'none';
       } else {
-        addChatArea.style.display = 'block';
-        addChatIdentifier.focus();
+        plusMenu.style.display = 'flex';
+        // hide after 6 seconds automatically
+        setTimeout(() => { plusMenu.style.display = 'none'; }, 6000);
       }
     });
+
+    // --- Plus menu choices ---
+    plusIndividualBtn.addEventListener('click', () => {
+      plusMenu.style.display = 'none';
+      // show add individual chat area
+      addChatArea.style.display = 'block';
+      addChatIdentifier.focus();
+      updateFloatingVisibility();
+    });
+    plusGroupBtn.addEventListener('click', () => {
+      plusMenu.style.display = 'none';
+      // open group modal
+      modalBackdrop.style.display = 'flex';
+    });
+
     closeAdd.addEventListener('click', () => {
       addChatArea.style.display = 'none';
+      updateFloatingVisibility();
     });
 
     // --- Add person button: create a minimal "invitation" or chat entry ---
@@ -549,15 +598,34 @@
       openPrivateChatWith(found);
       addChatArea.style.display = 'none';
       addChatIdentifier.value = '';
+      updateFloatingVisibility();
     });
 
     // --- Group modal open/close and creation (basic) ---
-    // open modal via navGroups click
+    // navigate to group list when clicking navGroups
     navGroups.addEventListener('click', () => {
-      modalBackdrop.style.display = 'flex';
+      navGroups.classList.add('active');
+      navHome.classList.remove('active');
+      listTitle.innerText = 'Groups';
+      chatList.style.display = 'none';
+      groupList.style.display = 'block';
+      updateFloatingVisibility();
+      loadGroups();
     });
+    // navHome behavior
+    navHome.addEventListener('click', () => {
+      navHome.classList.add('active');
+      navGroups.classList.remove('active');
+      listTitle.innerText = 'My chats';
+      chatList.style.display = 'block';
+      groupList.style.display = 'none';
+      updateFloatingVisibility();
+      loadChats();
+    });
+
     cancelCreateGroup.addEventListener('click', () => {
       modalBackdrop.style.display = 'none';
+      updateFloatingVisibility();
     });
     // allow adding member by entering email/phone and pressing Enter
     addMemberInput.addEventListener('keypress', (e) => {
@@ -603,6 +671,7 @@
       renderSelectedMembers();
       alert('Group created');
       loadGroups();
+      updateFloatingVisibility();
     });
 
     // --- Load groups for current user (basic) ---
@@ -645,12 +714,20 @@
       }
     });
 
-    // --- Ensure the file works when served over http(s) ---
-    // Important note at runtime: Firebase auth with module imports requires serving over HTTP(S).
-    // If you open this file with file:// it will fail to import modules. Use a simple server:
-    // python -m http.server 8000
-    // then open http://localhost:8000/zag_messenger.html
+    // --- Ensure floating updates on window focus/resize and nav changes ---
+    window.addEventListener('resize', updateFloatingVisibility);
+    window.addEventListener('focus', updateFloatingVisibility);
 
+    // --- Ensure initial load shows correct lists ---
+    // When app loads and user already signed in, navHome is active by default
+    // updateFloatingVisibility is called from onAuthStateChanged
+
+    // --- Debug hints: (remove in production) ---
+    // console.log('App initialized');
+
+    // Important: Serve over http(s) to allow module imports. Example:
+    // python -m http.server 8000
+    // open http://localhost:8000/yourfile.html
   </script>
 </body>
 </html>
