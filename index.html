@@ -13,8 +13,19 @@
       --muted:#9aaecf;
       --hand-font:'Patrick Hand', 'Segoe UI', Arial, sans-serif;
     }
-    html,body{height:100%;margin:0;font-family:var(--hand-font);background:linear-gradient(180deg,var(--bg),#eef6ff 60%);overflow:hidden;}
-    .phone{width:100%;height:100vh;background:#fff;display:flex;flex-direction:column;box-sizing:border-box;}
+    /* Use bg.png as background. Put bg.png in the same folder as this HTML file. */
+    html,body{
+      height:100%;
+      margin:0;
+      font-family:var(--hand-font);
+      /* gradient overlay on top of the background image for a soft look */
+      background:
+        linear-gradient(180deg, rgba(233,241,255,0.85), rgba(238,246,255,0.85) 60%),
+        url('bg.png') center/cover no-repeat;
+      overflow:hidden;
+      background-color: var(--bg); /* fallback color */
+    }
+    .phone{width:100%;height:100vh;background:rgba(255,255,255,0.9);display:flex;flex-direction:column;box-sizing:border-box;}
     .header{display:flex;align-items:center;padding:10px 14px;gap:10px;background:linear-gradient(180deg,var(--primary),var(--primary-dark));color:#fff;}
     .logo{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--primary);background:linear-gradient(180deg,#fff,#f7fbff);}
     .title{font-size:20px;color:#fff;font-weight:700;}
@@ -324,6 +335,26 @@
       }
     });
 
+    // --- ADDED: Support legacy separate signup/login buttons (if present in other versions)
+    const signupBtnLegacy = document.getElementById('signupBtn');
+    const loginBtnLegacy = document.getElementById('loginBtn');
+    if (signupBtnLegacy) {
+      signupBtnLegacy.addEventListener('click', () => {
+        isSigningUp = true;
+        updateAuthUI();
+        // trigger the main authSubmitBtn logic
+        authSubmitBtn.click();
+      });
+    }
+    if (loginBtnLegacy) {
+      loginBtnLegacy.addEventListener('click', () => {
+        isSigningUp = false;
+        updateAuthUI();
+        authSubmitBtn.click();
+      });
+    }
+    // --- END ADDED
+
     // Auth state
     onAuthStateChanged(auth, user => {
       currentUser = user;
@@ -375,4 +406,246 @@
                              </div>`;
             // toggle selection
             div.addEventListener('click', () => {
-              const 
+              const uid = div.dataset.uid;
+              if (selectedGroupMembers[uid]) {
+                delete selectedGroupMembers[uid];
+                div.style.opacity = '1';
+              } else {
+                selectedGroupMembers[uid] = u;
+                div.style.opacity = '0.6';
+              }
+              renderSelectedMembers();
+            });
+            contactsListDiv.appendChild(div);
+          }
+        });
+      });
+    }
+
+    function renderSelectedMembers() {
+      selectedMembersDiv.innerHTML = '';
+      Object.values(selectedGroupMembers).forEach(u => {
+        const span = document.createElement('span');
+        span.style.display = 'inline-block';
+        span.style.padding = '6px 8px';
+        span.style.margin = '4px';
+        span.style.borderRadius = '8px';
+        span.style.background = '#f6f9ff';
+        span.style.color = 'var(--primary)';
+        span.textContent = (u.email || u.phoneNumber || 'user').split('@')[0];
+        selectedMembersDiv.appendChild(span);
+      });
+    }
+
+    function loadChats() {
+      chatList.innerHTML = '';
+      const ref = dbRef(db, 'chats');
+      onValue(ref, snap => {
+        chatList.innerHTML = '';
+        snap.forEach(s => {
+          const c = s.val();
+          // show all chats involving current user (if members array exists)
+          const members = c.members || [];
+          if (!currentUser || !members.includes(currentUser.uid)) return;
+          const otherId = members.find(m => m !== currentUser.uid) || members[0];
+          const name = (c.name || otherId);
+          const div = document.createElement('div');
+          div.className = 'chat-item';
+          div.innerHTML = `<div class="avatar" style="width:44px;height:44px;border-radius:10px">${(name || 'U').charAt(0).toUpperCase()}</div>
+            <div style="flex:1">
+              <div style="font-weight:700;color:var(--primary);">${name}</div>
+              <div class="small">${c.lastMessage || ''}</div>
+            </div>`;
+          div.addEventListener('click', () => openChat(s.key, c));
+          chatList.appendChild(div);
+        });
+        if (!chatList.hasChildNodes()) {
+          chatList.innerHTML = '<div style="color:#999;text-align:center;padding:12px">No chats yet</div>';
+        }
+      });
+    }
+
+    function loadGroups() {
+      // simple group loading — similar to chats
+      groupList.innerHTML = '';
+      const ref = dbRef(db, 'groups');
+      onValue(ref, snap => {
+        groupList.innerHTML = '';
+        snap.forEach(s => {
+          const g = s.val();
+          const div = document.createElement('div');
+          div.className = 'chat-item';
+          div.innerHTML = `<div class="avatar" style="width:44px;height:44px;border-radius:10px">${(g.name || 'G').charAt(0).toUpperCase()}</div>
+            <div style="flex:1">
+              <div style="font-weight:700;color:var(--primary);">${g.name || 'Group'}</div>
+              <div class="small">${(g.members && Object.keys(g.members).length) || 0} members</div>
+            </div>`;
+          div.addEventListener('click', () => openGroup(s.key, g));
+          groupList.appendChild(div);
+        });
+      });
+    }
+
+    function openChat(id, data) {
+      currentChat = { type: 'private', id };
+      appSection.style.display = 'none';
+      individualChat.style.display = 'flex';
+      document.getElementById('current-chat-name').textContent = data.name || 'Chat';
+      document.getElementById('current-chat-avatar').textContent = (data.name || 'U').charAt(0).toUpperCase();
+      // listen to messages
+      const msgRef = dbRef(db, `messages/${id}`);
+      onValue(msgRef, snap => {
+        msgContainer.innerHTML = '';
+        snap.forEach(m => {
+          const mv = m.val();
+          const b = document.createElement('div');
+          b.className = 'bubble ' + (mv.from === currentUser.uid ? 'sent' : 'received');
+          b.textContent = mv.text || '';
+          msgContainer.appendChild(b);
+        });
+        msgContainer.scrollTop = msgContainer.scrollHeight;
+      });
+    }
+
+    function openGroup(id, data) {
+      currentChat = { type: 'group', id };
+      appSection.style.display = 'none';
+      individualChat.style.display = 'flex';
+      document.getElementById('current-chat-name').textContent = data.name || 'Group';
+      document.getElementById('current-chat-avatar').textContent = (data.name || 'G').charAt(0).toUpperCase();
+      const msgRef = dbRef(db, `groupMessages/${id}`);
+      onValue(msgRef, snap => {
+        msgContainer.innerHTML = '';
+        snap.forEach(m => {
+          const mv = m.val();
+          const b = document.createElement('div');
+          b.className = 'bubble ' + (mv.from === currentUser.uid ? 'sent' : 'received');
+          b.textContent = mv.text || '';
+          msgContainer.appendChild(b);
+        });
+        msgContainer.scrollTop = msgContainer.scrollHeight;
+      });
+    }
+
+    // Add new chat button toggle
+    floatingBtn.addEventListener('click', () => {
+      if (addChatArea.style.display === 'none' || addChatArea.style.display === '') {
+        addChatArea.style.display = 'block';
+      } else {
+        addChatArea.style.display = 'none';
+      }
+    });
+
+    closeAdd.addEventListener('click', () => {
+      addChatArea.style.display = 'none';
+    });
+
+    addBtn.addEventListener('click', async () => {
+      const id = document.getElementById('addChatIdentifier').value.trim();
+      if (!id) return alert('Enter email or phone to add.');
+      // simplistic: create chat node
+      const newChatRef = push(dbRef(db, 'chats'));
+      await set(newChatRef, {
+        name: id,
+        members: currentUser ? [currentUser.uid] : [],
+        lastMessage: ''
+      });
+      addChatArea.style.display = 'none';
+      document.getElementById('addChatIdentifier').value = '';
+    });
+
+    // send message
+    sendBtn.addEventListener('click', async () => {
+      const text = msgInput.value.trim();
+      if (!text || !currentChat) return;
+      const refPath = currentChat.type === 'private' ? `messages/${currentChat.id}` : `groupMessages/${currentChat.id}`;
+      const newMsgRef = push(dbRef(db, refPath));
+      await set(newMsgRef, { text, from: currentUser.uid, ts: Date.now() });
+      msgInput.value = '';
+      // update last message in chat/group
+      if (currentChat.type === 'private') {
+        update(dbRef(db, `chats/${currentChat.id}`), { lastMessage: text });
+      } else {
+        update(dbRef(db, `groups/${currentChat.id}`), { lastMessage: text });
+      }
+    });
+
+    // back button
+    backBtn.addEventListener('click', () => {
+      individualChat.style.display = 'none';
+      appSection.style.display = 'block';
+    });
+
+    // Group modal logic
+    document.getElementById('floatingNewBtn').addEventListener('click', () => {
+      modalBackdrop.style.display = 'flex';
+    });
+    cancelCreateGroup.addEventListener('click', () => {
+      modalBackdrop.style.display = 'none';
+    });
+
+    addMemberInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const v = addMemberInput.value.trim();
+        if (!v) return;
+        // add to selectedMembersDiv as a badge
+        const uid = 'temp:' + v;
+        selectedGroupMembers[uid] = { email: v };
+        renderSelectedMembers();
+        addMemberInput.value = '';
+      }
+    });
+
+    createGroupBtn.addEventListener('click', async () => {
+      const name = groupNameInput.value.trim();
+      if (!name) return alert('Enter group name');
+      const gRef = push(dbRef(db, 'groups'));
+      const membersObj = {};
+      Object.values(selectedGroupMembers).forEach((u, i) => {
+        membersObj[(u.uid || ('m'+i))] = u.email || u.phoneNumber || ('m'+i);
+      });
+      await set(gRef, { name, members: membersObj, createdAt: Date.now() });
+      modalBackdrop.style.display = 'none';
+      groupNameInput.value = '';
+      selectedGroupMembers = {};
+      renderSelectedMembers();
+    });
+
+    // Load contacts into modal when opening
+    function openGroupModal() {
+      contactsListDiv.innerHTML = '';
+      // usersCache will be filled by loadUsersCache
+      Object.values(usersCache).forEach(u => {
+        const div = document.createElement('div');
+        div.className = 'contact-item';
+        div.dataset.uid = u.uid;
+        div.innerHTML = `<div class="avatar" style="width:36px;height:36px;font-size:14px;border-radius:6px">${(u.email || 'U').charAt(0).toUpperCase()}</div>
+                         <div style="flex:1;">
+                           <div style="font-weight:700;color:var(--primary);font-size:14px">${(u.email || 'Unknown').split('@')[0]}</div>
+                           <div class="small">${u.email || u.phoneNumber || ''}</div>
+                         </div>`;
+        div.addEventListener('click', () => {
+          const uid = div.dataset.uid;
+          if (selectedGroupMembers[uid]) {
+            delete selectedGroupMembers[uid];
+            div.style.opacity = '1';
+          } else {
+            selectedGroupMembers[uid] = u;
+            div.style.opacity = '0.6';
+          }
+          renderSelectedMembers();
+        });
+        contactsListDiv.appendChild(div);
+      });
+    }
+
+    // ensure modal opens contacts when displayed
+    modalBackdrop.addEventListener('transitionend', () => {
+      if (modalBackdrop.style.display === 'flex') openGroupModal();
+    });
+
+    // --- END of main app logic ---
+
+  </script>
+</body>
+</html>
