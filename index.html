@@ -100,6 +100,62 @@
   .message, .message-bubble { max-width:55%; }
 }
 </style>
+
+<!-- Assistant: Group & improved fixed input styles -->
+<style>
+/* Chat shell (overlay panel) */
+#assistant-chat-shell { position:fixed; right:20px; bottom:20px; width:360px; height:640px; background:#fff; border-radius:12px; box-shadow:0 10px 40px rgba(11,96,214,0.12); overflow:hidden; z-index:100000; display:flex; flex-direction:column; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; }
+#assistant-chat-shell .header { padding:12px 14px; background:linear-gradient(90deg,#0b60d6,#2b81ff); color:#fff; display:flex; align-items:center; justify-content:space-between; }
+#assistant-chat-shell .header .title { font-weight:700; font-size:16px; }
+#assistant-chat-shell .header .controls { display:flex; gap:8px; align-items:center; }
+#assistant-chat-shell .tabs { display:flex; background:#f6f9ff; gap:6px; padding:8px; }
+#assistant-chat-shell .tab { flex:1; text-align:center; padding:8px; cursor:pointer; border-radius:8px; font-weight:600; font-size:13px; color:#274a9a; }
+#assistant-chat-shell .tab.active { background:#fff; box-shadow:inset 0 0 0 1px rgba(43,129,255,0.12); }
+
+.shell-body { display:flex; flex-direction:column; flex:1; min-height:0; }
+
+.list { flex:0 0 180px; overflow:auto; padding:10px; box-sizing:border-box; }
+.list .item { padding:10px; border-radius:8px; cursor:pointer; display:flex; align-items:center; gap:10px; }
+.list .item:hover { background: #f0f7ff; }
+.list .item .name { font-weight:700; }
+.list .item .meta { font-size:12px; color:#666; }
+
+.chat-area { flex:1 1 auto; display:flex; flex-direction:column; border-top:1px solid #f0f4ff; box-sizing:border-box; min-height:0; }
+.chat-header { padding:10px 12px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #f2f6ff; }
+.chat-title { font-weight:700; }
+.chat-members { font-size:12px; color:#555; }
+
+.message-list-panel { flex:1 1 auto; overflow:auto; padding:12px; display:flex; flex-direction:column; gap:8px; background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%); }
+
+.msg { max-width:78%; padding:8px 12px; border-radius:12px; background:#fff; box-shadow:0 1px 0 rgba(0,0,0,0.04); align-self:flex-start; word-wrap:break-word; }
+.msg.me { background:#DCF8C6; align-self:flex-end; }
+.msg .sender { display:block; font-weight:700; font-size:12px; margin-bottom:4px; }
+.msg .text { font-size:14px; line-height:1.3; }
+.msg .meta { font-size:11px; color:#666; margin-top:6px; }
+
+/* fixed input inside shell (so it's always visible at bottom of the panel) */
+.shell-input { display:flex; gap:8px; padding:10px; border-top:1px solid #eef5ff; background:#fff; }
+.shell-input .add-btn, .shell-input .send-btn { width:44px; height:44px; border-radius:10px; border:none; cursor:pointer; font-weight:700; }
+.shell-input .add-btn { background:#f0f4ff; }
+.shell-input .send-btn { background:#2b81ff; color:#fff; }
+.shell-input input { flex:1; padding:10px 12px; border-radius:12px; border:1px solid #e6eefc; outline:none; font-size:14px; box-sizing:border-box; }
+
+/* three-dot menu */
+.menu { position:relative; }
+.menu .menu-btn { background:transparent; border:none; color:#fff; cursor:pointer; font-size:20px; }
+.menu .menu-list { position:absolute; right:0; top:36px; background:#fff; box-shadow:0 8px 24px rgba(0,0,0,0.12); border-radius:8px; overflow:hidden; display:none; min-width:180px; z-index:100001; }
+.menu .menu-list button { display:block; width:100%; padding:10px 12px; border:none; background:transparent; text-align:left; cursor:pointer; }
+.menu .menu-list button:hover { background:#f3f7ff; }
+
+/* members panel (modal-like inside shell) */
+#members-panel { position:absolute; left:20px; top:20px; right:20px; bottom:20px; background:rgba(255,255,255,0.98); border-radius:10px; box-shadow:0 8px 40px rgba(0,0,0,0.12); padding:12px; display:none; z-index:100002; overflow:auto; }
+#members-panel h3 { margin-top:0; }
+.member { display:flex; justify-content:space-between; padding:8px 6px; border-bottom:1px solid #f3f6ff; }
+.member .role { font-size:12px; color:#666; }
+
+/* responsive */
+@media (max-width:480px){ #assistant-chat-shell{ right:10px; left:10px; width:auto; height:72vh; } }
+</style>
 </head>
 <body>
   <div class="phone">
@@ -814,6 +870,306 @@ document.addEventListener('DOMContentLoaded', function(){
     input.addEventListener('keydown', function(e){ if(e.key === 'Enter'){ e.preventDefault(); sendMessage(input.value); input.value=''; } });
   }
 });
+</script>
+
+<!-- Assistant: Chat shell injected -->
+<div id="assistant-chat-shell" aria-hidden="false">
+  <div class="header">
+    <div class="title">Zag — Chats & Groups</div>
+    <div class="controls">
+      <div class="menu" style="position:relative;">
+        <button class="menu-btn" title="New group">＋</button>
+        <div class="menu-list" role="menu">
+          <button data-action="new-group">Create new group</button>
+        </div>
+      </div>
+      <button class="close-shell" title="Close" style="background:transparent;border:none;color:#fff;font-size:16px;cursor:pointer;">✕</button>
+    </div>
+  </div>
+
+  <div class="tabs" role="tablist">
+    <div class="tab active" data-tab="groups">Groups</div>
+    <div class="tab" data-tab="chats">Individual</div>
+  </div>
+
+  <div class="shell-body">
+    <div class="list" id="list-panel" aria-live="polite">
+      <!-- items populated by JS -->
+    </div>
+
+    <div class="chat-area" id="chat-area" aria-hidden="true">
+      <div class="chat-header">
+        <div>
+          <div class="chat-title" id="chat-title">Select a group</div>
+          <div class="chat-members" id="chat-members">Members: -</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div class="menu">
+            <button class="menu-btn header-dots" title="Options">⋯</button>
+            <div class="menu-list header-menu" role="menu">
+              <button data-action="add-member">Add member</button>
+              <button data-action="leave-group">Leave group</button>
+              <button data-action="delete-group">Delete group</button>
+              <button data-action="view-members">View members</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="message-list-panel" id="message-list" tabindex="0" aria-live="polite">
+        <!-- messages appear here -->
+      </div>
+
+      <div class="shell-input" id="shell-input">
+        <button class="add-btn" title="Attach / Add">＋</button>
+        <input type="text" id="shell-message-input" placeholder="Write a message..." />
+        <button class="send-btn" id="shell-send-btn">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="members-panel" role="dialog" aria-hidden="true">
+    <h3>Group members</h3>
+    <div id="members-list"></div>
+    <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end;">
+      <button id="close-members">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Assistant: Chat/group behavior script -->
+<script>
+(function(){
+  // Simple in-memory model
+  var currentUser = { id:'u1', name:'You' };
+  var groups = [
+    { id:'g1', name:'Family', members:[{id:'u1',name:'You'},{id:'u2',name:'Alice'},{id:'u3',name:'Bob'}], admin:'u2', messages:[ {from:'u2',text:'Welcome to the group!', time:Date.now()-1000*60*60}, {from:'u3',text:'Hi everyone', time:Date.now()-1000*60} ] },
+    { id:'g2', name:'Project Team', members:[{id:'u1',name:'You'},{id:'u4',name:'Dev'},{id:'u5',name:'Design'}], admin:'u4', messages:[ {from:'u4',text':'Deadline Friday', time:Date.now()-1000*60*60*5} ] }
+  ];
+  var chats = [
+    { id:'c1', with:{id:'u2',name:'Alice'}, messages:[ {from:'u2', text:'Hello!', time:Date.now()-1000*60*30} ] },
+    { id:'c2', with:{id:'u3',name:'Bob'}, messages:[ {from:'u3', text:'Are you available?', time:Date.now()-1000*60*90} ] }
+  ];
+
+  // DOM refs
+  var shell = document.getElementById('assistant-chat-shell');
+  var listPanel = document.getElementById('list-panel');
+  var messageList = document.getElementById('message-list');
+  var chatArea = document.getElementById('chat-area');
+  var chatTitle = document.getElementById('chat-title');
+  var chatMembers = document.getElementById('chat-members');
+  var shellInput = document.getElementById('shell-input');
+  var shellInputField = document.getElementById('shell-message-input');
+  var shellSendBtn = document.getElementById('shell-send-btn');
+  var membersPanel = document.getElementById('members-panel');
+  var membersList = document.getElementById('members-list');
+  var closeMembersBtn = document.getElementById('close-members');
+
+  var active = { type:null, id:null }; // type: 'group' or 'chat'
+
+  function renderList(tab){
+    listPanel.innerHTML = '';
+    if(tab === 'groups'){
+      groups.forEach(function(g){
+        var el = document.createElement('div');
+        el.className = 'item';
+        el.dataset.id = g.id;
+        el.innerHTML = '<div><div class="name">'+escapeHtml(g.name)+'</div><div class="meta">'+g.members.length+' members</div></div>';
+        el.addEventListener('click', function(){ openGroup(g.id); });
+        listPanel.appendChild(el);
+      });
+    } else {
+      chats.forEach(function(c){
+        var el = document.createElement('div');
+        el.className = 'item';
+        el.dataset.id = c.id;
+        el.innerHTML = '<div><div class="name">'+escapeHtml(c.with.name)+'</div><div class="meta">Individual chat</div></div>';
+        el.addEventListener('click', function(){ openChat(c.id); });
+        listPanel.appendChild(el);
+      });
+    }
+  }
+
+  function openGroup(id){
+    var g = groups.find(function(x){ return x.id===id; });
+    if(!g) return;
+    active = { type:'group', id:id };
+    chatArea.style.display = 'flex';
+    chatTitle.textContent = g.name + (g.admin ? (g.admin === currentUser.id ? ' • admin' : '') : '');
+    chatMembers.textContent = 'Members: ' + g.members.map(function(m){ return m.name + (m.id===g.admin ? ' (admin)' : ''); }).join(', ');
+    renderMessages(g.messages, g.members);
+    highlightActiveInList(id);
+  }
+
+  function openChat(id){
+    var c = chats.find(function(x){ return x.id===id; });
+    if(!c) return;
+    active = { type:'chat', id:id };
+    chatArea.style.display = 'flex';
+    chatTitle.textContent = c.with.name;
+    chatMembers.textContent = 'Individual chat';
+    renderMessages(c.messages, [c.with]);
+    highlightActiveInList(id);
+  }
+
+  function renderMessages(messages, members){
+    messageList.innerHTML = '';
+    messages.forEach(function(m){
+      var isMe = m.from === currentUser.id;
+      var sender = (members && members.find(function(mm){ return mm.id===m.from; })) || { name: (m.from === currentUser.id ? 'You' : 'Unknown') };
+      var el = document.createElement('div');
+      el.className = 'msg' + (isMe ? ' me' : '');
+      var nameHtml = (!isMe ? '<span class="sender">'+escapeHtml(sender.name)+'</span>' : '');
+      el.innerHTML = nameHtml + '<span class="text">'+escapeHtml(m.text)+'</span><span class="meta">'+new Date(m.time).toLocaleString()+'</span>';
+      messageList.appendChild(el);
+    });
+    // scroll to bottom
+    setTimeout(function(){ messageList.scrollTop = messageList.scrollHeight; }, 30);
+  }
+
+  function highlightActiveInList(id){
+    Array.from(listPanel.querySelectorAll('.item')).forEach(function(it){ it.style.background=''; });
+    var it = listPanel.querySelector('.item[data-id="'+id+'"]');
+    if(it) it.style.background='#eef7ff';
+  }
+
+  function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  // Tab switching
+  Array.from(document.querySelectorAll('#assistant-chat-shell .tab')).forEach(function(t){
+    t.addEventListener('click', function(){
+      Array.from(document.querySelectorAll('#assistant-chat-shell .tab')).forEach(function(x){ x.classList.remove('active'); });
+      t.classList.add('active');
+      var tab = t.dataset.tab;
+      renderList(tab);
+      // hide chat area until user opens
+      chatArea.style.display = 'none';
+      active = { type:null, id:null };
+    });
+  });
+
+  // header menu toggles
+  document.querySelectorAll('#assistant-chat-shell .menu .menu-btn').forEach(function(btn){
+    btn.addEventListener('click', function(e){
+      var list = btn.parentElement.querySelector('.menu-list');
+      if(!list) return;
+      var showing = list.style.display === 'block';
+      // close other menu lists
+      Array.from(document.querySelectorAll('#assistant-chat-shell .menu-list')).forEach(function(l){ l.style.display='none'; });
+      list.style.display = showing ? 'none' : 'block';
+      e.stopPropagation();
+    });
+  });
+  // close menus on outside click
+  document.addEventListener('click', function(){ Array.from(document.querySelectorAll('#assistant-chat-shell .menu-list')).forEach(function(l){ l.style.display='none'; }); });
+
+  // new group action
+  document.querySelector('#assistant-chat-shell .menu-list [data-action="new-group"]').addEventListener('click', function(){
+    var name = prompt('Group name?');
+    if(!name) return;
+    var id = 'g'+(Date.now());
+    var g = { id:id, name:name, members:[{id:currentUser.id,name:currentUser.name}], admin:currentUser.id, messages:[] };
+    groups.unshift(g);
+    renderList('groups');
+    openGroup(id);
+  });
+
+  // header three-dot menu actions
+  document.querySelector('.header-menu [data-action="add-member"]').addEventListener('click', function(){
+    if(!active.type || active.type!=='group') { alert('Open a group first'); return; }
+    var name = prompt('New member name?');
+    if(!name) return;
+    var g = groups.find(function(x){ return x.id===active.id; });
+    var newId = 'u' + Date.now();
+    g.members.push({ id:newId, name:name });
+    alert(name + ' added to group');
+    chatMembers.textContent = 'Members: ' + g.members.map(function(m){ return m.name + (m.id===g.admin ? ' (admin)' : ''); }).join(', ');
+    renderMessages(g.messages, g.members);
+    renderList('groups');
+  });
+  document.querySelector('.header-menu [data-action="leave-group"]').addEventListener('click', function(){
+    if(!active.type || active.type!=='group') { alert('Open a group first'); return; }
+    var g = groups.find(function(x){ return x.id===active.id; });
+    var meIndex = g.members.findIndex(function(m){ return m.id===currentUser.id; });
+    if(meIndex === -1){ alert('You are not in this group'); return; }
+    if(!confirm('Leave group "'+g.name+'"?')) return;
+    g.members.splice(meIndex,1);
+    // if admin left, appoint first member as admin
+    if(g.admin === currentUser.id){ g.admin = (g.members[0] && g.members[0].id) || null; }
+    alert('You left the group');
+    chatMembers.textContent = 'Members: ' + g.members.map(function(m){ return m.name + (m.id===g.admin ? ' (admin)' : ''); }).join(', ');
+    renderList('groups');
+    chatArea.style.display = 'none';
+    active = { type:null, id:null };
+  });
+  document.querySelector('.header-menu [data-action="delete-group"]').addEventListener('click', function(){
+    if(!active.type || active.type!=='group') { alert('Open a group first'); return; }
+    var gIndex = groups.findIndex(function(x){ return x.id===active.id; });
+    if(gIndex === -1) return;
+    var g = groups[gIndex];
+    if(g.admin !== currentUser.id){ if(!confirm('You are not admin. Do you still want to request deletion?')) return; }
+    if(!confirm('Delete group "'+g.name+'"? This will remove it for everyone in this mock UI.')) return;
+    groups.splice(gIndex,1);
+    alert('Group deleted');
+    renderList('groups');
+    chatArea.style.display = 'none';
+    active = { type:null, id:null };
+  });
+  document.querySelector('.header-menu [data-action="view-members"]').addEventListener('click', function(){
+    if(!active.type || active.type!=='group') { alert('Open a group first'); return; }
+    var g = groups.find(function(x){ return x.id===active.id; });
+    membersList.innerHTML = '';
+    g.members.forEach(function(m){
+      var el = document.createElement('div');
+      el.className = 'member';
+      el.innerHTML = '<div>'+escapeHtml(m.name)+'</div><div class="role">'+(m.id===g.admin? 'admin' : 'member')+'</div>';
+      membersList.appendChild(el);
+    });
+    membersPanel.style.display = 'block';
+  });
+
+  closeMembersBtn.addEventListener('click', function(){ membersPanel.style.display='none'; });
+
+  // send message
+  function sendMessageFromInput(){
+    var text = shellInputField.value && shellInputField.value.trim();
+    if(!text) return;
+    if(active.type === 'group'){
+      var g = groups.find(function(x){ return x.id===active.id; });
+      if(!g){ alert('Group not found'); return; }
+      g.messages.push({ from: currentUser.id, text:text, time:Date.now() });
+      renderMessages(g.messages, g.members);
+    } else if(active.type === 'chat'){
+      var c = chats.find(function(x){ return x.id===active.id; });
+      if(!c){ alert('Chat not found'); return; }
+      c.messages.push({ from: currentUser.id, text:text, time:Date.now() });
+      renderMessages(c.messages, [c.with]);
+    } else {
+      alert('Open a chat or group to send a message');
+    }
+    shellInputField.value = '';
+  }
+  shellSendBtn.addEventListener('click', sendMessageFromInput);
+  shellInputField.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); sendMessageFromInput(); } });
+
+  // initial render: groups tab
+  renderList('groups');
+
+  // close/open shell
+  document.querySelector('#assistant-chat-shell .close-shell').addEventListener('click', function(){ shell.style.display = 'none'; });
+  // open shell again by making it visible if there's any existing button with class 'menu-btn' top-left; otherwise keep as is.
+
+  // if the page already has groups or chat elements, try to bind: look for .group-item elements
+  Array.from(document.querySelectorAll('.group-item')).forEach(function(el){
+    el.addEventListener('click', function(){ var id = el.dataset.groupId || ('g'+Date.now()); if(!groups.find(g=>g.id===id)){ groups.push({ id:id, name: el.textContent.trim() || 'Group', members:[{id:currentUser.id,name:currentUser.name}], admin:currentUser.id, messages:[] }); renderList('groups'); } openGroup(id); });
+  });
+
+  // utility: close members panel when clicking outside (but inside shell)
+  membersPanel.addEventListener('click', function(e){ if(e.target === membersPanel) membersPanel.style.display='none'; });
+
+  // expose for debugging
+  window.__zagChatMock = { groups:groups, chats:chats, openGroup:openGroup, openChat:openChat };
+})();
 </script>
 </body>
 </html>
