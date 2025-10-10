@@ -941,3 +941,136 @@
 </script>
 </body>
 </html>
+
+<!-- Assistant v2: raise message area and enforce membership visibility rules -->
+<style>
+/* Make message lists sit higher and ensure fixed inputs don't cover messages */
+.message-list, .messages, .message-list-panel, .m-messages { padding-bottom: 140px !important; }
+.fixed-bottom, .fixed-message-bar, .message-bar.fixed-bottom { padding:10px 14px !important; }
+/* Raise the minimal modal slightly higher visually */
+#minimal-group-modal { transform: translate(-50%,-56%) !important; height:540px !important; }
+#minimal-group-modal .m-messages { height: calc(100% - 120px) !important; padding-bottom: 8px; }
+</style>
+
+<script>
+(function(){
+  // Current user id used for visibility checks - matches the mock used earlier
+  var currentUserId = 'u1';
+  // Helper to parse a data-members attribute (accepts JSON array, comma list, or fallback)
+  function parseMembersAttr(attr){
+    if(!attr) return [];
+    try{ var v = JSON.parse(attr); if(Array.isArray(v)) return v.map(function(x){ return (typeof x === 'string')? x : (x.id||x.name||''); }); } catch(e) {}
+    // comma-separated
+    return attr.split(',').map(function(s){ return s.trim(); }).filter(Boolean);
+  }
+
+  // Ensure group elements are only visible if currentUser is a member.
+  var selectors = ['.group-item', '[data-group-id]', '.group', '.group-list li', '.groups .item', '.groups li'];
+  var elems = [];
+  selectors.forEach(function(sel){ Array.from(document.querySelectorAll(sel)).forEach(function(e){ if(elems.indexOf(e) === -1) elems.push(e); }); });
+
+  elems.forEach(function(el){
+    try{
+      // check membership via data-members or data-member-ids attributes
+      var membersAttr = el.getAttribute('data-members') || el.getAttribute('data-member-ids') || el.getAttribute('data-members-list');
+      var members = parseMembersAttr(membersAttr);
+      // also accept explicit presence of an element with class 'you' inside, or attribute data-you="true"
+      var explicit = el.querySelector('.you') ? [currentUserId] : [];
+      var isMember = members.indexOf(currentUserId) !== -1 || explicit.length>0 || el.getAttribute('data-you') === 'true';
+      // If no explicit members declared, we assume it's visible (to avoid hiding everything accidental),
+      // but if members are declared, hide the element if current user is not listed.
+      if(members.length > 0 && !isMember){
+        el.style.display = 'none';
+        el.dataset.zagHiddenDueToMembership = '1';
+      } else {
+        // ensure visible (in case previously hidden)
+        el.style.display = '';
+        delete el.dataset.zagHiddenDueToMembership;
+      }
+
+      // enhance click on group: only open modal if user is member
+      el.addEventListener('click', function(e){
+        // ignore clicks on three-dot or menu (handled elsewhere)
+        if(e.target && (e.target.classList.contains('group-three-dot') || e.target.closest('.group-menu'))) return;
+        var mems = parseMembersAttr(el.getAttribute('data-members') || el.getAttribute('data-member-ids') || el.getAttribute('data-members-list'));
+        var canOpen = (mems.length === 0) ? true : (mems.indexOf(currentUserId) !== -1);
+        if(!canOpen){
+          alert('You are not a member of this group. You cannot view the chat. If you were added you would see it here.');
+          return;
+        }
+        // fallback to existing handler: call the previously created modal opener if available
+        try{
+          // try building a group object from attributes or text
+          var name = el.getAttribute('data-group-name') || el.textContent.trim().split('\\n')[0] || el.getAttribute('data-group-id') || 'Group';
+          var gid = el.getAttribute('data-group-id') || el.id || ('g' + Math.floor(Math.random()*100000));
+          var members = mems.length? mems : [currentUserId];
+          var gd = { id: gid, name: name, members: members, messages: [] };
+          if(window.__openMinimalGroupModal) window.__openMinimalGroupModal(gd);
+          else {
+            // fallback simple modal creation (if previous injection absent)
+            var modal = document.getElementById('minimal-group-modal');
+            if(modal && window.__openMinimalGroupModal) window.__openMinimalGroupModal(gd);
+          }
+        }catch(err){ console.error('open group fail', err); }
+      }, true);
+
+      // ensure three-dot menu's Add member action can add current user to members and reveal hidden groups
+      var menu = el.querySelector('.group-menu');
+      if(menu){
+        menu.addEventListener('click', function(ev){
+          var action = ev.target && ev.target.getAttribute && ev.target.getAttribute('data-action');
+          if(!action) return;
+          if(action === 'add-member'){
+            var nm = prompt('Member name to add:');
+            if(!nm) return;
+            // if adding 'You' or current user's id, reveal this element to user
+            var addId = nm === 'You' || nm.toLowerCase() === 'you' ? currentUserId : 'u' + Math.floor(Math.random()*100000);
+            // update data-members attribute (append)
+            var cur = parseMembersAttr(el.getAttribute('data-members') || '');
+            cur.push(addId);
+            try{ el.setAttribute('data-members', JSON.stringify(cur)); } catch(e){ el.setAttribute('data-members', cur.join(',')); }
+            // if added current user, reveal
+            if(addId === currentUserId){ el.style.display = ''; delete el.dataset.zagHiddenDueToMembership; alert('You were added to the group (mock). You can now open and chat.'); }
+            else alert(nm + ' added to group (mock).');
+          } else if(action === 'view-members'){
+            var curm = parseMembersAttr(el.getAttribute('data-members') || '');
+            if(curm.length === 0) curm = ['(no explicit member list)'];
+            alert('Members:\\n' + curm.join('\\n'));
+          } else if(action === 'delete-group'){
+            if(confirm('Delete this group?')){ el.remove(); alert('Group deleted (mock)'); }
+          }
+        });
+      }
+
+    }catch(e){ console.error('visibility logic failed', e); }
+  });
+
+  // For individual chats: hide chats that don't include current user in their data-participants attribute
+  var chatSelectors = ['.chat-item', '[data-chat-id]', '.chat-list li', '.chats .item', '.individual-chat'];
+  var chatElems = [];
+  chatSelectors.forEach(function(sel){ Array.from(document.querySelectorAll(sel)).forEach(function(e){ if(chatElems.indexOf(e)===-1) chatElems.push(e); }); });
+  chatElems.forEach(function(cel){
+    try{
+      var partsAttr = cel.getAttribute('data-participants') || cel.getAttribute('data-members') || cel.getAttribute('data-participant-ids');
+      var parts = [];
+      if(partsAttr){ parts = parseMembersAttr(partsAttr); }
+      // if participants declared and currentUserId not among them, hide chat
+      if(parts.length > 0 && parts.indexOf(currentUserId) === -1){
+        cel.style.display = 'none';
+        cel.dataset.zagHiddenChat = '1';
+      } else {
+        cel.style.display = '';
+        delete cel.dataset.zagHiddenChat;
+      }
+    }catch(e){ console.error('chat visibility failed', e); }
+  });
+
+  // Finally, ensure message lists are scrolled to bottom and visible after these adjustments
+  setTimeout(function(){
+    Array.from(document.querySelectorAll('.message-list, .messages, .message-list-panel, .m-messages')).forEach(function(c){
+      c.scrollTop = c.scrollHeight;
+    });
+  }, 120);
+
+})();
+</script>
