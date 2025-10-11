@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Zag Messenger — Auth fixed (full features, kept working sign method)</title>
+  <title>Zag Messenger — Auth fixed (compat SDK)</title>
   <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet" />
   <style>
     :root{
@@ -23,14 +23,22 @@
     .menu{margin-left:auto;font-size:22px;opacity:0.95}
     .wave-top{height:20px;width:100%}
     .wave-top svg{width:100%;height:100%}
-    .auth{flex:1;padding:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:transparent}
+    /* AUTH (working snippet style) */
+    .auth{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:20px;overflow-y:auto;background:#f0f4fc;}
+    .welcome{font-size:22px;color:var(--primary);}
+    .sub{color:var(--muted);font-size:13px;margin-bottom:12px;}
     input[type="text"], input[type="email"], input[type="tel"], input[type="password"]{
       width:92%;max-width:420px;padding:12px;border-radius:10px;border:1px solid rgba(11,96,214,0.08);background:linear-gradient(180deg,#fff,#fbfdff);font-size:15px;color:var(--primary)
     }
+    .phone-group{display:flex;align-items:center;gap:8px;width:92%;max-width:420px;margin-bottom:10px;}
+    .country-code{border:1px solid rgba(75,134,230,0.08);border-radius:10px;padding:12px;width:70px;text-align:center;background:linear-gradient(180deg,#fff,#fbfdff);color:var(--primary);}
     .btn{padding:10px 14px;border-radius:10px;border:none;cursor:pointer;font-weight:700;font-size:15px}
     .primary{background:linear-gradient(180deg,var(--primary),var(--primary-dark));color:#fff}
     .ghost{background:#f6f9ff;color:var(--primary);border:1px solid rgba(11,96,214,0.06)}
     .small{font-size:13px;color:var(--muted)}
+    .toggle-btns{display:flex;gap:12px;margin-top:12px;flex-direction:column;align-items:center;}
+    .status-line{font-size:13px;color:var(--muted);margin-top:6px}
+    /* Rest of original app styles (kept) */
     .app{display:none;flex:1;padding:14px 16px 120px 16px;overflow:auto}
     h3.section-title{font-size:22px;color:var(--primary);margin:6px 0 14px}
     .card{background:linear-gradient(180deg,#fff,#fbfdff);border-radius:12px;padding:12px;border:1px solid rgba(11,96,214,0.06);margin-bottom:12px;display:flex;gap:12px;align-items:center}
@@ -77,23 +85,28 @@
       <svg viewBox="0 0 100 10" preserveAspectRatio="none"><path d="M0 5 C20 9,40 1,60 5 C80 9,100 3,100 3 L100 10 L0 10 Z" fill="#0b60d6"></path></svg>
     </div>
 
-    <!-- AUTH -->
+    <!-- AUTH SECTION -->
     <div class="auth" id="auth-section">
-      <div style="text-align:center">
-        <div style="font-size:22px;font-weight:700;color:var(--primary)">Welcome to Zag Messenger</div>
-        <div class="small" style="margin-top:6px">Sign up or sign in to continue</div>
-      </div>
+      <div class="welcome">Welcome,<br>to Zag Messenger.</div>
+      <div class="sub">Write your World</div>
+
       <input id="email" type="email" placeholder="Email">
-      <input id="phoneNumber" type="tel" placeholder="Phone number (without +880)">
-      <input id="password" type="password" placeholder="Password">
-      <button id="authSubmitBtn" class="btn primary">Sign Up</button>
-      <div style="display:flex;gap:8px;margin-top:8px">
-        <button id="toSignIn" class="btn ghost">Sign In</button>
-        <button id="toSignUp" class="btn ghost" style="display:none">Sign Up</button>
+      <div class="phone-group" id="phone-group">
+        <input class="country-code" value="+880" disabled>
+        <input id="phoneNumber" type="tel" placeholder="Phone number">
       </div>
+
+      <input id="password" type="password" placeholder="Password">
+      <button id="authSubmitBtn" class="btn primary" type="button">Sign Up</button>
+      <div class="toggle-btns">
+        <button id="toSignIn" class="btn ghost" type="button">Already have an account? Sign In</button>
+        <button id="toSignUp" class="btn ghost" type="button" style="display:none;">Don't have an account? Sign Up</button>
+      </div>
+
+      <div id="auth-status" class="status-line" aria-live="polite"></div>
     </div>
 
-    <!-- APP -->
+    <!-- MAIN APP -->
     <div class="app" id="app-section">
       <h3 class="section-title" id="list-title">My chats</h3>
       <div id="list-container"></div>
@@ -113,12 +126,12 @@
       <div class="chat-input-area-wrapper">
         <div class="chat-input">
           <input id="chatMessageInput" placeholder="Type a message...">
-          <button id="sendChatMessageBtn" class="send-btn">➤</button>
+          <button id="sendChatMessageBtn" class="send-btn" type="button">➤</button>
         </div>
       </div>
     </div>
 
-    <!-- floating + and menu (hidden when not signed in) -->
+    <!-- floating + and menu -->
     <div class="floating-new" id="floatingNewBtn">+</div>
     <div class="plus-menu" id="plusMenu">
       <button id="plusIndividualBtn">New Private Chat</button>
@@ -144,7 +157,7 @@
       </div>
     </div>
 
-    <!-- profile section (displayed when @You nav clicked) -->
+    <!-- profile section -->
     <div id="profile-section" class="app" style="display:none">
       <h3 class="section-title">Your Profile</h3>
       <div class="profile">
@@ -164,12 +177,13 @@
     </div>
   </div>
 
-  <script type="module">
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js';
-    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js';
-    import { getDatabase, ref as dbRef, set, get, onValue, push, update } from 'https://www.gstatic.com/firebasejs/10.13.2/firebase-database.js';
+  <!-- Firebase compat scripts (non-module) -->
+  <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-database-compat.js"></script>
 
-    // ---------- Firebase config ----------
+  <script>
+    // ---------- Firebase initialization (compat) ----------
     const firebaseConfig = {
       apiKey: 'AIzaSyBUH95hXYxMVCfhJglN4j3CReXy-CLYwmA',
       authDomain: 'live-messageinggkkh.firebaseapp.com',
@@ -179,185 +193,172 @@
       messagingSenderId: '537475612761',
       appId: '1:537475612761:web:d00723c117383e54027148'
     };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.database();
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getDatabase(app);
+    // Wrap in DOMContentLoaded to ensure elements available
+    window.addEventListener('DOMContentLoaded', () => {
+      // DOM refs
+      const authSection = document.getElementById('auth-section');
+      const appSection = document.getElementById('app-section');
+      const profileSection = document.getElementById('profile-section');
+      const listContainer = document.getElementById('list-container');
+      const emailInput = document.getElementById('email');
+      const passwordInput = document.getElementById('password');
+      const phoneInput = document.getElementById('phoneNumber');
+      const phoneGroup = document.getElementById('phone-group');
+      const authBtn = document.getElementById('authSubmitBtn');
+      const toSignIn = document.getElementById('toSignIn');
+      const toSignUp = document.getElementById('toSignUp');
+      const floatingNewBtn = document.getElementById('floatingNewBtn');
+      const plusMenu = document.getElementById('plusMenu');
+      const plusIndividualBtn = document.getElementById('plusIndividualBtn');
+      const plusGroupBtn = document.getElementById('plusGroupBtn');
+      const modalBackdrop = document.getElementById('modalBackdrop');
+      const groupNameInput = document.getElementById('groupName');
+      const addMemberInput = document.getElementById('addMemberInput');
+      const contactsList = document.getElementById('contactsList');
+      const selectedMembers = document.getElementById('selectedMembers');
+      const createGroupBtn = document.getElementById('createGroupBtn');
+      const cancelCreateGroup = document.getElementById('cancelCreateGroup');
+      const navHome = document.getElementById('nav-home');
+      const navGroups = document.getElementById('nav-groups');
+      const navYou = document.getElementById('nav-you');
+      const bottomNav = document.getElementById('bottomNav');
+      const chatScreen = document.getElementById('chat-screen');
+      const backToListBtn = document.getElementById('backToListBtn');
+      const messagesEl = document.getElementById('messages');
+      const currentChatNameEl = document.getElementById('current-chat-name');
+      const currentChatSubEl = document.getElementById('current-chat-sub');
+      const chatInput = document.getElementById('chatMessageInput');
+      const sendChatBtn = document.getElementById('sendChatMessageBtn');
+      const displayNameInput = document.getElementById('displayNameInput');
+      const profilePhone = document.getElementById('profilePhone');
+      const saveProfileBtn = document.getElementById('saveProfileBtn');
+      const signOutBtn = document.getElementById('signOutBtn');
+      const myContactsEl = document.getElementById('myContacts');
+      const listTitle = document.getElementById('list-title');
+      const authStatus = document.getElementById('auth-status');
+      const logoutBtn = document.getElementById('logoutBtn');
 
-    // DOM refs (matching this file's IDs)
-    const authSection = document.getElementById('auth-section');
-    const appSection = document.getElementById('app-section');
-    const profileSection = document.getElementById('profile-section');
-    const listContainer = document.getElementById('list-container');
-    const emailEl = document.getElementById('email');
-    const passEl = document.getElementById('password');
-    const phoneEl = document.getElementById('phoneNumber');
-    const authSubmitBtn = document.getElementById('authSubmitBtn');
-    const toSignIn = document.getElementById('toSignIn');
-    const toSignUp = document.getElementById('toSignUp');
-    const floatingNewBtn = document.getElementById('floatingNewBtn');
-    const plusMenu = document.getElementById('plusMenu');
-    const plusIndividualBtn = document.getElementById('plusIndividualBtn');
-    const plusGroupBtn = document.getElementById('plusGroupBtn');
-    const modalBackdrop = document.getElementById('modalBackdrop');
-    const groupNameInput = document.getElementById('groupName');
-    const addMemberInput = document.getElementById('addMemberInput');
-    const contactsList = document.getElementById('contactsList');
-    const selectedMembers = document.getElementById('selectedMembers');
-    const createGroupBtn = document.getElementById('createGroupBtn');
-    const cancelCreateGroup = document.getElementById('cancelCreateGroup');
-    const navHome = document.getElementById('nav-home');
-    const navGroups = document.getElementById('nav-groups');
-    const navYou = document.getElementById('nav-you');
-    const bottomNav = document.getElementById('bottomNav');
-    const chatScreen = document.getElementById('chat-screen');
-    const backToListBtn = document.getElementById('backToListBtn');
-    const messagesEl = document.getElementById('messages');
-    const currentChatNameEl = document.getElementById('current-chat-name');
-    const currentChatSubEl = document.getElementById('current-chat-sub');
-    const chatInput = document.getElementById('chatMessageInput');
-    const sendChatBtn = document.getElementById('sendChatMessageBtn');
-    const displayNameInput = document.getElementById('displayNameInput');
-    const profilePhone = document.getElementById('profilePhone');
-    const saveProfileBtn = document.getElementById('saveProfileBtn');
-    const signOutBtn = document.getElementById('signOutBtn');
-    const myContactsEl = document.getElementById('myContacts');
-    const listTitle = document.getElementById('list-title');
+      // state
+      let currentUser = null;
+      let usersCache = {};
+      let selectedGroupMembersObj = {};
+      let currentChat = null;
+      let isSignUp = true;
 
-    // state
-    let currentUser = null;
-    let usersCache = {};
-    let selectedGroupMembersObj = {};
-    let currentChat = null;
-
-    // IMPORTANT: use exactly the working auth method (kept unchanged behavior)
-    let isSignUp = true;
-
-    function toggleAuthMode(){
-      isSignUp = !isSignUp;
-      if (isSignUp) {
-        authSubmitBtn.textContent = 'Sign Up';
-        toSignIn.style.display = 'inline-block';
-        toSignUp.style.display = 'none';
-        // show phone input on sign up
-        if (phoneEl) phoneEl.style.display = 'block';
-      } else {
-        authSubmitBtn.textContent = 'Sign In';
-        toSignIn.style.display = 'none';
-        toSignUp.style.display = 'inline-block';
-        // hide phone input on sign in
-        if (phoneEl) phoneEl.style.display = 'none';
+      function setAuthStatus(text){
+        if(authStatus) authStatus.textContent = text;
+        console.log('Auth status:', text);
       }
-    }
 
-    // wire the same toggles to keep earlier working UI behavior
-    toSignIn.addEventListener('click', toggleAuthMode);
-    toSignUp.addEventListener('click', toggleAuthMode);
-    // set initial display based on isSignUp
-    if (!isSignUp && phoneEl) phoneEl.style.display = 'none';
-
-    // create user profile if missing (keeps the DB integration)
-    async function createUserProfileIfMissing(user){
-      if(!user) return;
-      const uRef = dbRef(db, 'users/' + user.uid);
-      const snap = await get(uRef);
-      if(!snap.exists()){
-        const displayName = user.email ? user.email.split('@')[0] : '';
-        await set(uRef, {
-          uid: user.uid,
-          email: user.email || '',
-          displayName,
-          phoneNumber: phoneEl && phoneEl.value ? '+880' + phoneEl.value.trim() : ''
-        });
-      } else {
-        // update missing fields if provided
-        const data = snap.val();
-        const updates = {};
-        if(!data.displayName && user.email) updates.displayName = user.email.split('@')[0];
-        if(!data.phoneNumber && phoneEl && phoneEl.value) updates.phoneNumber = '+880' + phoneEl.value.trim();
-        if(Object.keys(updates).length) await update(uRef, updates);
-      }
-    }
-
-    // --- IMPORTANT: Use the exact sign-in / sign-up calls that worked previously ---
-    authSubmitBtn.addEventListener('click', async () => {
-      const email = (emailEl.value || '').trim();
-      const pw = (passEl.value || '').trim();
-      if (!email || !pw) return alert('Enter email and password!');
-      try {
+      // Toggle mode
+      function toggleMode() {
+        isSignUp = !isSignUp;
         if (isSignUp) {
-          // sign up — identical to the previously-working method
-          await createUserWithEmailAndPassword(auth, email, pw);
-          alert('Sign Up Successful!');
-          // onAuthStateChanged will run and create profile + navigate
+          authBtn.textContent = 'Sign Up';
+          toSignIn.style.display = 'block';
+          toSignUp.style.display = 'none';
+          if (phoneGroup) phoneGroup.style.display = 'flex';
         } else {
-          // sign in — identical to the previously-working method
-          await signInWithEmailAndPassword(auth, email, pw);
-          alert('Sign In Successful!');
-          // onAuthStateChanged will run and navigate
+          authBtn.textContent = 'Sign In';
+          toSignIn.style.display = 'none';
+          toSignUp.style.display = 'block';
+          if (phoneGroup) phoneGroup.style.display = 'none';
         }
-      } catch (err) {
-        alert('Error: ' + (err && err.message ? err.message : err));
-        console.error(err);
+        setAuthStatus(isSignUp ? 'Mode: Sign Up' : 'Mode: Sign In');
       }
-    });
+      toSignIn && toSignIn.addEventListener('click', toggleMode);
+      toSignUp && toSignUp.addEventListener('click', toggleMode);
 
-    // users cache (names) and contacts list
-    function loadUsersCache(){
-      const uRef = dbRef(db, 'users');
-      onValue(uRef, snap => {
-        usersCache = {};
-        contactsList.innerHTML = '';
-        myContactsEl && (myContactsEl.innerHTML = '');
-        if(!snap.exists()) return;
-        snap.forEach(s => {
-          const u = s.val();
-          if(!u || !u.uid) return;
-          usersCache[u.uid] = u;
-          if(currentUser && u.uid !== currentUser.uid){
-            const row = document.createElement('div');
-            row.className = 'contact-item';
-            row.innerHTML = `<div class="avatar" style="width:40px;height:40px;font-size:14px">${(u.displayName||u.email||'U').charAt(0).toUpperCase()}</div>
-                             <div style="flex:1"><div style="font-weight:700;color:var(--primary)">${u.displayName || u.email || u.phoneNumber}</div>
-                             <div class="small">${u.phoneNumber || ''}</div></div>`;
-            row.onclick = () => {
-              if(selectedGroupMembersObj[u.uid]){ delete selectedGroupMembersObj[u.uid]; row.style.opacity='1' }
-              else { selectedGroupMembersObj[u.uid] = u; row.style.opacity='0.6' }
-              renderSelectedMembers();
-            };
-            contactsList.appendChild(row);
+      // create profile if missing
+      async function createUserProfileIfMissing(user){
+        if(!user) return;
+        try{
+          const uRef = db.ref('users/' + user.uid);
+          const snap = await uRef.once('value');
+          if(!snap.exists()){
+            const displayName = user.email ? user.email.split('@')[0] : '';
+            await uRef.set({
+              uid: user.uid,
+              email: user.email || '',
+              displayName,
+              phoneNumber: phoneInput && phoneInput.value ? '+880' + phoneInput.value.trim() : ''
+            });
+            console.log('Profile created for', user.uid);
+          } else {
+            const data = snap.val();
+            const updates = {};
+            if(!data.displayName && user.email) updates.displayName = user.email.split('@')[0];
+            if(!data.phoneNumber && phoneInput && phoneInput.value) updates.phoneNumber = '+880' + phoneInput.value.trim();
+            if(Object.keys(updates).length) await uRef.update(updates);
+            console.log('Profile exists, updates:', updates);
           }
-        });
-        renderMyContacts();
-      });
-    }
+        } catch(e){
+          console.error('createUserProfileIfMissing error', e);
+        }
+      }
 
-    function renderSelectedMembers(){
-      selectedMembers.innerHTML = '';
-      Object.values(selectedGroupMembersObj).forEach(u => {
-        const span = document.createElement('div');
-        span.style.padding = '6px 10px';
-        span.style.background = '#f0f6ff';
-        span.style.borderRadius = '999px';
-        span.style.marginRight = '6px';
-        span.style.display = 'inline-block';
-        span.textContent = u.displayName || u.email || u.phoneNumber || 'Member';
-        selectedMembers.appendChild(span);
+      // Auth button handler
+      authBtn && authBtn.addEventListener('click', async (ev) => {
+        try{
+          ev && ev.preventDefault();
+          const email = (emailInput && emailInput.value || '').trim();
+          const pass = (passwordInput && passwordInput.value || '').trim();
+          if(!email || !pass){
+            alert('Please enter both email and password.');
+            return;
+          }
+          setAuthStatus('Processing auth request...');
+          if(isSignUp){
+            try{
+              await auth.createUserWithEmailAndPassword(email, pass);
+              alert('Sign Up successful — you will be taken to the app.');
+              setAuthStatus('Signed up (waiting for auth state)');
+            } catch(err){
+              const msg = err && err.message ? err.message : String(err);
+              console.error('Sign Up error', err);
+              alert('Sign Up error: ' + msg);
+              setAuthStatus('Sign Up error: ' + msg);
+            }
+          } else {
+            try{
+              await auth.signInWithEmailAndPassword(email, pass);
+              alert('Sign In successful — you will be taken to the app.');
+              setAuthStatus('Signed in (waiting for auth state)');
+            } catch(err){
+              const msg = err && err.message ? err.message : String(err);
+              console.error('Sign In error', err);
+              alert('Sign In error: ' + msg);
+              setAuthStatus('Sign In error: ' + msg);
+            }
+          }
+        } catch(e){
+          console.error('Auth handler unexpected error', e);
+          alert('Unexpected error: ' + (e && e.message ? e.message : e));
+          setAuthStatus('Unexpected error');
+        }
       });
-    }
 
-    function renderMyContacts(){
-      if(!myContactsEl) return;
-      myContactsEl.innerHTML = '';
-      Object.values(usersCache).forEach(u => {
-        if(!currentUser || u.uid === currentUser.uid) return;
-        const row = document.createElement('div');
-        row.className = 'contact-item';
-        row.innerHTML = `<div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(180deg,#dbeeff,#c1ddff);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--primary);">${(u.displayName||u.email||'U').charAt(0).toUpperCase()}</div>
-                         <div style="flex:1;margin-left:8px;"><div style="font-weight:700;color:var(--primary);">${u.displayName || u.email || u.phoneNumber}</div>
-                         <div class="small">${u.phoneNumber || ''}</div></div>`;
-        myContactsEl.appendChild(row);
+      // Sign out handlers
+      signOutBtn && signOutBtn.addEventListener('click', () => {
+        auth.signOut().then(()=> alert('Signed out')).catch(e=> alert('Sign out error: ' + e.message));
       });
-    }
+      logoutBtn && logoutBtn.addEventListener('click', () => {
+        auth.signOut().then(()=> alert('Signed out')).catch(e=> alert('Sign out error: ' + e.message));
+      });
 
-    // load chats (users list
+      // load users cache and populate lists
+      function loadUsersCache(){
+        const uRef = db.ref('users');
+        uRef.on('value', snap => {
+          usersCache = {};
+          contactsList.innerHTML = '';
+          myContactsEl && (myContactsEl.innerHTML = '');
+          listContainer && (listContainer.innerHTML = '');
+          if(!snap.exists()) return;
+          snap.forEach(child => {
+            const u = child.val() || {};
+            // ensure uid prese
