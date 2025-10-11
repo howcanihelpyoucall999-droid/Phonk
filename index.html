@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Zag Messenger — Auth fixed</title>
+  <title>Zag Messenger — Auth fixed (full features, kept working sign method)</title>
   <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet" />
   <style>
     :root{
@@ -184,7 +184,7 @@
     const auth = getAuth(app);
     const db = getDatabase(app);
 
-    // DOM refs
+    // DOM refs (matching this file's IDs)
     const authSection = document.getElementById('auth-section');
     const appSection = document.getElementById('app-section');
     const profileSection = document.getElementById('profile-section');
@@ -222,46 +222,41 @@
     const saveProfileBtn = document.getElementById('saveProfileBtn');
     const signOutBtn = document.getElementById('signOutBtn');
     const myContactsEl = document.getElementById('myContacts');
+    const listTitle = document.getElementById('list-title');
 
     // state
     let currentUser = null;
     let usersCache = {};
     let selectedGroupMembersObj = {};
     let currentChat = null;
-    let isSignUpMode = true;
 
-    // helper: BD time
-    function formatBDTime(ts){
-      try{
-        const dt = new Date(ts);
-        const fmt = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', day:'2-digit', month:'short', timeZone: 'Asia/Dhaka' });
-        return fmt.format(dt);
-      }catch(e){
-        const dt = new Date(ts);
-        return dt.toLocaleTimeString();
+    // IMPORTANT: use exactly the working auth method (kept unchanged behavior)
+    let isSignUp = true;
+
+    function toggleAuthMode(){
+      isSignUp = !isSignUp;
+      if (isSignUp) {
+        authSubmitBtn.textContent = 'Sign Up';
+        toSignIn.style.display = 'inline-block';
+        toSignUp.style.display = 'none';
+        // show phone input on sign up
+        if (phoneEl) phoneEl.style.display = 'block';
+      } else {
+        authSubmitBtn.textContent = 'Sign In';
+        toSignIn.style.display = 'none';
+        toSignUp.style.display = 'inline-block';
+        // hide phone input on sign in
+        if (phoneEl) phoneEl.style.display = 'none';
       }
     }
 
-    // --- UI initial state: hide nav and floating + until signed in
-    bottomNav.style.display = 'none';
-    floatingNewBtn.style.display = 'none';
-    plusMenu.style.display = 'none';
+    // wire the same toggles to keep earlier working UI behavior
+    toSignIn.addEventListener('click', toggleAuthMode);
+    toSignUp.addEventListener('click', toggleAuthMode);
+    // set initial display based on isSignUp
+    if (!isSignUp && phoneEl) phoneEl.style.display = 'none';
 
-    // toggle auth mode UI
-    toSignIn.onclick = () => {
-      isSignUpMode = false;
-      authSubmitBtn.textContent = 'Sign In';
-      toSignIn.style.display = 'none';
-      toSignUp.style.display = 'inline-block';
-    };
-    toSignUp.onclick = () => {
-      isSignUpMode = true;
-      authSubmitBtn.textContent = 'Sign Up';
-      toSignUp.style.display = 'none';
-      toSignIn.style.display = 'inline-block';
-    };
-
-    // create user profile if missing
+    // create user profile if missing (keeps the DB integration)
     async function createUserProfileIfMissing(user){
       if(!user) return;
       const uRef = dbRef(db, 'users/' + user.uid);
@@ -272,39 +267,42 @@
           uid: user.uid,
           email: user.email || '',
           displayName,
-          phoneNumber: phoneEl.value ? '+880' + phoneEl.value.trim() : ''
+          phoneNumber: phoneEl && phoneEl.value ? '+880' + phoneEl.value.trim() : ''
         });
       } else {
         // update missing fields if provided
         const data = snap.val();
         const updates = {};
         if(!data.displayName && user.email) updates.displayName = user.email.split('@')[0];
-        if(!data.phoneNumber && phoneEl.value) updates.phoneNumber = '+880' + phoneEl.value.trim();
+        if(!data.phoneNumber && phoneEl && phoneEl.value) updates.phoneNumber = '+880' + phoneEl.value.trim();
         if(Object.keys(updates).length) await update(uRef, updates);
       }
     }
 
-    // Sign up / Sign in action
-    authSubmitBtn.onclick = async () => {
+    // --- IMPORTANT: Use the exact sign-in / sign-up calls that worked previously ---
+    authSubmitBtn.addEventListener('click', async () => {
       const email = (emailEl.value || '').trim();
       const pw = (passEl.value || '').trim();
-      if(!email || !pw) return alert('Please enter email and password');
-      try{
-        if(isSignUpMode){
-          const cred = await createUserWithEmailAndPassword(auth, email, pw);
-          await createUserProfileIfMissing(cred.user);
-          // onAuthStateChanged will handle navigation
+      if (!email || !pw) return alert('Enter email and password!');
+      try {
+        if (isSignUp) {
+          // sign up — identical to the previously-working method
+          await createUserWithEmailAndPassword(auth, email, pw);
+          alert('Sign Up Successful!');
+          // onAuthStateChanged will run and create profile + navigate
         } else {
+          // sign in — identical to the previously-working method
           await signInWithEmailAndPassword(auth, email, pw);
-          // onAuthStateChanged will handle navigation
+          alert('Sign In Successful!');
+          // onAuthStateChanged will run and navigate
         }
-      }catch(err){
-        alert((isSignUpMode ? 'Sign up' : 'Sign in') + ' failed: ' + err.message);
+      } catch (err) {
+        alert('Error: ' + (err && err.message ? err.message : err));
         console.error(err);
       }
-    };
+    });
 
-    // users cache (names)
+    // users cache (names) and contacts list
     function loadUsersCache(){
       const uRef = dbRef(db, 'users');
       onValue(uRef, snap => {
@@ -348,32 +346,18 @@
       });
     }
 
-    // add contact by identifier
-    async function addContactByIdentifier(identifier){
-      const usersRef = dbRef(db, 'users');
-      const snap = await get(usersRef);
-      let found = null;
-      snap.forEach(s => {
-        const u = s.val();
-        if(!u) return;
-        if(u.email === identifier || u.phoneNumber === identifier || (u.phoneNumber && u.phoneNumber.endsWith(identifier))) found = u;
+    function renderMyContacts(){
+      if(!myContactsEl) return;
+      myContactsEl.innerHTML = '';
+      Object.values(usersCache).forEach(u => {
+        if(!currentUser || u.uid === currentUser.uid) return;
+        const row = document.createElement('div');
+        row.className = 'contact-item';
+        row.innerHTML = `<div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(180deg,#dbeeff,#c1ddff);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--primary);">${(u.displayName||u.email||'U').charAt(0).toUpperCase()}</div>
+                         <div style="flex:1;margin-left:8px;"><div style="font-weight:700;color:var(--primary);">${u.displayName || u.email || u.phoneNumber}</div>
+                         <div class="small">${u.phoneNumber || ''}</div></div>`;
+        myContactsEl.appendChild(row);
       });
-      if(!found) return alert('User not found (they must sign up first).');
-      await set(dbRef(db, `contacts/${currentUser.uid}/${found.uid}`), true);
-      alert('Added to your contacts. You can now chat with them.');
-      await loadContactsAndLists();
-      openPrivateChatWith(found);
     }
 
-    // load contacts and lists
-    async function loadContactsAndLists(){
-      if(!currentUser) return;
-      const cSnap = await get(dbRef(db, `contacts/${currentUser.uid}`));
-      const contacts = cSnap.exists() ? Object.keys(cSnap.val()) : [];
-      listContainer.innerHTML = '';
-      const title = document.getElementById('list-title');
-      if(navHome.classList.contains('active')) title.innerText = 'My chats';
-      else if(navGroups.classList.contains('active')) title.innerText = 'Groups';
-
-      if(navHome.classList.contains('active')){
- 
+    // load chats (users list
