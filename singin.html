@@ -188,6 +188,7 @@
     const authBtn = document.getElementById('authBtn');
     const toggleBtn = document.getElementById('toggleBtn');
     const statusEl = document.getElementById('status');
+
     let isSignUp = true;
     updateMode();
 
@@ -234,7 +235,12 @@
       }catch(e){alert('Error: '+e.message);statusEl.textContent='Error: '+e.message;}
     };
 
-    auth.onAuthStateChanged(u=>{if(u){statusEl.textContent='Already signed in — redirecting...';setTimeout(()=>location.href='index.html',400);}});
+    // ✅ If user already logged in, skip this page and go to index.html
+    auth.onAuthStateChanged(u=>{
+      if(u){
+        setTimeout(()=>location.href='index.html',400);
+      }
+    });
   </script>
 </body>
 </html>
