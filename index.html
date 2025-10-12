@@ -23,7 +23,6 @@
     .menu{margin-left:auto;font-size:22px;opacity:0.95}
     .wave-top{height:20px;width:100%}
     .wave-top svg{width:100%;height:100%}
-    /* AUTH area removed from this file; index checks auth and shows app section */
 
     /* APP */
     .app{flex:1;display:flex;flex-direction:column;justify-content:flex-start;padding:14px 16px 120px 16px;overflow:auto}
@@ -61,6 +60,9 @@
     .profile{display:flex;flex-direction:column;gap:10px}
     .contacts-list{max-height:240px;overflow:auto;padding-top:6px}
     .app-hidden{display:none}
+    .btn{padding:8px 12px;border-radius:8px;border:none;cursor:pointer}
+    .ghost{background:#f6f9ff;color:var(--primary);border:1px solid rgba(11,96,214,0.06)}
+    .primary{background:linear-gradient(180deg,var(--primary),var(--primary-dark));color:#fff}
     @media (max-width:420px){ .floating-new{right:12px;bottom:86px;width:56px;height:56px} .plus-menu{right:12px} }
   </style>
 </head>
@@ -105,6 +107,7 @@
     <div class="plus-menu" id="plusMenu">
       <button id="plusIndividualBtn">New Private Chat</button>
       <button id="plusGroupBtn">Create Group</button>
+      <button id="addPersonBtn">Add Person (to contacts)</button>
     </div>
 
     <!-- group modal -->
@@ -174,6 +177,7 @@
     const plusMenu = document.getElementById('plusMenu');
     const plusIndividualBtn = document.getElementById('plusIndividualBtn');
     const plusGroupBtn = document.getElementById('plusGroupBtn');
+    const addPersonBtn = document.getElementById('addPersonBtn');
     const modalBackdrop = document.getElementById('modalBackdrop');
     const contactsList = document.getElementById('contactsList');
     const selectedMembers = document.getElementById('selectedMembers');
@@ -248,24 +252,23 @@
       }
     }
 
-    // Load all users into usersCache and render contacts
+    // Load all users into usersCache and render lists
     function loadUsers(){
       const uRef = db.ref('users');
-      uRef.off(); // avoid duplicate listeners
+      uRef.off();
       uRef.on('value', snap => {
         usersCache = {};
         contactsListEl.innerHTML = '';
         myContactsEl && (myContactsEl.innerHTML = '');
-        listContainer.innerHTML = '';
+        // don't clear conversations here (conversations loaded separately)
         if(!snap.exists()) return;
         snap.forEach(child => {
           const u = child.val();
           usersCache[u.uid] = u;
         });
-        // render contacts and conversation list
         renderContactsList();
-        renderConversationList();
         renderMyContacts();
+        renderConversationList(); // ensure conversations reflect up-to-date names
       });
     }
 
@@ -273,13 +276,16 @@
     function renderContactsList(){
       contactsListEl.innerHTML = '';
       Object.values(usersCache).forEach(u=>{
-        // skip current user
         if(!u || u.uid === currentUser.uid) return;
         const div = document.createElement('div');
         div.className = 'contact-item';
         div.innerHTML = `<div style="width:44px;height:44px;border-radius:50%;background:#f0f6ff;display:flex;align-items:center;justify-content:center;color:var(--primary);font-weight:700">${(u.displayName||'U').slice(0,2).toUpperCase()}</div>
                          <div style="flex:1"><div style="font-weight:700;color:var(--primary)">${u.displayName||u.email}</div><div style="color:var(--muted);font-size:13px">${u.phoneNumber||u.email||''}</div></div>`;
-        div.addEventListener('click', ()=> toggleSelectMember(u.uid, u.displayName||u.email));
+        div.addEventListener('click', ()=> {
+          toggleSelectMember(u.uid, u.displayName||u.email);
+          // re-render to show selected status
+          renderContactsList();
+        });
         contactsListEl.appendChild(div);
       });
     }
@@ -334,7 +340,6 @@
         snap.forEach(child => {
           const conv = child.val();
           conv.id = child.key;
-          // conv.members: object { uid: true }
           if(conv.members && conv.members[currentUser.uid]) {
             conversations[conv.id] = conv;
           }
@@ -343,7 +348,7 @@
       });
     }
 
-    // Render list of conversations (simple)
+    // Render list of conversations
     function renderConversationList(){
       listContainer.innerHTML = '';
       const convs = Object.values(conversations).sort((a,b)=> (b.lastUpdated||0)-(a.lastUpdated||0));
@@ -358,19 +363,17 @@
       convs.forEach(conv=>{
         const item = document.createElement('div');
         item.className = 'card';
-        // name logic
         let title = conv.title || (conv.type === 'group' ? 'Group' : 'Private chat');
         if(conv.type === 'private'){
-          // other member
           const otherUid = Object.keys(conv.members).find(u => u !== currentUser.uid);
           const other = usersCache[otherUid] || {};
           title = other.displayName || other.email || 'Private';
         } else if(conv.type === 'group'){
           title = conv.title || 'Group';
         }
-        const sub = conv.lastMessage ? conv.lastMessage.text.slice(0,45) : (conv.type === 'group' ? `${Object.keys(conv.members||{}).length} members` : 'New conversation');
+        const sub = conv.lastMessage ? (conv.lastMessage.text || '').slice(0,45) : (conv.type === 'group' ? `${Object.keys(conv.members||{}).length} members` : 'New conversation');
         item.innerHTML = `<div class="avatar">${(title||'U').slice(0,2).toUpperCase()}</div>
-                          <div class="meta"><div class="name">${title}</div><div class="sub">${sub}</div></div>`;
+                          <div class="meta"><div class="name">${escapeHtml(title)}</div><div class="sub">${escapeHtml(sub)}</div></div>`;
         item.addEventListener('click', ()=> openConversation(conv.id));
         listContainer.appendChild(item);
       });
@@ -380,13 +383,5 @@
     function openConversation(convId){
       currentConvId = convId;
       const conv = conversations[convId];
-      currentChatNameEl.textContent = conv.title || (conv.type === 'private' ? 'Chat' : 'Group');
-      currentChatSubEl.textContent = conv.type === 'group' ? `Members: ${Object.keys(conv.members||{}).length}` : '';
-      appSection.style.display = 'none';
-      chatScreen.style.display = 'flex';
-      // remove previous listener
-      if(messagesListener) messagesListener.off && messagesListener.off();
-      messagesEl.innerHTML = '';
-      const msgRef = db.ref('messages/' + convId);
-      // order by timestamp
-      mes
+      currentChatNameEl.textContent = conv.title || (conv.type === 'private' ? (usersCache[Object.keys(conv.members).find(u=>u!==currentUser.uid)] || {}).displayName || 'Chat' : 'Group');
+      currentChatSubEl.textCo

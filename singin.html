@@ -41,90 +41,24 @@
       gap:12px;
       flex-shrink:0;
     }
-    .logo{
-      width:44px;height:44px;border-radius:50%;
-      background:#fff;color:var(--primary);
-      display:flex;align-items:center;justify-content:center;
-      font-weight:800;font-size:18px;
-    }
+    .logo{width:44px;height:44px;border-radius:50%;background:#fff;color:var(--primary);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px}
     .app-name{font-size:20px;font-weight:700}
     .wave{height:30px;overflow:hidden;flex-shrink:0}
     .wave svg{width:100%;height:100%;display:block}
 
     /* Centered form container */
-    .form-area{
-      flex:1;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      padding:20px;
-    }
-    .box{
-      width:100%;
-      max-width:400px;
-      text-align:center;
-    }
-
+    .form-area{flex:1;display:flex;align-items:center;justify-content:center;padding:20px}
+    .box{width:100%;max-width:400px;text-align:center}
     .title{font-size:28px;color:var(--primary);margin:0 0 4px}
     .subtitle{color:var(--muted);margin-bottom:18px;font-size:15px}
-
-    .input{
-      width:100%;
-      background:linear-gradient(180deg,#fff,#fbfdff);
-      padding:14px;
-      border-radius:14px;
-      border:1px solid rgba(11,96,214,0.06);
-      box-shadow:0 10px 28px rgba(11,96,214,0.06);
-      font-size:16px;
-      outline:none;
-      margin:10px 0;
-    }
+    .input{width:100%;background:linear-gradient(180deg,#fff,#fbfdff);padding:14px;border-radius:14px;border:1px solid rgba(11,96,214,0.06);box-shadow:0 10px 28px rgba(11,96,214,0.06);font-size:16px;outline:none;margin:10px 0}
     .phone-row{display:flex;gap:12px;margin-top:6px}
-    .code{
-      width:84px;padding:14px;border-radius:12px;
-      border:1px solid rgba(11,96,214,0.06);
-      background:#fff;font-size:16px;font-weight:700;color:var(--primary);
-      box-shadow:inset 0 -6px 14px rgba(11,96,214,0.02)
-    }
-    .phone{
-      flex:1;padding:14px;border-radius:12px;
-      border:1px solid rgba(11,96,214,0.06);
-      background:#fff;font-size:16px;
-      box-shadow:inset 0 -6px 14px rgba(11,96,214,0.02)
-    }
-
-    .big-btn{
-      width:100%;
-      padding:16px;
-      border-radius:18px;
-      border:none;
-      background:linear-gradient(180deg,var(--primary),var(--primary-2));
-      color:#fff;
-      font-weight:800;
-      font-size:18px;
-      margin-top:16px;
-      box-shadow:0 18px 40px rgba(11,96,214,0.2);
-      cursor:pointer;
-    }
-    .pill{
-      display:inline-block;
-      margin-top:14px;
-      padding:12px 18px;
-      border-radius:999px;
-      background:#fff;
-      color:var(--primary);
-      font-weight:700;
-      box-shadow:0 20px 50px rgba(11,96,214,0.06);
-      border:1px solid rgba(11,96,214,0.04);
-      cursor:pointer;
-    }
+    .code{width:84px;padding:14px;border-radius:12px;border:1px solid rgba(11,96,214,0.06);background:#fff;font-size:16px;font-weight:700;color:var(--primary);box-shadow:inset 0 -6px 14px rgba(11,96,214,0.02)}
+    .phone{flex:1;padding:14px;border-radius:12px;border:1px solid rgba(11,96,214,0.06);background:#fff;font-size:16px;box-shadow:inset 0 -6px 14px rgba(11,96,214,0.02)}
+    .big-btn{width:100%;padding:16px;border-radius:18px;border:none;background:linear-gradient(180deg,var(--primary),var(--primary-2));color:#fff;font-weight:800;font-size:18px;margin-top:16px;box-shadow:0 18px 40px rgba(11,96,214,0.2);cursor:pointer}
+    .pill{display:inline-block;margin-top:14px;padding:12px 18px;border-radius:999px;background:#fff;color:var(--primary);font-weight:700;box-shadow:0 20px 50px rgba(11,96,214,0.06);border:1px solid rgba(11,96,214,0.04);cursor:pointer}
     .status{margin-top:10px;color:var(--muted);font-size:13px}
-
-    @media (max-width:420px){
-      .title{font-size:25px}
-      .logo{width:40px;height:40px}
-      .code{width:70px;padding:12px}
-    }
+    @media (max-width:420px){ .title{font-size:25px} .logo{width:40px;height:40px} .code{width:70px;padding:12px} }
   </style>
 </head>
 <body>
@@ -146,29 +80,27 @@
         <div class="subtitle">Write your World</div>
 
         <input id="email" class="input" type="email" placeholder="Email" autocomplete="email" />
-
         <div class="phone-row">
           <input class="code" value="+880" disabled />
           <input id="phone" class="phone" type="tel" placeholder="Phone (without +880)" inputmode="tel" pattern="[0-9]*" />
         </div>
-
         <input id="password" class="input" type="password" placeholder="Password" autocomplete="new-password" />
-
         <button id="authBtn" class="big-btn">Sign Up</button>
-
-        <button id="toggleBtn" class="pill">Already have an account? Sign In</button>
-
+        <div>
+          <button id="toggleBtn" class="pill">Already have an account? Sign In</button>
+        </div>
         <p id="status" class="status" aria-live="polite"></p>
       </div>
     </section>
   </div>
 
-  <!-- Firebase scripts -->
+  <!-- Firebase compat (non-module) -->
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-database-compat.js"></script>
 
   <script>
+    // ---------- FIREBASE CONFIG ----------
     const firebaseConfig = {
       apiKey: "AIzaSyBUH95hXYxMVCfhJglN4j3CReXy-CLYwmA",
       authDomain: "live-messageinggkkh.firebaseapp.com",
@@ -182,63 +114,85 @@
     const auth = firebase.auth();
     const db = firebase.database();
 
+    // DOM refs
     const emailEl = document.getElementById('email');
-    const passEl = document.getElementById('password');
+    const passEl  = document.getElementById('password');
     const phoneEl = document.getElementById('phone');
     const authBtn = document.getElementById('authBtn');
     const toggleBtn = document.getElementById('toggleBtn');
     const statusEl = document.getElementById('status');
 
+    // mode: sign up by default
     let isSignUp = true;
-    updateMode();
-
-    toggleBtn.onclick = () => { isSignUp=!isSignUp; updateMode(); statusEl.textContent=''; };
     function updateMode(){
       if(isSignUp){
-        authBtn.textContent='Sign Up';
-        toggleBtn.textContent='Already have an account? Sign In';
-      }else{
-        authBtn.textContent='Sign In';
-        toggleBtn.textContent='No account? Sign Up';
+        authBtn.textContent = 'Sign Up';
+        toggleBtn.textContent = 'Already have an account? Sign In';
+        document.getElementById('title').textContent = 'Welcome, to Zag Messenger.';
+      } else {
+        authBtn.textContent = 'Sign In';
+        toggleBtn.textContent = 'No account? Sign Up';
+        document.getElementById('title').textContent = 'Welcome back to Zag Messenger.';
+      }
+    }
+    updateMode();
+    toggleBtn.onclick = ()=>{ isSignUp = !isSignUp; updateMode(); statusEl.textContent = ''; };
+
+    // sanitize phone input (digits only)
+    phoneEl.addEventListener('input', ()=> phoneEl.value = phoneEl.value.replace(/[^0-9]/g,'').slice(0,11));
+
+    // write profile to Realtime DB if missing
+    async function writeProfile(user, phone){
+      if(!user) return;
+      try{
+        const ref = db.ref('users/' + user.uid);
+        const snap = await ref.once('value');
+        const phoneNum = phone ? ('+880' + phone) : '';
+        if(!snap.exists()){
+          const displayName = user.email ? user.email.split('@')[0] : '';
+          await ref.set({ uid: user.uid, email: user.email || '', displayName, phoneNumber: phoneNum });
+        } else {
+          const updates = {};
+          if(!snap.val().displayName && user.email) updates.displayName = user.email.split('@')[0];
+          if(!snap.val().phoneNumber && phoneNum) updates.phoneNumber = phoneNum;
+          if(Object.keys(updates).length) await ref.update(updates);
+        }
+      } catch(e){
+        console.error('writeProfile error', e);
       }
     }
 
-    phoneEl.addEventListener('input',()=>{phoneEl.value=phoneEl.value.replace(/[^0-9]/g,'').slice(0,11);});
-
-    async function saveProfile(user,phone){
-      if(!user)return;
-      const ref=db.ref('users/'+user.uid);
-      const phoneNum=phone?'+880'+phone:'';
-      const snap=await ref.once('value');
-      if(!snap.exists()){
-        await ref.set({uid:user.uid,email:user.email||'',phoneNumber:phoneNum});
-      }else if(phoneNum&&!snap.val().phoneNumber){
-        await ref.update({phoneNumber:phoneNum});
-      }
-    }
-
-    authBtn.onclick=async()=>{
-      const email=emailEl.value.trim(),pass=passEl.value.trim(),phone=phoneEl.value.trim();
-      if(!email||!pass){alert('Enter email and password');return;}
-      statusEl.textContent='Processing...';
+    // auth button
+    authBtn.onclick = async () => {
+      const email = (emailEl.value||'').trim();
+      const pass = (passEl.value||'').trim();
+      const phone = (phoneEl.value||'').trim();
+      if(!email || !pass){ alert('Enter email and password'); return; }
+      statusEl.textContent = 'Processing...';
       try{
         if(isSignUp){
-          const cred=await auth.createUserWithEmailAndPassword(email,pass);
-          await saveProfile(cred.user,phone);
-          statusEl.textContent='Sign-up successful — redirecting...';
-        }else{
-          const cred=await auth.signInWithEmailAndPassword(email,pass);
-          await saveProfile(cred.user,phone);
-          statusEl.textContent='Sign-in successful — redirecting...';
+          const cred = await auth.createUserWithEmailAndPassword(email, pass);
+          await writeProfile(cred.user, phone);
+          statusEl.textContent = 'Sign-up successful — redirecting...';
+        } else {
+          const cred = await auth.signInWithEmailAndPassword(email, pass);
+          await writeProfile(cred.user, phone);
+          statusEl.textContent = 'Sign-in successful — redirecting...';
         }
-        setTimeout(()=>location.href='index.html',600);
-      }catch(e){alert('Error: '+e.message);statusEl.textContent='Error: '+e.message;}
+        setTimeout(()=> location.href = 'index.html', 600);
+      } catch(e){
+        alert('Error: ' + (e && e.message ? e.message : String(e)));
+        statusEl.textContent = 'Error: ' + (e && e.message ? e.message : String(e));
+      }
     };
 
-    // ✅ If user already logged in, skip this page and go to index.html
-    auth.onAuthStateChanged(u=>{
-      if(u){
-        setTimeout(()=>location.href='index.html',400);
+    // If already signed in → go to index.html
+    auth.onAuthStateChanged(user => {
+      if(user){
+        statusEl.textContent = 'Already signed in — redirecting...';
+        setTimeout(()=> location.href = 'index.html', 400);
+      } else {
+        statusEl.textContent = '';
       }
     });
   </script>
