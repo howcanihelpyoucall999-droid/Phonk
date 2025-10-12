@@ -2,101 +2,391 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Zag Messenger</title>
-  <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet">
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Zag Messenger — Main App</title>
+  <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet" />
   <style>
     :root{
-      --primary:#0b60d6;
-      --primary-2:#0a4fb3;
       --bg:#eef6ff;
+      --primary:#0b60d6;
+      --primary-dark:#0849a6;
       --muted:#9aaecf;
-      --hand:'Patrick Hand', system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+      --accent:#2b81ff;
+      --hand-font:'Patrick Hand', 'Segoe UI', Arial, sans-serif;
     }
-    html,body{height:100%;margin:0;background:var(--bg);font-family:var(--hand);-webkit-font-smoothing:antialiased}
-    .screen{max-width:460px;margin:0 auto;height:100vh;background:linear-gradient(180deg,#eef6ff,#ffffff 80%);display:flex;flex-direction:column;overflow:hidden}
-    .header{background:linear-gradient(180deg,var(--primary),var(--primary-2));color:#fff;padding:12px 16px;display:flex;align-items:center;gap:12px;box-shadow:0 8px 24px rgba(11,96,214,0.12)}
-    .logo{width:44px;height:44px;border-radius:50%;background:#fff;color:var(--primary);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px}
-    .app-name{font-size:20px;font-weight:700}
-    .header-right{margin-left:auto}
-    .signout-btn{background:#fff;color:var(--primary);padding:8px 12px;border-radius:999px;font-weight:700;box-shadow:0 8px 20px rgba(11,96,214,0.08);cursor:pointer;border:none}
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;font-family:var(--hand-font);background:linear-gradient(180deg,var(--bg),#fff 70%);}
+    .phone{width:100%;max-width:460px;margin:0 auto;height:100vh;background:#fff;display:flex;flex-direction:column;position:relative;overflow:hidden;}
+    .header{display:flex;align-items:center;padding:10px 14px;background:linear-gradient(180deg,var(--primary),var(--primary-dark));color:#fff;gap:12px}
+    .logo{width:36px;height:36px;border-radius:50%;background:#fff;color:var(--primary);display:flex;align-items:center;justify-content:center;font-weight:700}
+    .title{font-size:18px;font-weight:700}
+    .menu{margin-left:auto;font-size:22px;opacity:0.95}
+    .wave-top{height:20px;width:100%}
+    .wave-top svg{width:100%;height:100%}
+    /* AUTH area removed from this file; index checks auth and shows app section */
 
-    .wave{height:32px;overflow:hidden}
-    .wave svg{width:100%;height:100%;display:block}
-    .content{flex:1;padding:22px 18px 110px 18px;display:flex;flex-direction:column;align-items:center;overflow:auto}
-    .welcome-title{font-size:26px;color:var(--primary);margin-top:16px;text-align:center}
-    .welcome-sub{color:var(--muted);margin-bottom:20px;text-align:center}
-
-    .chat-item{width:100%;display:flex;gap:12px;align-items:center;padding:10px;margin:6px 0;border-radius:12px;background:#fff;box-shadow:0 6px 18px rgba(10,30,80,0.03)}
-    .avatar{width:56px;height:56px;border-radius:50%;background:linear-gradient(180deg,#dbeeff,#c1ddff);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--primary)}
+    /* APP */
+    .app{flex:1;display:flex;flex-direction:column;justify-content:flex-start;padding:14px 16px 120px 16px;overflow:auto}
+    h3.section-title{font-size:22px;color:var(--primary);margin:6px 0 14px}
+    .card{background:linear-gradient(180deg,#fff,#fbfdff);border-radius:12px;padding:12px;border:1px solid rgba(11,96,214,0.06);margin-bottom:12px;display:flex;gap:12px;align-items:center}
+    .avatar{width:56px;height:56px;border-radius:50%;background:linear-gradient(180deg,#dbeeff,#c1ddff);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--primary);font-size:18px;flex-shrink:0}
     .meta{flex:1}
-    .meta .name{font-weight:700;color:var(--primary)}
-    .meta .sub{color:var(--muted);font-size:13px;margin-top:4px}
+    .meta .name{font-weight:700;color:var(--primary);font-size:16px}
+    .meta .sub{color:var(--muted);font-size:13px;margin-top:6px}
+    .bottom-nav{position:fixed;left:0;right:0;bottom:0;height:68px;background:linear-gradient(180deg,#fff,#f6fbff);display:flex;align-items:center;justify-content:space-around;padding:8px 14px;border-top:1px solid rgba(0,0,0,0.03);z-index:60}
+    .bottom-nav span{font-weight:700;color:var(--primary);padding:8px 14px;border-radius:10px;cursor:pointer}
+    .bottom-nav .active{background:linear-gradient(180deg,#eff7ff,#dfeffe);box-shadow:0 8px 20px rgba(11,96,214,0.06)}
 
-    .bottom{position:fixed;bottom:0;left:0;right:0;padding:14px;background:linear-gradient(180deg,#fff,#f6fbff);box-shadow:0 -8px 20px rgba(11,96,214,0.05);display:flex;justify-content:center}
+    .floating-new{position:fixed;right:20px;bottom:96px;z-index:80;width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,var(--primary),var(--primary-dark));color:#fff;font-size:30px;font-weight:700;box-shadow:0 20px 60px rgba(11,96,214,0.18);border:6px solid #fff;cursor:pointer}
+    .plus-menu{position:fixed;right:20px;bottom:168px;width:210px;background:#fff;border-radius:12px;padding:8px;box-shadow:0 20px 60px rgba(0,0,0,0.12);display:none;flex-direction:column;gap:8px;z-index:85}
+    .plus-menu button{padding:10px;border-radius:8px;border:1px solid rgba(11,96,214,0.06);background:#f6fbff;cursor:pointer;font-weight:700;color:var(--primary)}
+
+    /* chat screen */
+    .chat-screen{display:none;flex-direction:column;flex:1;overflow:hidden}
+    .chat-header{display:flex;gap:12px;align-items:center;padding:10px 14px;border-bottom:1px dashed rgba(11,96,214,0.04);background:#fff}
+    #messages{flex:1;overflow:auto;padding:12px 14px 180px 14px;display:flex;flex-direction:column;gap:10px;background:transparent}
+    .bubble{display:inline-block;padding:10px 14px;border-radius:18px;max-width:78%;line-height:1.35;box-shadow:0 6px 18px rgba(10,30,80,0.04);position:relative}
+    .bubble.sent{align-self:flex-end;background:linear-gradient(180deg,var(--primary),var(--primary-dark));color:#fff}
+    .bubble.received{align-self:flex-start;background:#fff;color:var(--primary);border:1px solid rgba(11,96,214,0.04)}
+    .chat-input-area-wrapper{position:fixed;left:0;right:0;bottom:64px;padding:12px 18px;background:linear-gradient(180deg,#fff,#f6fbff);z-index:70;box-shadow:0 -12px 30px rgba(11,96,214,0.04)}
+    .chat-input{display:flex;gap:8px;align-items:center;background:#fff;border-radius:999px;padding:8px;border:2px solid rgba(11,96,214,0.12);max-width:920px;margin:0 auto}
+    .chat-input input{flex:1;border:none;outline:none;padding:10px;font-size:15px}
+    .send-btn{width:48px;height:48px;border-radius:50%;border:none;background:linear-gradient(180deg,var(--accent),#1f63d9);color:#fff;font-weight:700;cursor:pointer}
+
+    /* modal & profile */
+    .modal-backdrop{display:none;position:fixed;left:0;right:0;top:0;bottom:0;background:rgba(0,0,0,0.35);align-items:center;justify-content:center;z-index:200}
+    .modal{background:#fff;border-radius:12px;padding:14px;max-width:520px;width:92%;box-shadow:0 40px 120px rgba(0,0,0,0.25);max-height:90vh;overflow:auto}
+    .contact-item{display:flex;gap:10px;align-items:center;padding:8px;border-radius:8px;cursor:pointer}
+    .contact-item:hover{background:#f6fbff}
+    .profile{display:flex;flex-direction:column;gap:10px}
+    .contacts-list{max-height:240px;overflow:auto;padding-top:6px}
+    .app-hidden{display:none}
+    @media (max-width:420px){ .floating-new{right:12px;bottom:86px;width:56px;height:56px} .plus-menu{right:12px} }
   </style>
 </head>
 <body>
-  <div class="screen">
+  <div class="phone">
     <div class="header">
       <div class="logo">Zg</div>
-      <div class="app-name">Zag Messenger</div>
-      <div class="header-right"><button id="logoutBtn" class="signout-btn">Sign Out</button></div>
+      <div class="title">Zag Messenger</div>
+      <div class="menu">☰</div>
+    </div>
+    <div class="wave-top">
+      <svg viewBox="0 0 100 10" preserveAspectRatio="none"><path d="M0 5 C20 9,40 1,60 5 C80 9,100 3,100 3 L100 10 L0 10 Z" fill="#0b60d6"></path></svg>
     </div>
 
-    <div class="wave">
-      <svg viewBox="0 0 100 20" preserveAspectRatio="none">
-        <path d="M0 12 C20 18,40 6,60 12 C80 18,100 8,100 8 L100 20 L0 20 Z" fill="#0b60d6"></path>
-      </svg>
+    <!-- App section (shown only when signed in) -->
+    <div class="app app-hidden" id="app-section">
+      <h3 class="section-title" id="list-title">My chats</h3>
+      <div id="list-container"></div>
     </div>
 
-    <section class="content">
-      <div class="welcome-title">Welcome to Zag Messenger</div>
-      <div class="welcome-sub" id="userEmail"></div>
-
-      <div class="chat-item">
-        <div class="avatar">AB</div>
-        <div class="meta"><div class="name">Alex B.</div><div class="sub">Hello 👋</div></div>
+    <!-- Chat screen -->
+    <div class="chat-screen" id="chat-screen">
+      <div class="chat-header">
+        <button id="backToListBtn" class="btn ghost">&lt; Back</button>
+        <div id="chat-header-meta">
+          <div id="current-chat-name" style="font-weight:700;color:var(--primary)"></div>
+          <div id="current-chat-sub" class="small"></div>
+        </div>
       </div>
-      <div class="chat-item">
-        <div class="avatar">MG</div>
-        <div class="meta"><div class="name">Group — Friends</div><div class="sub">3 members</div></div>
-      </div>
-    </section>
+      <div id="messages"></div>
 
-    <div class="bottom">You are signed in ✅</div>
+      <div class="chat-input-area-wrapper">
+        <div class="chat-input">
+          <input id="chatMessageInput" placeholder="Type a message...">
+          <button id="sendChatMessageBtn" class="send-btn" type="button">➤</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- floating + and menu -->
+    <div class="floating-new" id="floatingNewBtn">+</div>
+    <div class="plus-menu" id="plusMenu">
+      <button id="plusIndividualBtn">New Private Chat</button>
+      <button id="plusGroupBtn">Create Group</button>
+    </div>
+
+    <!-- group modal -->
+    <div class="modal-backdrop" id="modalBackdrop">
+      <div class="modal" role="dialog" aria-modal="true">
+        <h3>Create Group</h3>
+        <div style="margin:8px 0"><input id="groupName" placeholder="Group name" style="width:100%;padding:10px;border-radius:8px"></div>
+        <div style="margin:8px 0"><input id="addMemberInput" placeholder="Add member email or phone and press Enter" style="width:100%;padding:10px;border-radius:8px"></div>
+        <div style="margin:8px 0"><strong>Selected members</strong>
+          <div id="selectedMembers" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px"></div>
+        </div>
+        <div style="margin:8px 0"><strong>Contacts</strong>
+          <div id="contactsList" class="contacts-list"></div>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
+          <button id="cancelCreateGroup" class="btn ghost">Cancel</button>
+          <button id="createGroupBtn" class="btn primary">Create Group</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- profile section -->
+    <div id="profile-section" class="app app-hidden">
+      <h3 class="section-title">Your Profile</h3>
+      <div class="profile">
+        <div><input id="displayNameInput" placeholder="Display name" style="width:100%;padding:10px;border-radius:8px"></div>
+        <div><input id="profilePhone" placeholder="Phone number (without +880)" style="width:100%;padding:10px;border-radius:8px"></div>
+        <div style="display:flex;gap:8px"><button id="saveProfileBtn" class="btn primary">Save</button><button id="signOutBtn" class="btn ghost">Sign out</button></div>
+        <h4 style="margin-top:12px">Your contacts</h4>
+        <div id="myContacts" class="contacts-list"></div>
+      </div>
+    </div>
+
+    <!-- bottom nav -->
+    <div class="bottom-nav app-hidden" id="bottomNav">
+      <span id="nav-home" class="active">Home</span>
+      <span id="nav-groups">Groups</span>
+      <span id="nav-you">@You</span>
+    </div>
   </div>
 
-  <!-- Firebase -->
+  <!-- Firebase compat scripts -->
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-database-compat.js"></script>
+
   <script>
+    // ---------- Firebase initialization (compat) ----------
     const firebaseConfig = {
-      apiKey: "AIzaSyBUH95hXYxMVCfhJglN4j3CReXy-CLYwmA",
-      authDomain: "live-messageinggkkh.firebaseapp.com",
-      projectId: "live-messageinggkkh",
-      storageBucket: "live-messageinggkkh.appspot.com",
-      messagingSenderId: "537475612761",
-      appId: "1:537475612761:web:d00723c117383e54027148"
+      apiKey: 'AIzaSyBUH95hXYxMVCfhJglN4j3CReXy-CLYwmA',
+      authDomain: 'live-messageinggkkh.firebaseapp.com',
+      databaseURL: 'https://live-messageinggkkh-default-rtdb.firebaseio.com',
+      projectId: 'live-messageinggkkh',
+      storageBucket: 'live-messageinggkkh.appspot.com',
+      messagingSenderId: '537475612761',
+      appId: '1:537475612761:web:d00723c117383e54027148'
     };
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
+    const db = firebase.database();
 
-    const userEmail = document.getElementById('userEmail');
-    const logoutBtn = document.getElementById('logoutBtn');
+    // DOM refs
+    const appSection = document.getElementById('app-section');
+    const profileSection = document.getElementById('profile-section');
+    const listContainer = document.getElementById('list-container');
+    const floatingNewBtn = document.getElementById('floatingNewBtn');
+    const plusMenu = document.getElementById('plusMenu');
+    const plusIndividualBtn = document.getElementById('plusIndividualBtn');
+    const plusGroupBtn = document.getElementById('plusGroupBtn');
+    const modalBackdrop = document.getElementById('modalBackdrop');
+    const contactsList = document.getElementById('contactsList');
+    const selectedMembers = document.getElementById('selectedMembers');
+    const createGroupBtn = document.getElementById('createGroupBtn');
+    const cancelCreateGroup = document.getElementById('cancelCreateGroup');
+    const contactsListEl = document.getElementById('contactsList');
+    const myContactsEl = document.getElementById('myContacts');
+    const bottomNav = document.getElementById('bottomNav');
+    const navHome = document.getElementById('nav-home');
+    const navGroups = document.getElementById('nav-groups');
+    const navYou = document.getElementById('nav-you');
+    const chatScreen = document.getElementById('chat-screen');
+    const backToListBtn = document.getElementById('backToListBtn');
+    const messagesEl = document.getElementById('messages');
+    const currentChatNameEl = document.getElementById('current-chat-name');
+    const currentChatSubEl = document.getElementById('current-chat-sub');
+    const chatInput = document.getElementById('chatMessageInput');
+    const sendChatBtn = document.getElementById('sendChatMessageBtn');
+    const displayNameInput = document.getElementById('displayNameInput');
+    const profilePhone = document.getElementById('profilePhone');
+    const saveProfileBtn = document.getElementById('saveProfileBtn');
+    const signOutBtn = document.getElementById('signOutBtn');
 
-    // ✅ Redirect to signin if no user
-    auth.onAuthStateChanged(user=>{
+    // state
+    let currentUser = null;
+    let usersCache = {};      // uid -> user object
+    let conversations = {};   // convId -> conv object
+    let currentConvId = null;
+    let messagesListener = null;
+    let tempSelectedMembers = {}; // for group creation
+
+    // show/hide helpers
+    function showApp(){
+      appSection.classList.remove('app-hidden');
+      bottomNav.classList.remove('app-hidden');
+      floatingNewBtn.style.display = 'flex';
+    }
+    function hideApp(){
+      appSection.classList.add('app-hidden');
+      bottomNav.classList.add('app-hidden');
+      floatingNewBtn.style.display = 'none';
+    }
+
+    // AUTH state handler
+    auth.onAuthStateChanged(async (user) => {
       if(!user){
-        window.location.href='signin.html';
-      }else{
-        userEmail.textContent = "Signed in as " + user.email;
+        // not signed in → go to signin page
+        window.location.href = 'signin.html';
+        return;
       }
+      // signed in: show app
+      currentUser = user;
+      await ensureUserProfile(user);
+      showApp();
+      attachRealtimeListeners();
+      loadConversations();
+      loadUsers();
+      renderProfileSection();
     });
 
-    logoutBtn.onclick = ()=>{
-      auth.signOut().then(()=>window.location.href='signin.html');
-    };
-  </script>
-</body>
-</html>
+    // create profile if missing
+    async function ensureUserProfile(user){
+      try{
+        const uRef = db.ref('users/' + user.uid);
+        const snap = await uRef.once('value');
+        if(!snap.exists()){
+          const displayName = user.email ? user.email.split('@')[0] : '';
+          await uRef.set({ uid: user.uid, email: user.email || '', displayName, phoneNumber: '' });
+        }
+      } catch(e){
+        console.error('ensureUserProfile', e);
+      }
+    }
+
+    // Load all users into usersCache and render contacts
+    function loadUsers(){
+      const uRef = db.ref('users');
+      uRef.off(); // avoid duplicate listeners
+      uRef.on('value', snap => {
+        usersCache = {};
+        contactsListEl.innerHTML = '';
+        myContactsEl && (myContactsEl.innerHTML = '');
+        listContainer.innerHTML = '';
+        if(!snap.exists()) return;
+        snap.forEach(child => {
+          const u = child.val();
+          usersCache[u.uid] = u;
+        });
+        // render contacts and conversation list
+        renderContactsList();
+        renderConversationList();
+        renderMyContacts();
+      });
+    }
+
+    // Render contacts for group modal
+    function renderContactsList(){
+      contactsListEl.innerHTML = '';
+      Object.values(usersCache).forEach(u=>{
+        // skip current user
+        if(!u || u.uid === currentUser.uid) return;
+        const div = document.createElement('div');
+        div.className = 'contact-item';
+        div.innerHTML = `<div style="width:44px;height:44px;border-radius:50%;background:#f0f6ff;display:flex;align-items:center;justify-content:center;color:var(--primary);font-weight:700">${(u.displayName||'U').slice(0,2).toUpperCase()}</div>
+                         <div style="flex:1"><div style="font-weight:700;color:var(--primary)">${u.displayName||u.email}</div><div style="color:var(--muted);font-size:13px">${u.phoneNumber||u.email||''}</div></div>`;
+        div.addEventListener('click', ()=> toggleSelectMember(u.uid, u.displayName||u.email));
+        contactsListEl.appendChild(div);
+      });
+    }
+
+    function renderMyContacts(){
+      myContactsEl && (myContactsEl.innerHTML = '');
+      Object.values(usersCache).forEach(u=>{
+        if(!u || u.uid === currentUser.uid) return;
+        const c = document.createElement('div');
+        c.className = 'contact-item';
+        c.innerHTML = `<div style="width:44px;height:44px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;color:var(--primary);font-weight:700">${(u.displayName||'U').slice(0,2).toUpperCase()}</div>
+                       <div style="flex:1"><div style="font-weight:700;color:var(--primary)">${u.displayName||u.email}</div><div style="color:var(--muted);font-size:13px">${u.phoneNumber||u.email||''}</div></div>`;
+        myContactsEl && myContactsEl.appendChild(c);
+      });
+    }
+
+    // Toggle member selection for group creation
+    function toggleSelectMember(uid, name){
+      if(tempSelectedMembers[uid]){
+        delete tempSelectedMembers[uid];
+      } else {
+        tempSelectedMembers[uid] = { uid, name };
+      }
+      renderSelectedMembers();
+    }
+
+    function renderSelectedMembers(){
+      selectedMembers.innerHTML = '';
+      Object.values(tempSelectedMembers).forEach(m=>{
+        const el = document.createElement('div');
+        el.style.padding = '6px 10px';
+        el.style.borderRadius = '999px';
+        el.style.background = '#f0f6ff';
+        el.style.color = 'var(--primary)';
+        el.style.fontWeight = '700';
+        el.textContent = m.name;
+        el.addEventListener('click', ()=> toggleSelectMember(m.uid));
+        selectedMembers.appendChild(el);
+      });
+    }
+
+    // Conversations: load conversations where current user is a member
+    function loadConversations(){
+      const convRef = db.ref('conversations');
+      convRef.off();
+      convRef.on('value', snap => {
+        conversations = {};
+        if(!snap.exists()){
+          renderConversationList();
+          return;
+        }
+        snap.forEach(child => {
+          const conv = child.val();
+          conv.id = child.key;
+          // conv.members: object { uid: true }
+          if(conv.members && conv.members[currentUser.uid]) {
+            conversations[conv.id] = conv;
+          }
+        });
+        renderConversationList();
+      });
+    }
+
+    // Render list of conversations (simple)
+    function renderConversationList(){
+      listContainer.innerHTML = '';
+      const convs = Object.values(conversations).sort((a,b)=> (b.lastUpdated||0)-(a.lastUpdated||0));
+      if(convs.length === 0){
+        const empty = document.createElement('div');
+        empty.className = 'card';
+        empty.innerHTML = `<div style="width:56px;height:56px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;color:var(--primary)">Zg</div>
+                          <div style="flex:1"><div style="font-weight:700;color:var(--primary)">No conversations yet</div><div style="color:var(--muted);font-size:13px">Press + to start a chat or create a group</div></div>`;
+        listContainer.appendChild(empty);
+        return;
+      }
+      convs.forEach(conv=>{
+        const item = document.createElement('div');
+        item.className = 'card';
+        // name logic
+        let title = conv.title || (conv.type === 'group' ? 'Group' : 'Private chat');
+        if(conv.type === 'private'){
+          // other member
+          const otherUid = Object.keys(conv.members).find(u => u !== currentUser.uid);
+          const other = usersCache[otherUid] || {};
+          title = other.displayName || other.email || 'Private';
+        } else if(conv.type === 'group'){
+          title = conv.title || 'Group';
+        }
+        const sub = conv.lastMessage ? conv.lastMessage.text.slice(0,45) : (conv.type === 'group' ? `${Object.keys(conv.members||{}).length} members` : 'New conversation');
+        item.innerHTML = `<div class="avatar">${(title||'U').slice(0,2).toUpperCase()}</div>
+                          <div class="meta"><div class="name">${title}</div><div class="sub">${sub}</div></div>`;
+        item.addEventListener('click', ()=> openConversation(conv.id));
+        listContainer.appendChild(item);
+      });
+    }
+
+    // Open conversation and listen to messages
+    function openConversation(convId){
+      currentConvId = convId;
+      const conv = conversations[convId];
+      currentChatNameEl.textContent = conv.title || (conv.type === 'private' ? 'Chat' : 'Group');
+      currentChatSubEl.textContent = conv.type === 'group' ? `Members: ${Object.keys(conv.members||{}).length}` : '';
+      appSection.style.display = 'none';
+      chatScreen.style.display = 'flex';
+      // remove previous listener
+      if(messagesListener) messagesListener.off && messagesListener.off();
+      messagesEl.innerHTML = '';
+      const msgRef = db.ref('messages/' + convId);
+      // order by timestamp
+      mes
