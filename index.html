@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Zag Messenger — Auth fixed (compat SDK)</title>
+  <title>Zag Messenger — Main App (no auth)</title>
   <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet" />
   <style>
     :root{
@@ -23,55 +23,36 @@
     .menu{margin-left:auto;font-size:22px;opacity:0.95}
     .wave-top{height:20px;width:100%}
     .wave-top svg{width:100%;height:100%}
-    /* AUTH (working snippet style) */
-    .auth{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:20px;overflow-y:auto;background:#f0f4fc;}
-    .welcome{font-size:22px;color:var(--primary);}
-    .sub{color:var(--muted);font-size:13px;margin-bottom:12px;}
-    input[type="text"], input[type="email"], input[type="tel"], input[type="password"]{
-      width:92%;max-width:420px;padding:12px;border-radius:10px;border:1px solid rgba(11,96,214,0.08);background:linear-gradient(180deg,#fff,#fbfdff);font-size:15px;color:var(--primary)
-    }
-    .phone-group{display:flex;align-items:center;gap:8px;width:92%;max-width:420px;margin-bottom:10px;}
-    .country-code{border:1px solid rgba(75,134,230,0.08);border-radius:10px;padding:12px;width:70px;text-align:center;background:linear-gradient(180deg,#fff,#fbfdff);color:var(--primary);}
-    .btn{padding:10px 14px;border-radius:10px;border:none;cursor:pointer;font-weight:700;font-size:15px}
-    .primary{background:linear-gradient(180deg,var(--primary),var(--primary-dark));color:#fff}
-    .ghost{background:#f6f9ff;color:var(--primary);border:1px solid rgba(11,96,214,0.06)}
-    .small{font-size:13px;color:var(--muted)}
-    .toggle-btns{display:flex;gap:12px;margin-top:12px;flex-direction:column;align-items:center;}
-    .status-line{font-size:13px;color:var(--muted);margin-top:6px}
-    /* Rest of original app styles (kept) */
-    .app{display:none;flex:1;padding:14px 16px 120px 16px;overflow:auto}
+
+    /* App area */
+    .app{flex:1;display:flex;flex-direction:column;justify-content:flex-start;padding:14px 16px 120px 16px;overflow:auto}
     h3.section-title{font-size:22px;color:var(--primary);margin:6px 0 14px}
     .card{background:linear-gradient(180deg,#fff,#fbfdff);border-radius:12px;padding:12px;border:1px solid rgba(11,96,214,0.06);margin-bottom:12px;display:flex;gap:12px;align-items:center}
     .avatar{width:56px;height:56px;border-radius:50%;background:linear-gradient(180deg,#dbeeff,#c1ddff);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--primary);font-size:18px;flex-shrink:0}
     .meta{flex:1}
     .meta .name{font-weight:700;color:var(--primary);font-size:16px}
     .meta .sub{color:var(--muted);font-size:13px;margin-top:6px}
-    .bottom-nav{position:fixed;left:0;right:0;bottom:0;height:68px;background:linear-gradient(180deg,#fff,#f6fbff);display:flex;align-items:center;justify-content:space-around;padding:8px 14px;border-top:1px solid rgba(0,0,0,0.03);z-index:60}
-    .bottom-nav span{font-weight:700;color:var(--primary);padding:8px 14px;border-radius:10px;cursor:pointer}
-    .bottom-nav .active{background:linear-gradient(180deg,#eff7ff,#dfeffe);box-shadow:0 8px 20px rgba(11,96,214,0.06)}
-    .floating-new{position:fixed;right:20px;bottom:96px;z-index:80;width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,var(--primary),var(--primary-dark));color:#fff;font-size:30px;font-weight:700;box-shadow:0 20px 60px rgba(11,96,214,0.18);border:6px solid #fff;cursor:pointer;display:none}
-    .plus-menu{position:fixed;right:20px;bottom:168px;width:210px;background:#fff;border-radius:12px;padding:8px;box-shadow:0 20px 60px rgba(0,0,0,0.12);display:none;flex-direction:column;gap:8px;z-index:85}
-    .plus-menu button{padding:10px;border-radius:8px;border:1px solid rgba(11,96,214,0.06);background:#f6fbff;cursor:pointer;font-weight:700;color:var(--primary)}
+
+    /* Chat screen styles (kept) */
     .chat-screen{display:none;flex-direction:column;flex:1;overflow:hidden}
     .chat-header{display:flex;gap:12px;align-items:center;padding:10px 14px;border-bottom:1px dashed rgba(11,96,214,0.04);background:#fff}
     #messages{flex:1;overflow:auto;padding:12px 14px 180px 14px;display:flex;flex-direction:column;gap:10px;background:transparent}
     .bubble{display:inline-block;padding:10px 14px;border-radius:18px;max-width:78%;line-height:1.35;box-shadow:0 6px 18px rgba(10,30,80,0.04);position:relative}
     .bubble.sent{align-self:flex-end;background:linear-gradient(180deg,var(--primary),var(--primary-dark));color:#fff}
     .bubble.received{align-self:flex-start;background:#fff;color:var(--primary);border:1px solid rgba(11,96,214,0.04)}
-    .meta-row{display:flex;align-items:center;gap:8px}
-    .sender-name{font-size:12px;color:var(--muted)}
-    .time-pill{margin-left:auto;background:#e9f6ff;color:var(--primary);font-weight:700;padding:4px 8px;border-radius:999px;font-size:12px;border:1px solid rgba(11,96,214,0.06)}
     .chat-input-area-wrapper{position:fixed;left:0;right:0;bottom:64px;padding:12px 18px;background:linear-gradient(180deg,#fff,#f6fbff);z-index:70;box-shadow:0 -12px 30px rgba(11,96,214,0.04)}
     .chat-input{display:flex;gap:8px;align-items:center;background:#fff;border-radius:999px;padding:8px;border:2px solid rgba(11,96,214,0.12);max-width:920px;margin:0 auto}
     .chat-input input{flex:1;border:none;outline:none;padding:10px;font-size:15px}
     .send-btn{width:48px;height:48px;border-radius:50%;border:none;background:linear-gradient(180deg,var(--accent),#1f63d9);color:#fff;font-weight:700;cursor:pointer}
-    .modal-backdrop{display:none;position:fixed;left:0;right:0;top:0;bottom:0;background:rgba(0,0,0,0.35);align-items:center;justify-content:center;z-index:200}
-    .modal{background:#fff;border-radius:12px;padding:14px;max-width:520px;width:92%;box-shadow:0 40px 120px rgba(0,0,0,0.25);max-height:90vh;overflow:auto}
-    .contact-item{display:flex;gap:10px;align-items:center;padding:8px;border-radius:8px;cursor:pointer}
-    .contact-item:hover{background:#f6fbff}
-    .profile{display:flex;flex-direction:column;gap:10px}
-    .contacts-list{max-height:240px;overflow:auto;padding-top:6px}
-    @media (max-width:420px){ .floating-new{right:12px;bottom:86px;width:56px;height:56px} .plus-menu{right:12px} }
+
+    .bottom-nav{position:fixed;left:0;right:0;bottom:0;height:68px;background:linear-gradient(180deg,#fff,#f6fbff);display:flex;align-items:center;justify-content:space-around;padding:8px 14px;border-top:1px solid rgba(0,0,0,0.03);z-index:60}
+    .bottom-nav span{font-weight:700;color:var(--primary);padding:8px 14px;border-radius:10px;cursor:pointer}
+    .bottom-nav .active{background:linear-gradient(180deg,#eff7ff,#dfeffe);box-shadow:0 8px 20px rgba(11,96,214,0.06)}
+
+    /* small helper */
+    .top-signin-link{position:absolute;right:14px;top:14px;background:#fff;border-radius:999px;padding:6px 10px;font-weight:700;color:var(--primary);box-shadow:0 8px 20px rgba(11,96,214,0.06);cursor:pointer}
+    .info-box{background:#f6fbff;border-radius:10px;padding:10px;margin-bottom:12px;border:1px solid rgba(11,96,214,0.04);color:var(--muted)}
+    @media (max-width:420px){ .top-signin-link{right:12px;top:12px} }
   </style>
 </head>
 <body>
@@ -85,37 +66,43 @@
       <svg viewBox="0 0 100 10" preserveAspectRatio="none"><path d="M0 5 C20 9,40 1,60 5 C80 9,100 3,100 3 L100 10 L0 10 Z" fill="#0b60d6"></path></svg>
     </div>
 
-    <!-- AUTH SECTION -->
-    <div class="auth" id="auth-section">
-      <div class="welcome">Welcome,<br>to Zag Messenger.</div>
-      <div class="sub">Write your World</div>
-
-      <input id="email" type="email" placeholder="Email">
-      <div class="phone-group" id="phone-group">
-        <input class="country-code" value="+880" disabled>
-        <input id="phoneNumber" type="tel" placeholder="Phone number">
-      </div>
-
-      <input id="password" type="password" placeholder="Password">
-      <button id="authSubmitBtn" class="btn primary" type="button">Sign Up</button>
-      <div class="toggle-btns">
-        <button id="toSignIn" class="btn ghost" type="button">Already have an account? Sign In</button>
-        <button id="toSignUp" class="btn ghost" type="button" style="display:none;">Don't have an account? Sign Up</button>
-      </div>
-
-      <div id="auth-status" class="status-line" aria-live="polite"></div>
+    <!-- NOTE: Auth removed from this file. Use signin.html to sign in / sign up. -->
+    <div style="padding:12px 16px 0 16px">
+      <a class="top-signin-link" href="signin.html" title="Sign in / Sign up">Sign in</a>
     </div>
 
-    <!-- MAIN APP -->
     <div class="app" id="app-section">
-      <h3 class="section-title" id="list-title">My chats</h3>
-      <div id="list-container"></div>
+      <h3 class="section-title">My chats</h3>
+
+      <div class="info-box">
+        This file has the main app UI but does not contain any sign-in/auth code (you requested that).
+        Use <strong>signin.html</strong> to sign in or sign up — after a successful sign in the auth page redirects back here.
+      </div>
+
+      <div id="list-container">
+        <!-- example static content (you can restore dynamic DB-driven lists later) -->
+        <div class="card">
+          <div class="avatar">AB</div>
+          <div class="meta">
+            <div class="name">Alex B.</div>
+            <div class="sub">Tap to open chat</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="avatar">GD</div>
+          <div class="meta">
+            <div class="name">Group: Devs</div>
+            <div class="sub">3 members</div>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- CHAT SCREEN -->
+    <!-- chat-screen (kept UI so your app still contains chat view) -->
     <div class="chat-screen" id="chat-screen">
       <div class="chat-header">
-        <button id="backToListBtn" class="btn ghost">&lt; Back</button>
+        <button id="backToListBtn" class="btn ghost" style="border-radius:8px;">&lt; Back</button>
         <div id="chat-header-meta">
           <div id="current-chat-name" style="font-weight:700;color:var(--primary)"></div>
           <div id="current-chat-sub" class="small"></div>
@@ -131,234 +118,42 @@
       </div>
     </div>
 
-    <!-- floating + and menu -->
-    <div class="floating-new" id="floatingNewBtn">+</div>
-    <div class="plus-menu" id="plusMenu">
-      <button id="plusIndividualBtn">New Private Chat</button>
-      <button id="plusGroupBtn">Create Group</button>
-    </div>
-
-    <!-- group modal -->
-    <div class="modal-backdrop" id="modalBackdrop">
-      <div class="modal" role="dialog" aria-modal="true">
-        <h3>Create Group</h3>
-        <div style="margin:8px 0"><input id="groupName" placeholder="Group name"></div>
-        <div style="margin:8px 0"><input id="addMemberInput" placeholder="Add member by email or phone and press Enter"></div>
-        <div style="margin:8px 0"><strong>Selected members</strong>
-          <div id="selectedMembers" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px"></div>
-        </div>
-        <div style="margin:8px 0"><strong>Contacts</strong>
-          <div id="contactsList" class="contacts-list"></div>
-        </div>
-        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
-          <button id="cancelCreateGroup" class="btn ghost">Cancel</button>
-          <button id="createGroupBtn" class="btn primary">Create Group</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- profile section -->
-    <div id="profile-section" class="app" style="display:none">
-      <h3 class="section-title">Your Profile</h3>
-      <div class="profile">
-        <div><input id="displayNameInput" placeholder="Display name"></div>
-        <div><input id="profilePhone" placeholder="Phone number (without +880)"></div>
-        <div style="display:flex;gap:8px"><button id="saveProfileBtn" class="btn primary">Save</button><button id="signOutBtn" class="btn ghost">Sign out</button></div>
-        <h4 style="margin-top:12px">Your contacts</h4>
-        <div id="myContacts" class="contacts-list"></div>
-      </div>
-    </div>
-
-    <!-- bottom nav -->
-    <div class="bottom-nav" id="bottomNav" style="display:none">
+    <div class="bottom-nav" id="bottomNav">
       <span id="nav-home" class="active">Home</span>
       <span id="nav-groups">Groups</span>
       <span id="nav-you">@You</span>
     </div>
   </div>
 
-  <!-- Firebase compat scripts (non-module) -->
-  <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-database-compat.js"></script>
-
+  <!-- IMPORTANT: Auth removed from this file. If you later want to require auth here, add a small auth-check script that redirects to signin.html when not signed in. -->
   <script>
-    // ---------- Firebase initialization (compat) ----------
-    const firebaseConfig = {
-      apiKey: 'AIzaSyBUH95hXYxMVCfhJglN4j3CReXy-CLYwmA',
-      authDomain: 'live-messageinggkkh.firebaseapp.com',
-      databaseURL: 'https://live-messageinggkkh-default-rtdb.firebaseio.com',
-      projectId: 'live-messageinggkkh',
-      storageBucket: 'live-messageinggkkh.appspot.com',
-      messagingSenderId: '537475612761',
-      appId: '1:537475612761:web:d00723c117383e54027148'
-    };
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.database();
-
-    // Wrap in DOMContentLoaded to ensure elements available
-    window.addEventListener('DOMContentLoaded', () => {
-      // DOM refs
-      const authSection = document.getElementById('auth-section');
-      const appSection = document.getElementById('app-section');
-      const profileSection = document.getElementById('profile-section');
-      const listContainer = document.getElementById('list-container');
-      const emailInput = document.getElementById('email');
-      const passwordInput = document.getElementById('password');
-      const phoneInput = document.getElementById('phoneNumber');
-      const phoneGroup = document.getElementById('phone-group');
-      const authBtn = document.getElementById('authSubmitBtn');
-      const toSignIn = document.getElementById('toSignIn');
-      const toSignUp = document.getElementById('toSignUp');
-      const floatingNewBtn = document.getElementById('floatingNewBtn');
-      const plusMenu = document.getElementById('plusMenu');
-      const plusIndividualBtn = document.getElementById('plusIndividualBtn');
-      const plusGroupBtn = document.getElementById('plusGroupBtn');
-      const modalBackdrop = document.getElementById('modalBackdrop');
-      const groupNameInput = document.getElementById('groupName');
-      const addMemberInput = document.getElementById('addMemberInput');
-      const contactsList = document.getElementById('contactsList');
-      const selectedMembers = document.getElementById('selectedMembers');
-      const createGroupBtn = document.getElementById('createGroupBtn');
-      const cancelCreateGroup = document.getElementById('cancelCreateGroup');
-      const navHome = document.getElementById('nav-home');
-      const navGroups = document.getElementById('nav-groups');
-      const navYou = document.getElementById('nav-you');
-      const bottomNav = document.getElementById('bottomNav');
-      const chatScreen = document.getElementById('chat-screen');
-      const backToListBtn = document.getElementById('backToListBtn');
-      const messagesEl = document.getElementById('messages');
-      const currentChatNameEl = document.getElementById('current-chat-name');
-      const currentChatSubEl = document.getElementById('current-chat-sub');
-      const chatInput = document.getElementById('chatMessageInput');
-      const sendChatBtn = document.getElementById('sendChatMessageBtn');
-      const displayNameInput = document.getElementById('displayNameInput');
-      const profilePhone = document.getElementById('profilePhone');
-      const saveProfileBtn = document.getElementById('saveProfileBtn');
-      const signOutBtn = document.getElementById('signOutBtn');
-      const myContactsEl = document.getElementById('myContacts');
-      const listTitle = document.getElementById('list-title');
-      const authStatus = document.getElementById('auth-status');
-      const logoutBtn = document.getElementById('logoutBtn');
-
-      // state
-      let currentUser = null;
-      let usersCache = {};
-      let selectedGroupMembersObj = {};
-      let currentChat = null;
-      let isSignUp = true;
-
-      function setAuthStatus(text){
-        if(authStatus) authStatus.textContent = text;
-        console.log('Auth status:', text);
-      }
-
-      // Toggle mode
-      function toggleMode() {
-        isSignUp = !isSignUp;
-        if (isSignUp) {
-          authBtn.textContent = 'Sign Up';
-          toSignIn.style.display = 'block';
-          toSignUp.style.display = 'none';
-          if (phoneGroup) phoneGroup.style.display = 'flex';
-        } else {
-          authBtn.textContent = 'Sign In';
-          toSignIn.style.display = 'none';
-          toSignUp.style.display = 'block';
-          if (phoneGroup) phoneGroup.style.display = 'none';
-        }
-        setAuthStatus(isSignUp ? 'Mode: Sign Up' : 'Mode: Sign In');
-      }
-      toSignIn && toSignIn.addEventListener('click', toggleMode);
-      toSignUp && toSignUp.addEventListener('click', toggleMode);
-
-      // create profile if missing
-      async function createUserProfileIfMissing(user){
-        if(!user) return;
-        try{
-          const uRef = db.ref('users/' + user.uid);
-          const snap = await uRef.once('value');
-          if(!snap.exists()){
-            const displayName = user.email ? user.email.split('@')[0] : '';
-            await uRef.set({
-              uid: user.uid,
-              email: user.email || '',
-              displayName,
-              phoneNumber: phoneInput && phoneInput.value ? '+880' + phoneInput.value.trim() : ''
-            });
-            console.log('Profile created for', user.uid);
-          } else {
-            const data = snap.val();
-            const updates = {};
-            if(!data.displayName && user.email) updates.displayName = user.email.split('@')[0];
-            if(!data.phoneNumber && phoneInput && phoneInput.value) updates.phoneNumber = '+880' + phoneInput.value.trim();
-            if(Object.keys(updates).length) await uRef.update(updates);
-            console.log('Profile exists, updates:', updates);
-          }
-        } catch(e){
-          console.error('createUserProfileIfMissing error', e);
-        }
-      }
-
-      // Auth button handler
-      authBtn && authBtn.addEventListener('click', async (ev) => {
-        try{
-          ev && ev.preventDefault();
-          const email = (emailInput && emailInput.value || '').trim();
-          const pass = (passwordInput && passwordInput.value || '').trim();
-          if(!email || !pass){
-            alert('Please enter both email and password.');
-            return;
-          }
-          setAuthStatus('Processing auth request...');
-          if(isSignUp){
-            try{
-              await auth.createUserWithEmailAndPassword(email, pass);
-              alert('Sign Up successful — you will be taken to the app.');
-              setAuthStatus('Signed up (waiting for auth state)');
-            } catch(err){
-              const msg = err && err.message ? err.message : String(err);
-              console.error('Sign Up error', err);
-              alert('Sign Up error: ' + msg);
-              setAuthStatus('Sign Up error: ' + msg);
-            }
-          } else {
-            try{
-              await auth.signInWithEmailAndPassword(email, pass);
-              alert('Sign In successful — you will be taken to the app.');
-              setAuthStatus('Signed in (waiting for auth state)');
-            } catch(err){
-              const msg = err && err.message ? err.message : String(err);
-              console.error('Sign In error', err);
-              alert('Sign In error: ' + msg);
-              setAuthStatus('Sign In error: ' + msg);
-            }
-          }
-        } catch(e){
-          console.error('Auth handler unexpected error', e);
-          alert('Unexpected error: ' + (e && e.message ? e.message : e));
-          setAuthStatus('Unexpected error');
-        }
+    // Minimal UI helpers (no auth). You can add DB logic or re-add auth check later.
+    document.getElementById('backToListBtn').addEventListener('click', () => {
+      document.getElementById('chat-screen').style.display = 'none';
+      document.getElementById('app-section').style.display = 'flex';
+    });
+    // sample: open first card as chat
+    document.querySelectorAll('.card').forEach(c=>{
+      c.addEventListener('click', ()=>{
+        document.getElementById('app-section').style.display = 'none';
+        document.getElementById('chat-screen').style.display = 'flex';
+        document.getElementById('current-chat-name').textContent = c.querySelector('.name').textContent || 'Chat';
+        const messages = document.getElementById('messages');
+        messages.innerHTML = '<div class="bubble received">Hello! This is a demo message.</div><div class="bubble sent">Hi — demo reply.</div>';
       });
+    });
 
-      // Sign out handlers
-      signOutBtn && signOutBtn.addEventListener('click', () => {
-        auth.signOut().then(()=> alert('Signed out')).catch(e=> alert('Sign out error: ' + e.message));
-      });
-      logoutBtn && logoutBtn.addEventListener('click', () => {
-        auth.signOut().then(()=> alert('Signed out')).catch(e=> alert('Sign out error: ' + e.message));
-      });
-
-      // load users cache and populate lists
-      function loadUsersCache(){
-        const uRef = db.ref('users');
-        uRef.on('value', snap => {
-          usersCache = {};
-          contactsList.innerHTML = '';
-          myContactsEl && (myContactsEl.innerHTML = '');
-          listContainer && (listContainer.innerHTML = '');
-          if(!snap.exists()) return;
-          snap.forEach(child => {
-            const u = child.val() || {};
-            // ensure uid prese
+    // send button (local demo only)
+    document.getElementById('sendChatMessageBtn').addEventListener('click', ()=>{
+      const val = document.getElementById('chatMessageInput').value.trim();
+      if(!val) return;
+      const b = document.createElement('div');
+      b.className = 'bubble sent';
+      b.textContent = val;
+      document.getElementById('messages').appendChild(b);
+      document.getElementById('chatMessageInput').value = '';
+      document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+    });
+  </script>
+</body>
+</html>
