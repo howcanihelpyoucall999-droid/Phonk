@@ -121,6 +121,42 @@
       cursor: pointer; font-weight: bold;
     }
 
+
+    /* === New White Centered Modals (Soft Blur) === */
+    .blurred-bg { filter: blur(4px); pointer-events:none; user-select:none; }
+    .main-modal-backdrop { 
+      position: fixed; inset: 0; background: rgba(0,0,0,0.25);
+      display: none; align-items: center; justify-content: center; z-index: 100;
+      backdrop-filter: blur(4px);
+    }
+    .main-modal {
+      width: 90%; max-width: 420px; background: #fff;
+      color: var(--primary); border-radius: 16px; padding: 24px; text-align: center;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.15); position: relative;
+    }
+    .main-modal h3 { margin: 0 0 20px; font-size: 20px; color: var(--primary-dark); }
+    .main-modal button {
+      display: block; width: 100%; padding: 12px; margin: 10px 0; border: none; border-radius: 10px;
+      font-weight: 700; font-family: var(--hand-font); cursor: pointer;
+      background: linear-gradient(180deg,var(--primary),var(--primary-dark)); color: #fff; font-size: 16px;
+    }
+    .main-modal .close-modal {
+      position: absolute; top: 10px; right: 14px; background: var(--primary); color: #fff;
+      border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; font-weight: bold;
+    }
+    /* Center the add-chat-area */
+    #add-chat-area.centered {
+      position: fixed;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 101;
+      background: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+    }
+
 </style>
 </head>
 <body>
@@ -803,9 +839,67 @@
       modalBackdrop.style.display = 'flex';
     });
 
+    
+    // === White Modal System (Soft Blur + Centered) ===
+    const mainModalBackdrop = document.getElementById('mainModalBackdrop');
+    const closeMainModal = document.getElementById('closeMainModal');
+    const openIndividualModalBtn = document.getElementById('openIndividualModalBtn');
+    const openGroupModalBtn = document.getElementById('openGroupModalBtn');
+
+    // Open main modal when + clicked
+    floatingBtn.addEventListener('click', () => {
+      document.querySelector('.phone').classList.add('blurred-bg');
+      mainModalBackdrop.style.display = 'flex';
+    });
+
+    // Close main modal
+    closeMainModal.addEventListener('click', () => {
+      document.querySelector('.phone').classList.remove('blurred-bg');
+      mainModalBackdrop.style.display = 'none';
+    });
+
+    // Individual chat option (centered)
+    openIndividualModalBtn.addEventListener('click', () => {
+      document.querySelector('.phone').classList.add('blurred-bg');
+      mainModalBackdrop.style.display = 'none';
+      addChatArea.classList.add('centered');
+      addChatArea.style.display = 'block';
+    });
+
+    // Group chat option (centered)
+    openGroupModalBtn.addEventListener('click', () => {
+      document.querySelector('.phone').classList.add('blurred-bg');
+      mainModalBackdrop.style.display = 'none';
+      modalBackdrop.style.display = 'flex';
+    });
+
+    // Close individual add-person modal
+    closeAdd.addEventListener('click', () => {
+      addChatArea.style.display = 'none';
+      addChatArea.classList.remove('centered');
+      document.querySelector('.phone').classList.remove('blurred-bg');
+      updateFloatingVisibility();
+    });
+
+    // When group modal closed, remove blur
+    cancelCreateGroup.addEventListener('click', () => {
+      document.querySelector('.phone').classList.remove('blurred-bg');
+    });
+
     // --- Debug hints: (remove in production) ---
     // console.log('App initialized');
   </script>
+
+  <!-- Main + Modal -->
+  <div class="main-modal-backdrop" id="mainModalBackdrop">
+    <div class="main-modal">
+      <div class="close-modal" id="closeMainModal">×</div>
+      <h3>Start New Chat</h3>
+      <button id="openIndividualModalBtn">Individual Chat</button>
+      <button id="openGroupModalBtn">Group Chat</button>
+    </div>
+  </div>
+
 
   <!-- Main + Modal -->
   <div class="main-modal-backdrop" id="mainModalBackdrop">
