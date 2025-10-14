@@ -100,6 +100,49 @@
       .chat-input-area-wrapper{left:calc(50% - 210px);right:calc(50% - 210px);width:420px;bottom:72px;}
     }
   </style>
+
+<!-- slide-in animation & top-banner hide (injected) -->
+<style>
+/* Keep these rules minimal to avoid changing layout */
+.phone.hide-top .header,
+.phone.hide-top .wave-top {
+  transform: translateY(-12px);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform .32s ease, opacity .28s ease;
+}
+
+/* App area slides slightly left when chat opens */
+#app-section.app-hidden {
+  transform: translateX(-10%);
+  opacity: 0.0;
+  pointer-events: none;
+  transition: transform .36s cubic-bezier(.2,.9,.34,1), opacity .28s ease;
+}
+
+/* Chat container initial state: offscreen to right */
+#individual-chat-container.chat-off {
+  transform: translateX(18%);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform .36s cubic-bezier(.2,.9,.34,1), opacity .28s ease;
+}
+
+/* Visible chat: slide to place */
+#individual-chat-container.chat-on {
+  transform: translateX(0%);
+  opacity: 1;
+  pointer-events: auto;
+  transition: transform .42s cubic-bezier(.2,.9,.34,1), opacity .28s ease;
+}
+
+/* Ensure chat container displayed as flex when animating */
+#individual-chat-container {
+  display: none; /* kept default; JS will show when needed */
+  will-change: transform, opacity;
+}
+</style>
+
 </head>
 <body>
   <div class="phone">
@@ -949,5 +992,106 @@
 
     console.log('Enhanced UI loaded');
   </script>
+
+<!-- slide-in animation behavior (injected) -->
+<script>
+(function(){
+  // Find root elements
+  const phone = document.querySelector('.phone') || document.getElementById('phoneRoot') || document.body;
+  const appSection = document.getElementById('app-section');
+  const chatContainer = document.getElementById('individual-chat-container');
+  const backBtn = document.getElementById('backToChatListBtn');
+
+  // Safety: ensure elements exist
+  if (!appSection || !chatContainer) {
+    console.warn('Animation injector: required elements not found. Skipping slide-in injection.');
+    return;
+  }
+
+  // Prepare chat container initial state
+  chatContainer.classList.add('chat-off');
+
+  // Helper to open chat with animation
+  function openChatAnimated() {
+    // hide top banner
+    if (phone && phone.classList) phone.classList.add('hide-top');
+
+    // slide app section left / fade
+    appSection.classList.add('app-hidden');
+
+    // show chat container and trigger slide-in
+    chatContainer.style.display = 'flex';
+    // force reflow to ensure transition triggers
+    void chatContainer.offsetWidth;
+    chatContainer.classList.remove('chat-off');
+    chatContainer.classList.add('chat-on');
+
+    // scroll messages to bottom if present after animation starts
+    setTimeout(() => {
+      try {
+        const msgs = chatContainer.querySelector('.chat-messages');
+        if (msgs) msgs.scrollTop = msgs.scrollHeight;
+      } catch(e){}
+    }, 120);
+  }
+
+  // Helper to close chat and restore
+  function closeChatAnimated() {
+    // restore top banner
+    if (phone && phone.classList) phone.classList.remove('hide-top');
+
+    // restore app section
+    appSection.classList.remove('app-hidden');
+
+    // slide chat out to right and hide after transition
+    chatContainer.classList.remove('chat-on');
+    chatContainer.classList.add('chat-off');
+    // wait for transition end then hide
+    const t = setTimeout(() => {
+      try { chatContainer.style.display = 'none'; } catch(e){}
+      clearTimeout(t);
+    }, 420);
+  }
+
+  // Attach to existing .chat-item click handlers (non-invasive)
+  function attachToChatItems() {
+    const items = document.querySelectorAll('.chat-item');
+    items.forEach(item => {
+      // avoid attaching multiple times
+      if (item.dataset.slideAttached) return;
+      item.addEventListener('click', (ev) => {
+        // If your existing code opens the chat, we still run animation in addition.
+        // Delay a tiny bit so existing click handlers (which may swap views) can run first.
+        setTimeout(openChatAnimated, 60);
+      });
+      item.dataset.slideAttached = '1';
+    });
+  }
+
+  // Attach to back button to reverse animation
+  if (backBtn) {
+    const orig = backBtn.onclick;
+    backBtn.addEventListener('click', (ev) => {
+      // run our animation close
+      closeChatAnimated();
+      // allow any original logic (if present) to run after a short delay
+      setTimeout(() => { try { if (typeof orig === 'function') orig.call(backBtn, ev); } catch(e){} }, 160);
+    }, {passive:false});
+  }
+
+  // Initial attach and try re-attaching when DOM changes (for SPA behavior)
+  attachToChatItems();
+  // observe for new chat items
+  const observer = new MutationObserver((mutList) => {
+    attachToChatItems();
+  });
+  observer.observe(appSection, { childList: true, subtree: true });
+
+  // Expose for debugging
+  window.__zagSlide = { openChatAnimated, closeChatAnimated };
+
+})();
+</script>
+
 </body>
 </html>
