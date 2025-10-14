@@ -16,7 +16,7 @@
     html,body{height:100%;margin:0;font-family:var(--hand-font);background:linear-gradient(180deg,var(--bg),#eef6ff 60%);overflow:hidden;}
     /* keep phone as the main container */
     .phone{width:100%;height:100vh;background:#fff;display:flex;flex-direction:column;box-sizing:border-box;position:relative;}
-    .header{display:flex;align-items:center;padding:10px 14px;gap:10px;background:linear-gradient(180deg,var(--primary),var(--primary-dark));color:#fff;position:relative;z-index:60;}
+    .header{display:flex;align-items:center;padding:10px 14px;gap:10px;background:linear-gradient(180deg,var(--primary),var(--primary-dark));color:#fff;Position:relative;z-index:60;}
     .logo{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--primary);background:linear-gradient(180deg,#fff,#f7fbff);}
     .title{font-size:20px;color:#fff;font-weight:700;}
     .menu{margin-left:auto;font-size:20px;color:#fff;}
@@ -59,6 +59,7 @@
     .bubble{padding:10px 14px;border-radius:18px;max-width:78%;line-height:1.4;box-shadow:0 6px 14px rgba(10,30,80,0.04);}
     .bubble.sent{align-self:flex-end;background:linear-gradient(180deg,var(--primary),var(--primary-dark));color:#fff;}
     .bubble.received{align-self:flex-start;background:#fff;color:var(--primary);border:1px solid rgba(75,134,230,0.04);}
+    .msg-meta{display:block;font-size:11px;opacity:0.85;margin-top:6px;}
     /* Message Input Area - made fixed above bottom nav so it's always visible */
     .chat-input-area-wrapper{
       /* switched to fixed to ensure visibility above the bottom nav and device UI */
@@ -96,7 +97,7 @@
       .plus-menu{right:calc(50% - 210px);}
       .chat-input-area-wrapper{left:calc(50% - 210px);right:calc(50% - 210px);width:420px;bottom:72px;}
     }
-  
+
     /* === New Blue Modals === */
     .blurred-bg { filter: blur(6px); pointer-events:none; user-select:none; }
     .main-modal-backdrop { 
@@ -487,6 +488,30 @@
       });
     }
 
+    // --- Simple helper: escape HTML to avoid injection when rendering messages ---
+    function escapeHtml(unsafe) {
+      if (unsafe === undefined || unsafe === null) return '';
+      return String(unsafe)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+
+    // --- Time formatter: converts ms timestamp to 12-hour format (hh:mm AM/PM) ---
+    function formatTime(ms) {
+      if (!ms) return '';
+      const d = new Date(Number(ms));
+      let hours = d.getHours();
+      const minutes = d.getMinutes();
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12;
+      if (hours === 0) hours = 12;
+      const mins = minutes < 10 ? '0' + minutes : minutes;
+      return hours + ':' + mins + ' ' + ampm;
+    }
+
     // --- Load chats (basic implementation: show other users as chat items) ---
     function loadChats() {
       chatList.innerHTML = '';
@@ -546,9 +571,55 @@
         msgContainer.innerHTML = '';
         snap.forEach(child => {
           const m = child.val();
+          const isSent = m.sender === currentUser.uid;
           const div = document.createElement('div');
-          div.className = 'bubble ' + (m.sender === currentUser.uid ? 'sent' : 'received');
-          div.textContent = m.text;
+          div.className = 'bubble ' + (isSent ? 'sent' : 'received');
+
+          // For private chats, we only show text + time
+          div.innerHTML = `<div>${escapeHtml(m.text)}</div>
+                           <div class="msg-meta">${formatTime(m.timestamp)}</div>`;
+          msgContainer.appendChild(div);
+        });
+        // scroll to bottom
+        msgContainer.scrollTop = msgContainer.scrollHeight;
+      });
+    }
+
+    // --- Open a group chat ---
+    function openGroupChat(groupObj) {
+      if (!currentUser) return alert('Not signed in');
+      currentChat = { type: 'group', id: groupObj.id, group: groupObj };
+      document.getElementById('current-chat-avatar').textContent = (groupObj.name||'G').charAt(0).toUpperCase();
+      document.getElementById('current-chat-name').textContent = groupObj.name || 'Group';
+      document.getElementById('current-chat-sub').textContent = (Object.keys(groupObj.members||{}).length || 0) + ' members';
+
+      // show chat screen
+      appSection.style.display = 'none';
+      individualChat.style.display = 'flex';
+      msgContainer.innerHTML = '';
+      updateFloatingVisibility();
+
+      // load messages from DB (messages/{groupId})
+      const messagesRef = dbRef(db, 'messages/' + groupObj.id);
+      onValue(messagesRef, snap => {
+        msgContainer.innerHTML = '';
+        snap.forEach(child => {
+          const m = child.val();
+          const isSent = m.sender === currentUser.uid;
+          const div = document.createElement('div');
+          div.className = 'bubble ' + (isSent ? 'sent' : 'received');
+
+          // for groups show sender name for received messages
+          let senderLabel = '';
+          if (!isSent) {
+            const sender = usersCache[m.sender];
+            if (sender) senderLabel = escapeHtml(sender.email || sender.phoneNumber || 'Member');
+            else senderLabel = 'Member';
+          }
+
+          div.innerHTML = `<div style="font-weight:700;font-size:13px;margin-bottom:6px;">${senderLabel}</div>
+                           <div>${escapeHtml(m.text)}</div>
+                           <div class="msg-meta">${formatTime(m.timestamp)}</div>`;
           msgContainer.appendChild(div);
         });
         // scroll to bottom
@@ -564,7 +635,7 @@
       updateFloatingVisibility();
     });
 
-    // --- Send message handler ---
+    // --- Send message handler (supports private & group) ---
     sendBtn.addEventListener('click', async () => {
       const text = (msgInput.value || '').trim();
       if (!text) return;
@@ -575,6 +646,7 @@
       await set(newMsgRef, {
         text,
         sender: currentUser.uid,
+        senderEmail: currentUser.email || '',
         timestamp: Date.now()
       });
       msgInput.value = '';
@@ -739,6 +811,9 @@
                                <div class="name">${g.name}</div>
                                <div class="sub">${Object.keys(g.members).length} members</div>
                              </div>`;
+            div.addEventListener('click', () => {
+              openGroupChat(g);
+            });
             groupList.appendChild(div);
           }
         });
@@ -770,41 +845,40 @@
       }, 1200);
     });
 
-    
-    // === Blue Modal System ===
-    const mainModalBackdrop = document.getElementById('mainModalBackdrop');
-    const closeMainModal = document.getElementById('closeMainModal');
-    const openIndividualModalBtn = document.getElementById('openIndividualModalBtn');
-    const openGroupModalBtn = document.getElementById('openGroupModalBtn');
-
-    // Open main modal on + button
-    floatingBtn.addEventListener('click', () => {
-      document.querySelector('.phone').classList.add('blurred-bg');
-      mainModalBackdrop.style.display = 'flex';
+    // === Blue Modal System (safe delegation) ===
+    // We use delegated click handling so elements that appear after script load still work.
+    document.addEventListener('click', (e) => {
+      const id = e.target && e.target.id;
+      if (id === 'closeMainModal') {
+        document.querySelector('.phone').classList.remove('blurred-bg');
+        const m = document.getElementById('mainModalBackdrop');
+        if (m) m.style.display = 'none';
+      } else if (id === 'openIndividualModalBtn') {
+        document.querySelector('.phone').classList.remove('blurred-bg');
+        const m = document.getElementById('mainModalBackdrop');
+        if (m) m.style.display = 'none';
+        addChatArea.style.display = 'block';
+        addChatIdentifier.focus();
+      } else if (id === 'openGroupModalBtn') {
+        document.querySelector('.phone').classList.remove('blurred-bg');
+        const m = document.getElementById('mainModalBackdrop');
+        if (m) m.style.display = 'none';
+        modalBackdrop.style.display = 'flex';
+      }
     });
 
-    // Close main modal
-    closeMainModal.addEventListener('click', () => {
-      document.querySelector('.phone').classList.remove('blurred-bg');
-      mainModalBackdrop.style.display = 'none';
-    });
-
-    // Inside main modal: open sub modals
-    openIndividualModalBtn.addEventListener('click', () => {
-      document.querySelector('.phone').classList.remove('blurred-bg');
-      mainModalBackdrop.style.display = 'none';
-      addChatArea.style.display = 'block';
-      addChatIdentifier.focus();
-    });
-
-    openGroupModalBtn.addEventListener('click', () => {
-      document.querySelector('.phone').classList.remove('blurred-bg');
-      mainModalBackdrop.style.display = 'none';
-      modalBackdrop.style.display = 'flex';
+    // Also support opening the main modal from the floating button.
+    floatingBtn.addEventListener('dblclick', () => {
+      // double-click to open main modal (keeps single-click behavior unchanged)
+      const main = document.getElementById('mainModalBackdrop');
+      if (main) {
+        document.querySelector('.phone').classList.add('blurred-bg');
+        main.style.display = 'flex';
+      }
     });
 
     // --- Debug hints: (remove in production) ---
-    // console.log('App initialized');
+    // console.log('App initialized (enhanced with group chat open & 12-hour timestamps)');
   </script>
 
   <!-- Main + Modal -->
