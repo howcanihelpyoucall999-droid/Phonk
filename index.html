@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Zag Messenger — With Groups (fixed input & banner)</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1, viewport-fit=cover" />
+  <title>Zag Messenger — With Groups (improved input & group options)</title>
   <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet" />
   <style>
     :root{
@@ -13,8 +13,7 @@
       --muted:#9aaecf;
       --hand-font:'Patrick Hand', 'Segoe UI', Arial, sans-serif;
     }
-    html,body{height:100%;margin:0;font-family:var(--hand-font);background:linear-gradient(180deg,var(--bg),#eef6ff 60%);overflow:hidden;}
-    /* keep phone as the main container */
+    html,body{height:100%;margin:0;font-family:var(--hand-font);background:linear-gradient(180deg,var(--bg),#eef6ff 60%);-webkit-font-smoothing:antialiased;overflow:hidden;}
     .phone{width:100%;height:100vh;background:#fff;display:flex;flex-direction:column;box-sizing:border-box;position:relative;}
     .header{display:flex;align-items:center;padding:10px 14px;gap:10px;background:linear-gradient(180deg,var(--primary),var(--primary-dark));color:#fff;Position:relative;z-index:60;}
     .logo{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--primary);background:linear-gradient(180deg,#fff,#f7fbff);}
@@ -32,7 +31,7 @@
     .btn{padding:10px 12px;border-radius:10px;border:none;cursor:pointer;font-weight:700;font-size:15px;box-shadow:0 6px 14px rgba(75,134,230,0.08);width:90%;max-width:360px;margin-bottom:8px;font-family:var(--hand-font);}
     .primary{background:linear-gradient(180deg,var(--primary),var(--primary-dark));color:#fff;}
     .ghost{background:#f6f9ff;color:var(--primary);}
-    .toggle-btns{display:flex;gap:12px;margin-top:12px;flex-direction:column;align-items:center;} /* Adjusted for better layout */
+    .toggle-btns{display:flex;gap:12px;margin-top:12px;flex-direction:column;align-items:center;}
     .toggle-btns .btn{width:auto;padding:8px 16px;}
     .app{display:none;flex:1;overflow-y:auto;padding:16px 18px 120px 18px;box-sizing:border-box;}
     .top-controls{display:flex;align-items:center;gap:12px;margin-bottom:8px;justify-content:space-between;}
@@ -52,21 +51,26 @@
     .bottom-nav .active{background:linear-gradient(180deg,#eff7ff,#dfeffe);box-shadow:0 6px 14px rgba(11,96,214,0.06);}
     /* chat screen */
     .chat-screen{display:none;flex-direction:column;flex:1;overflow:hidden;padding:8px 18px 0 18px;box-sizing:border-box;}
-    .chat-header{display:flex;gap:10px;align-items:center;padding:8px 6px;border-bottom:1px dashed rgba(75,134,230,0.04);margin-bottom:8px;z-index:10;}
-    #backToChatListBtn{padding:4px 8px !important;border-radius:6px !important;font-size:13px !important;}
+    .chat-header{display:flex;gap:10px;align-items:center;padding:8px 6px;border-bottom:1px dashed rgba(75,134,230,0.04);margin-bottom:8px;z-index:10;position:relative;min-height:56px;}
+    /* smaller back button */
+    #backToChatListBtn{padding:6px 8px !important;border-radius:8px !important;font-size:13px !important;min-width:48px;display:inline-flex;align-items:center;justify-content:center;}
     #current-chat-avatar{width:44px;height:44px;border-radius:50%;background:linear-gradient(180deg,#dbeeff,#c1ddff);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--primary);font-size:16px;flex-shrink:0;}
-    .chat-messages{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:6px;padding-bottom:140px;box-sizing:border-box;}
+    /* center the name in the header */
+    .centered-name{position:absolute;left:50%;transform:translateX(-50%);text-align:center;width:60%;pointer-events:none;}
+    .centered-name .name{font-weight:700;color:var(--primary);font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .centered-name .sub{font-size:12px;color:var(--muted);opacity:0.9;}
+    .three-dots{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:transparent;border:none;font-size:22px;color:var(--primary);cursor:pointer;padding:6px;border-radius:8px;}
+    .chat-messages{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:6px;padding-bottom:160px;box-sizing:border-box;}
     .bubble{padding:10px 14px;border-radius:18px;max-width:78%;line-height:1.4;box-shadow:0 6px 14px rgba(10,30,80,0.04);}
     .bubble.sent{align-self:flex-end;background:linear-gradient(180deg,var(--primary),var(--primary-dark));color:#fff;}
     .bubble.received{align-self:flex-start;background:#fff;color:var(--primary);border:1px solid rgba(75,134,230,0.04);}
     .msg-meta{display:block;font-size:11px;opacity:0.85;margin-top:6px;}
-    /* Message Input Area - made fixed above bottom nav so it's always visible */
+    /* Message Input Area - smaller and fixed above bottom nav */
     .chat-input-area-wrapper{
-      /* switched to fixed to ensure visibility above the bottom nav and device UI */
       position:fixed;
       left:0;
       right:0;
-      bottom:72px; /* sits above the bottom-nav (adjust if your bottom nav height changes) */
+      bottom:72px;
       padding:8px 18px 10px 18px;
       background:#fff;
       box-sizing:border-box;
@@ -77,52 +81,25 @@
       -webkit-backdrop-filter: blur(4px);
       backdrop-filter: blur(4px);
       border-top:1px solid rgba(11,96,214,0.08);
+      transition:bottom 0.18s ease, transform 0.18s ease;
     }
-    .chat-input{display:flex;gap:8px;align-items:center;border-radius:999px;padding:8px;background:#fff;border:2px solid var(--primary);transition:border-color 0.3s, transform 0.1s;max-width:920px;width:100%;box-sizing:border-box;}
-    @keyframes gentleShake{0%,100%{transform:translateX(0);}25%{transform:translateX(-2px);}75%{transform:translateX(2px);}}
-    .chat-input.typing{animation:gentleShake 0.25s ease-in-out;}
-    .chat-input input{flex:1;border:none;outline:none;font-size:15px;padding:10px 6px;font-family:var(--hand-font);color:var(--primary);background:transparent;}
+    .chat-input{display:flex;gap:8px;align-items:center;border-radius:999px;padding:6px 8px;background:#fff;border:2px solid var(--primary);transition:border-color 0.3s, transform 0.1s;max-width:920px;width:100%;box-sizing:border-box;height:56px;}
+    .chat-input input{flex:1;border:none;outline:none;font-size:14px;padding:8px 6px;font-family:var(--hand-font);color:var(--primary);background:transparent;}
     .send-btn{width:44px;height:44px;border-radius:50%;border:none;background:linear-gradient(180deg,var(--primary),var(--primary-dark));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;cursor:pointer;box-shadow:0 4px 10px rgba(11,96,214,0.15);}
-    /* Group modal */
-    .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.35);display:none;align-items:center;justify-content:center;z-index:60;}
-    .modal{width:92%;max-width:520px;background:#fff;border-radius:12px;padding:16px;box-sizing:border-box;box-shadow:0 20px 60px rgba(0,0,0,0.12);}
-    .modal h4{margin:0 0 8px 0;color:var(--primary);}
-    .contacts-list{max-height:180px;overflow:auto;border:1px dashed rgba(75,134,230,0.06);padding:8px;border-radius:8px;margin-top:8px;}
-    .contact-item{display:flex;align-items:center;gap:8px;padding:8px;border-radius:8px;cursor:pointer;}
+    /* Group options modal */
+    .group-options-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.35);display:none;align-items:center;justify-content:center;z-index:120;}
+    .group-options{width:92%;max-width:420px;background:#fff;border-radius:12px;padding:16px;box-sizing:border-box;box-shadow:0 20px 60px rgba(0,0,0,0.12);overflow:auto;max-height:80vh;}
+    .group-header{display:flex;align-items:center;gap:12px;margin-bottom:12px;}
+    .group-photo{width:64px;height:64px;border-radius:50%;background:linear-gradient(180deg,#dbeeff,#c1ddff);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--primary);font-size:20px;}
+    .member-item{display:flex;align-items:center;gap:8px;padding:8px;border-radius:8px;border:1px solid rgba(11,96,214,0.04);margin-bottom:8px;}
+    .member-item .meta{flex:1;}
     .small{font-size:13px;color:var(--muted);}
-    .section-title{font-size:13px;color:var(--muted);margin-top:8px;margin-bottom:6px;}
-    /* responsive tweaks */
     @media (min-width:900px){
       .phone{max-width:420px;margin:0 auto;box-shadow:0 20px 60px rgba(0,0,0,0.08);}
       .plus-menu{right:calc(50% - 210px);}
       .chat-input-area-wrapper{left:calc(50% - 210px);right:calc(50% - 210px);width:420px;bottom:72px;}
     }
-
-    /* === New Blue Modals === */
-    .blurred-bg { filter: blur(6px); pointer-events:none; user-select:none; }
-    .main-modal-backdrop { 
-      position: fixed; inset: 0; background: rgba(0,0,0,0.4);
-      display: none; align-items: center; justify-content: center; z-index: 100;
-      backdrop-filter: blur(6px);
-    }
-    .main-modal {
-      width: 90%; max-width: 420px; background: linear-gradient(180deg,var(--primary),var(--primary-dark));
-      color: #fff; border-radius: 16px; padding: 24px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.2);
-      position: relative;
-    }
-    .main-modal h3 { margin: 0 0 20px; font-size: 20px; }
-    .main-modal button {
-      display: block; width: 100%; padding: 12px; margin: 10px 0; border: none; border-radius: 10px;
-      font-weight: 700; font-family: var(--hand-font); cursor: pointer;
-      background: #fff; color: var(--primary); font-size: 16px;
-    }
-    .main-modal .close-modal {
-      position: absolute; top: 10px; right: 14px; background: #fff; color: var(--primary);
-      border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
-      cursor: pointer; font-weight: bold;
-    }
-
-</style>
+  </style>
 </head>
 <body>
   <div class="phone">
@@ -136,7 +113,6 @@
       <svg viewBox="0 0 100 10" preserveAspectRatio="none"><path d="M0 5 C20 9,40 1,60 5 C80 9,100 3,100 3 L100 10 L0 10 Z"></path></svg>
     </div>
 
-    <!-- Auth -->
     <div class="auth" id="auth-section">
       <div class="welcome">Welcome,<br>to Zag Messenger.</div>
       <div class="sub">Write your World</div>
@@ -155,7 +131,6 @@
       </div>
     </div>
 
-    <!-- App (Chats & Groups) -->
     <div class="app" id="app-section">
       <div class="top-controls">
         <h3 style="margin:0" id="list-title">My chats</h3>
@@ -164,32 +139,33 @@
         </div>
       </div>
 
-      <!-- Add (for Individual & Group) -->
       <div id="add-chat-area">
         <div id="closeAddChat">×</div>
         <input id="addChatIdentifier" type="text" placeholder="Enter user email or phone">
         <button id="addChatBtn" class="btn primary">Add Person</button>
       </div>
 
-      <!-- Lists -->
       <div id="chat-list-container"></div>
       <div id="group-list-container" style="display:none;"></div>
     </div>
 
-    <!-- Chat Screen -->
-    <div class="chat-screen" id="individual-chat-container">
+    <div class="chat-screen" id="individual-chat-container" aria-live="polite">
       <div class="chat-header">
         <button id="backToChatListBtn" class="btn ghost">&lt; Back</button>
         <div id="current-chat-avatar" class="avatar"></div>
-        <div>
-          <div id="current-chat-name" style="font-weight:700;color:var(--primary);"></div>
-          <div id="current-chat-sub" style="font-size:12px;color:var(--muted)"></div>
+
+        <div class="centered-name">
+          <div id="current-chat-name" class="name"></div>
+          <div id="current-chat-sub" class="sub"></div>
         </div>
+
+        <button id="groupOptionsBtn" class="three-dots" title="Options">⋮</button>
       </div>
+
       <div id="chat-messages" class="chat-messages"></div>
 
       <div class="chat-input-area-wrapper" aria-label="Message input area">
-        <div id="chat-input-area" class="chat-input">
+        <div id="chat-input-area" class="chat-input" role="form">
           <input id="chatMessageInput" type="text" placeholder="Type a message...">
           <button id="sendChatMessageBtn" class="send-btn" aria-label="Send message">➤</button>
         </div>
@@ -204,15 +180,12 @@
     </div>
 
     <div class="floating-new" id="floatingNewBtn" title="Add new" style="display:none;">+</div>
-
-    <!-- small popup menu for + button -->
     <div class="plus-menu" id="plusMenu">
       <button id="plusIndividualBtn">Individual Chat</button>
       <button id="plusGroupBtn">Group Chat</button>
     </div>
   </div>
 
-  <!-- Group Modal -->
   <div class="modal-backdrop" id="modalBackdrop">
     <div class="modal" role="dialog" aria-modal="true">
       <h4 id="modalTitle">New Group</h4>
@@ -235,13 +208,41 @@
     </div>
   </div>
 
+  <!-- Group options modal -->
+  <div class="group-options-backdrop" id="groupOptionsBackdrop" aria-hidden="true">
+    <div class="group-options" role="dialog" aria-modal="true" id="groupOptionsDialog">
+      <div style="display:flex;justify-content:flex-end;"><button id="closeGroupOptions" class="btn ghost" style="padding:6px 8px;width:auto;height:auto;">Close</button></div>
+      <div class="group-header">
+        <div class="group-photo" id="groupPhoto">G</div>
+        <div>
+          <div id="groupOptionsName" style="font-weight:700;color:var(--primary);font-size:18px;">Group</div>
+          <div id="groupOptionsSub" class="small">0 members</div>
+        </div>
+      </div>
+      <div style="margin-bottom:8px;font-size:13px;color:var(--muted);">Members</div>
+      <div id="groupMembersList" style="margin-bottom:12px;"></div>
+
+      <div style="display:flex;gap:8px;justify-content:flex-end;">
+        <button id="leaveGroupBtn" class="btn ghost" style="padding:8px 12px;">Leave Group</button>
+        <button id="deleteGroupBtn" class="btn primary" style="padding:8px 12px;">Delete Group</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="main-modal-backdrop" id="mainModalBackdrop">
+    <div class="main-modal">
+      <div class="close-modal" id="closeMainModal">×</div>
+      <h3>Start New Chat</h3>
+      <button id="openIndividualModalBtn">Individual Chat</button>
+      <button id="openGroupModalBtn">Group Chat</button>
+    </div>
+  </div>
+
   <script type="module">
-    // --- Firebase imports ---
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js';
     import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js';
-    import { getDatabase, ref as dbRef, set, get, onValue, push, update } from 'https://www.gstatic.com/firebasejs/10.13.2/firebase-database.js';
+    import { getDatabase, ref as dbRef, set, get, onValue, push, update, remove } from 'https://www.gstatic.com/firebasejs/10.13.2/firebase-database.js';
 
-    // --- Firebase config (kept intact) ---
     const firebaseConfig = {
       apiKey: 'AIzaSyBUH95hXYxMVCfhJglN4j3CReXy-CLYwmA',
       authDomain: 'live-messageinggkkh.firebaseapp.com',
@@ -256,7 +257,7 @@
     const auth = getAuth(app);
     const db = getDatabase(app);
 
-    // --- DOM refs (kept the same IDs as your HTML) ---
+    // DOM refs
     const authSection = document.getElementById('auth-section');
     const appSection = document.getElementById('app-section');
     const individualChat = document.getElementById('individual-chat-container');
@@ -286,7 +287,7 @@
     const listTitle = document.getElementById('list-title');
     const welcomeText = document.querySelector('.welcome');
 
-    // Modal refs
+    // modal/group refs
     const modalBackdrop = document.getElementById('modalBackdrop');
     const createGroupBtn = document.getElementById('createGroupBtn');
     const cancelCreateGroup = document.getElementById('cancelCreateGroup');
@@ -295,18 +296,26 @@
     const selectedMembersDiv = document.getElementById('selectedMembers');
     const contactsListDiv = document.getElementById('contactsList');
 
-    // Plus menu buttons
     const plusIndividualBtn = document.getElementById('plusIndividualBtn');
     const plusGroupBtn = document.getElementById('plusGroupBtn');
 
-    // --- App state ---
-    let currentChat = null; // { type: 'private'|'group', id: string }
-    let currentUser = null;
-    let usersCache = {}; // uid -> {email, phoneNumber, uid}
-    let selectedGroupMembers = {}; // uid -> user object
-    let isSigningUp = true; // Start in sign-up mode (matches UI)
+    const groupOptionsBackdrop = document.getElementById('groupOptionsBackdrop');
+    const groupOptionsName = document.getElementById('groupOptionsName');
+    const groupOptionsSub = document.getElementById('groupOptionsSub');
+    const groupPhoto = document.getElementById('groupPhoto');
+    const groupMembersList = document.getElementById('groupMembersList');
+    const leaveGroupBtn = document.getElementById('leaveGroupBtn');
+    const deleteGroupBtn = document.getElementById('deleteGroupBtn');
+    const groupOptionsBtn = document.getElementById('groupOptionsBtn');
+    const closeGroupOptions = document.getElementById('closeGroupOptions');
 
-    // --- Auth UI toggle functions (keeps original behavior) ---
+    // state
+    let currentChat = null;
+    let currentUser = null;
+    let usersCache = {};
+    let selectedGroupMembers = {};
+    let isSigningUp = true;
+
     function updateAuthUI() {
       if (isSigningUp) {
         authSubmitBtn.textContent = 'Sign Up';
@@ -330,7 +339,6 @@
     toSignUp.addEventListener('click', () => { isSigningUp = true; updateAuthUI(); });
     updateAuthUI();
 
-    // --- Helper: create user profile in Realtime DB after sign-up ---
     async function createUserProfile(user) {
       if (!user) return;
       const userRef = dbRef(db, 'users/' + user.uid);
@@ -342,7 +350,6 @@
           phoneNumber: '+880' + (phone.value.trim() || '')
         });
       } else {
-        // Optionally update phone if empty
         const data = snap.val();
         if (!data.phoneNumber && phone.value.trim()) {
           await update(userRef, { phoneNumber: '+880' + phone.value.trim() });
@@ -350,7 +357,6 @@
       }
     }
 
-    // --- Combined Sign Up / Sign In handler ---
     authSubmitBtn.addEventListener('click', async () => {
       const e = (email.value || '').trim();
       const p = (pass.value || '').trim();
@@ -365,12 +371,9 @@
 
       try {
         if (isSigningUp) {
-          // Sign up
           const userCredential = await createUserWithEmailAndPassword(auth, e, p);
-          // create profile
           await createUserProfile(userCredential.user);
         } else {
-          // Sign in
           await signInWithEmailAndPassword(auth, e, p);
         }
       } catch (err) {
@@ -379,13 +382,10 @@
       }
     });
 
-    // --- Auth state observer: auto-runs on page load and after sign-in/up ---
     onAuthStateChanged(auth, async (user) => {
       currentUser = user;
       if (user) {
-        // Ensure profile exists (for first-time sign-up)
         await createUserProfile(user);
-        // Load app data
         loadUsersCache();
         loadChats();
         loadGroups();
@@ -394,7 +394,6 @@
       updateFloatingVisibility();
     });
 
-    // --- Update UI based on auth state ---
     function updateUI(user) {
       if (user) {
         authSection.style.display = 'none';
@@ -417,13 +416,7 @@
       }
     }
 
-    // --- Floating visibility control ---
     function updateFloatingVisibility() {
-      // Show floating + only when:
-      // - user is signed in (currentUser)
-      // - appSection is visible (not in auth)
-      // - individualChat (chat screen) is NOT visible
-      // - either navHome or navGroups is active
       const appVisible = appSection.style.display !== 'none';
       const chatVisible = individualChat.style.display !== 'none';
       const allowedNav = navHome.classList.contains('active') || navGroups.classList.contains('active');
@@ -436,7 +429,6 @@
       }
     }
 
-    // --- Load users into cache and show contacts for group modal ---
     function loadUsersCache() {
       const usersRef = dbRef(db, 'users');
       onValue(usersRef, snap => {
@@ -456,7 +448,6 @@
                                 <div class="small">${u.phoneNumber || ''}</div>
                               </div>`;
             div.addEventListener('click', () => {
-              // toggle selection for group creation
               if (selectedGroupMembers[u.uid]) {
                 delete selectedGroupMembers[u.uid];
                 div.style.opacity = '1';
@@ -472,7 +463,6 @@
       });
     }
 
-    // --- Render selected members in group modal ---
     function renderSelectedMembers() {
       selectedMembersDiv.innerHTML = '';
       Object.values(selectedGroupMembers).forEach(u => {
@@ -488,7 +478,6 @@
       });
     }
 
-    // --- Simple helper: escape HTML to avoid injection when rendering messages ---
     function escapeHtml(unsafe) {
       if (unsafe === undefined || unsafe === null) return '';
       return String(unsafe)
@@ -499,7 +488,6 @@
         .replaceAll("'", '&#039;');
     }
 
-    // --- Time formatter: converts ms timestamp to 12-hour format (hh:mm AM/PM) ---
     function formatTime(ms) {
       if (!ms) return '';
       const d = new Date(Number(ms));
@@ -512,14 +500,12 @@
       return hours + ':' + mins + ' ' + ampm;
     }
 
-    // --- Load chats (basic implementation: show other users as chat items) ---
     function loadChats() {
       chatList.innerHTML = '';
       if (!currentUser) {
         chatList.innerHTML = '<div class="small">Sign in to see chats.</div>';
         return;
       }
-      // For a simple demo: list all other users as chat starters
       const usersRef = dbRef(db, 'users');
       get(usersRef).then(snap => {
         if (!snap.exists()) {
@@ -549,23 +535,19 @@
       });
     }
 
-    // --- Open private chat with a user (basic) ---
     function openPrivateChatWith(userObj) {
       if (!currentUser) return alert('Not signed in');
-      // create deterministic chat id between two uids
       const chatId = [currentUser.uid, userObj.uid].sort().join('_');
       currentChat = { type: 'private', id: chatId, with: userObj };
       document.getElementById('current-chat-avatar').textContent = (userObj.email||'U').charAt(0).toUpperCase();
       document.getElementById('current-chat-name').textContent = userObj.email || userObj.phoneNumber || 'User';
       document.getElementById('current-chat-sub').textContent = userObj.phoneNumber || '';
 
-      // show chat screen
       appSection.style.display = 'none';
       individualChat.style.display = 'flex';
       msgContainer.innerHTML = '';
       updateFloatingVisibility();
 
-      // load messages from DB (messages/{chatId})
       const messagesRef = dbRef(db, 'messages/' + chatId);
       onValue(messagesRef, snap => {
         msgContainer.innerHTML = '';
@@ -574,18 +556,14 @@
           const isSent = m.sender === currentUser.uid;
           const div = document.createElement('div');
           div.className = 'bubble ' + (isSent ? 'sent' : 'received');
-
-          // For private chats, we only show text + time
           div.innerHTML = `<div>${escapeHtml(m.text)}</div>
                            <div class="msg-meta">${formatTime(m.timestamp)}</div>`;
           msgContainer.appendChild(div);
         });
-        // scroll to bottom
         msgContainer.scrollTop = msgContainer.scrollHeight;
       });
     }
 
-    // --- Open a group chat ---
     function openGroupChat(groupObj) {
       if (!currentUser) return alert('Not signed in');
       currentChat = { type: 'group', id: groupObj.id, group: groupObj };
@@ -593,13 +571,11 @@
       document.getElementById('current-chat-name').textContent = groupObj.name || 'Group';
       document.getElementById('current-chat-sub').textContent = (Object.keys(groupObj.members||{}).length || 0) + ' members';
 
-      // show chat screen
       appSection.style.display = 'none';
       individualChat.style.display = 'flex';
       msgContainer.innerHTML = '';
       updateFloatingVisibility();
 
-      // load messages from DB (messages/{groupId})
       const messagesRef = dbRef(db, 'messages/' + groupObj.id);
       onValue(messagesRef, snap => {
         msgContainer.innerHTML = '';
@@ -609,7 +585,6 @@
           const div = document.createElement('div');
           div.className = 'bubble ' + (isSent ? 'sent' : 'received');
 
-          // for groups show sender name for received messages
           let senderLabel = '';
           if (!isSent) {
             const sender = usersCache[m.sender];
@@ -617,17 +592,15 @@
             else senderLabel = 'Member';
           }
 
-          div.innerHTML = `<div style="font-weight:700;font-size:13px;margin-bottom:6px;">${senderLabel}</div>
+          div.innerHTML = `${!isSent ? `<div style="font-weight:700;font-size:13px;margin-bottom:6px;">${senderLabel}</div>` : ''}
                            <div>${escapeHtml(m.text)}</div>
                            <div class="msg-meta">${formatTime(m.timestamp)}</div>`;
           msgContainer.appendChild(div);
         });
-        // scroll to bottom
         msgContainer.scrollTop = msgContainer.scrollHeight;
       });
     }
 
-    // --- Back to chat list ---
     backBtn.addEventListener('click', () => {
       individualChat.style.display = 'none';
       appSection.style.display = 'block';
@@ -635,7 +608,6 @@
       updateFloatingVisibility();
     });
 
-    // --- Send message handler (supports private & group) ---
     sendBtn.addEventListener('click', async () => {
       const text = (msgInput.value || '').trim();
       if (!text) return;
@@ -652,7 +624,6 @@
       msgInput.value = '';
     });
 
-    // Allow Enter key to send message
     msgInput.addEventListener('keypress', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
@@ -660,29 +631,23 @@
       }
     });
 
-    // --- Floating add button behavior (show add menu) ---
     floatingBtn.addEventListener('click', (e) => {
-      // toggle plus menu
       if (plusMenu.style.display === 'flex') {
         plusMenu.style.display = 'none';
       } else {
         plusMenu.style.display = 'flex';
-        // hide after 6 seconds automatically
         setTimeout(() => { plusMenu.style.display = 'none'; }, 6000);
       }
     });
 
-    // --- Plus menu choices ---
     plusIndividualBtn.addEventListener('click', () => {
       plusMenu.style.display = 'none';
-      // show add individual chat area
       addChatArea.style.display = 'block';
       addChatIdentifier.focus();
       updateFloatingVisibility();
     });
     plusGroupBtn.addEventListener('click', () => {
       plusMenu.style.display = 'none';
-      // open group modal
       modalBackdrop.style.display = 'flex';
     });
 
@@ -691,11 +656,9 @@
       updateFloatingVisibility();
     });
 
-    // --- Add person button: create a minimal "invitation" or chat entry ---
     addBtn.addEventListener('click', async () => {
       const val = (addChatIdentifier.value || '').trim();
       if (!val) return alert('Enter email or phone to add.');
-      // Try to find user by email or phone
       const usersRef = dbRef(db, 'users');
       const snapshot = await get(usersRef);
       let found = null;
@@ -709,15 +672,12 @@
       if (!found) {
         return alert('User not found in directory. They must sign up first.');
       }
-      // open chat with found user
       openPrivateChatWith(found);
       addChatArea.style.display = 'none';
       addChatIdentifier.value = '';
       updateFloatingVisibility();
     });
 
-    // --- Group modal open/close and creation (basic) ---
-    // navigate to group list when clicking navGroups
     navGroups.addEventListener('click', () => {
       navGroups.classList.add('active');
       navHome.classList.remove('active');
@@ -727,7 +687,6 @@
       updateFloatingVisibility();
       loadGroups();
     });
-    // navHome behavior
     navHome.addEventListener('click', () => {
       navHome.classList.add('active');
       navGroups.classList.remove('active');
@@ -742,12 +701,10 @@
       modalBackdrop.style.display = 'none';
       updateFloatingVisibility();
     });
-    // allow adding member by entering email/phone and pressing Enter
     addMemberInput.addEventListener('keypress', (e) => {
       if (e.key === 'Enter') {
         const q = (addMemberInput.value || '').trim();
         if (!q) return;
-        // find user
         let found = null;
         Object.values(usersCache).forEach(u => {
           if (u.email === q || u.phoneNumber === q || ('+880'+q) === u.phoneNumber) found = u;
@@ -767,7 +724,6 @@
       if (!name) return alert('Enter group name');
       const memberUids = Object.keys(selectedGroupMembers);
       if (memberUids.length === 0) return alert('Add at least one member');
-      // create group in DB
       const groupsRef = dbRef(db, 'groups');
       const newGroupRef = push(groupsRef);
       const groupId = newGroupRef.key;
@@ -789,7 +745,6 @@
       updateFloatingVisibility();
     });
 
-    // --- Load groups for current user (basic) ---
     function loadGroups() {
       groupList.innerHTML = '';
       if (!currentUser) {
@@ -823,7 +778,6 @@
       });
     }
 
-    // --- Simple sign-out when clicking @You (for demo) ---
     navYou.addEventListener('click', async () => {
       if (!currentUser) return alert('Not signed in');
       const ok = confirm('Sign out?');
@@ -832,21 +786,139 @@
       }
     });
 
-    // --- Ensure floating updates on window focus/resize and nav changes ---
     window.addEventListener('resize', updateFloatingVisibility);
     window.addEventListener('focus', updateFloatingVisibility);
 
-    // Ensure chat input stays visible when keyboard appears on mobile (best-effort)
+    // Keep input area in view smoothly when keyboard appears (mobile)
+    function adjustInputForViewport() {
+      const wrapper = document.querySelector('.chat-input-area-wrapper');
+      if (!wrapper) return;
+      if (window.visualViewport) {
+        const offset = window.innerHeight - window.visualViewport.height;
+        // limit how much it goes up so it doesn't fly away
+        const limited = Math.min(offset + 12, 180);
+        wrapper.style.bottom = (limited > 10 ? (limited + 10) : 72) + 'px';
+      } else {
+        // fallback small lift on focus
+        wrapper.style.bottom = '110px';
+        setTimeout(() => { wrapper.style.bottom = '72px'; }, 900);
+      }
+    }
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', () => {
+        // animate slightly for smoothness
+        adjustInputForViewport();
+      });
+      window.visualViewport.addEventListener('scroll', () => {
+        adjustInputForViewport();
+      });
+    }
+
     msgInput.addEventListener('focus', () => {
-      // Slightly increase bottom offset to try to keep input above system UI
-      document.querySelector('.chat-input-area-wrapper').style.bottom = '130px';
-      setTimeout(() => {
-        document.querySelector('.chat-input-area-wrapper').style.bottom = '72px';
-      }, 1200);
+      // small lift but not too much
+      adjustInputForViewport();
+    });
+    msgInput.addEventListener('blur', () => {
+      const wrapper = document.querySelector('.chat-input-area-wrapper');
+      wrapper.style.bottom = '72px';
     });
 
-    // === Blue Modal System (safe delegation) ===
-    // We use delegated click handling so elements that appear after script load still work.
+    // Group options behavior
+    groupOptionsBtn.addEventListener('click', async () => {
+      if (!currentChat) return;
+      if (currentChat.type === 'group') {
+        // read fresh group data
+        const gRef = dbRef(db, 'groups/' + currentChat.id);
+        const snap = await get(gRef);
+        if (!snap.exists()) return alert('Group info not found');
+        const g = snap.val();
+        showGroupOptions(g);
+      } else {
+        // private chat: show basic contact info
+        const other = currentChat.with;
+        groupPhoto.textContent = (other.email||'U').charAt(0).toUpperCase();
+        groupOptionsName.textContent = other.email || other.phoneNumber || 'Contact';
+        groupOptionsSub.textContent = other.phoneNumber || '';
+        groupMembersList.innerHTML = `<div class="member-item"><div class="member-photo" style="width:40px;height:40px;border-radius:50%;background:linear-gradient(180deg,#dbeeff,#c1ddff);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--primary);">${(other.email||'U').charAt(0).toUpperCase()}</div>
+          <div class="meta"><div style="font-weight:700;color:var(--primary);">${other.email||other.phoneNumber}</div><div class="small">${other.phoneNumber||''}</div></div></div>`;
+        // hide delete/leave for private
+        deleteGroupBtn.style.display = 'none';
+        leaveGroupBtn.style.display = 'none';
+        groupOptionsBackdrop.style.display = 'flex';
+      }
+    });
+
+    function showGroupOptions(g) {
+      groupPhoto.textContent = (g.name||'G').charAt(0).toUpperCase();
+      groupOptionsName.textContent = g.name || 'Group';
+      groupOptionsSub.textContent = (Object.keys(g.members||{}).length || 0) + ' members';
+      groupMembersList.innerHTML = '';
+      // fetch member details from usersCache
+      Object.keys(g.members || {}).forEach(uid => {
+        const u = usersCache[uid] || { email: 'Unknown', phoneNumber: '' };
+        const div = document.createElement('div');
+        div.className = 'member-item';
+        div.innerHTML = `<div class="member-photo" style="width:40px;height:40px;border-radius:50%;background:linear-gradient(180deg,#dbeeff,#c1ddff);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--primary);">${(u.email||'U').charAt(0).toUpperCase()}</div>
+                         <div class="meta"><div style="font-weight:700;color:var(--primary);font-size:14px;">${escapeHtml(u.email||u.phoneNumber||'Member')}</div>
+                         <div class="small">${escapeHtml(u.phoneNumber||'')}</div></div>`;
+        if (uid === g.createdBy) {
+          const adm = document.createElement('div');
+          adm.textContent = 'Admin';
+          adm.style.fontSize = '12px';
+          adm.style.color = 'var(--primary)';
+          adm.style.fontWeight = '700';
+          div.appendChild(adm);
+        }
+        groupMembersList.appendChild(div);
+      });
+      // show/hide delete button based on admin
+      if (currentUser && g.createdBy === currentUser.uid) {
+        deleteGroupBtn.style.display = 'inline-block';
+        leaveGroupBtn.style.display = 'none';
+      } else {
+        deleteGroupBtn.style.display = 'none';
+        leaveGroupBtn.style.display = 'inline-block';
+      }
+      // store currently viewed group on elements
+      groupOptionsBackdrop.dataset.groupId = g.id;
+      groupOptionsBackdrop.style.display = 'flex';
+    }
+
+    closeGroupOptions.addEventListener('click', () => {
+      groupOptionsBackdrop.style.display = 'none';
+    });
+
+    leaveGroupBtn.addEventListener('click', async () => {
+      const gid = groupOptionsBackdrop.dataset.groupId;
+      if (!gid) return;
+      const ok = confirm('Leave this group?');
+      if (!ok) return;
+      // remove currentUser from members
+      await update(dbRef(db, 'groups/' + gid + '/members'), { [currentUser.uid]: null });
+      groupOptionsBackdrop.style.display = 'none';
+      individualChat.style.display = 'none';
+      appSection.style.display = 'block';
+      loadGroups();
+      alert('You left the group');
+    });
+
+    deleteGroupBtn.addEventListener('click', async () => {
+      const gid = groupOptionsBackdrop.dataset.groupId;
+      if (!gid) return;
+      const ok = confirm('Delete this group for everyone? This cannot be undone.');
+      if (!ok) return;
+      // remove group and messages
+      await remove(dbRef(db, 'groups/' + gid));
+      await remove(dbRef(db, 'messages/' + gid));
+      groupOptionsBackdrop.style.display = 'none';
+      individualChat.style.display = 'none';
+      appSection.style.display = 'block';
+      loadGroups();
+      alert('Group deleted');
+    });
+
+    // small modal delegations
     document.addEventListener('click', (e) => {
       const id = e.target && e.target.id;
       if (id === 'closeMainModal') {
@@ -867,9 +939,7 @@
       }
     });
 
-    // Also support opening the main modal from the floating button.
     floatingBtn.addEventListener('dblclick', () => {
-      // double-click to open main modal (keeps single-click behavior unchanged)
       const main = document.getElementById('mainModalBackdrop');
       if (main) {
         document.querySelector('.phone').classList.add('blurred-bg');
@@ -877,19 +947,7 @@
       }
     });
 
-    // --- Debug hints: (remove in production) ---
-    // console.log('App initialized (enhanced with group chat open & 12-hour timestamps)');
+    console.log('Enhanced UI loaded');
   </script>
-
-  <!-- Main + Modal -->
-  <div class="main-modal-backdrop" id="mainModalBackdrop">
-    <div class="main-modal">
-      <div class="close-modal" id="closeMainModal">×</div>
-      <h3>Start New Chat</h3>
-      <button id="openIndividualModalBtn">Individual Chat</button>
-      <button id="openGroupModalBtn">Group Chat</button>
-    </div>
-  </div>
-
 </body>
 </html>
