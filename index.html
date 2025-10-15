@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Zag Messenger — With Groups (fixed input & banner)</title>
+  <title>Zag Messenger — With Groups (fixed input & header)</title>
   <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet" />
   <style>
     :root{
@@ -44,29 +44,27 @@
     .chat-meta .sub{font-size:13px;color:var(--muted);margin-top:4px;}
     #add-chat-area{display:none;margin-bottom:12px;position:relative;}
     #closeAddChat{position:absolute;top:-10px;right:-10px;background:#fff;border:2px solid #ccc;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-weight:bold;color:#777;}
-    .floating-new{position:fixed;right:18px;bottom:96px;width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,var(--primary),var(--primary-dark));color:#fff;box-shadow:0 12px 28px rgba(11,96,214,0.2);border:4px solid #fff;font-weight:700;cursor:pointer;z-index:40;}
+    .floating-new{position:fixed;right:18px;bottom:64px;width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,var(--primary),var(--primary-dark));color:#fff;box-shadow:0 12px 28px rgba(11,96,214,0.2);border:4px solid #fff;font-weight:700;cursor:pointer;z-index:40;}
     .plus-menu{position:fixed;right:18px;bottom:160px;width:200px;background:#fff;border-radius:10px;padding:8px;box-shadow:0 20px 60px rgba(0,0,0,0.12);z-index:50;display:none;flex-direction:column;gap:8px;}
     .plus-menu button{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(11,96,214,0.06);background:#f6fbff;cursor:pointer;font-weight:700;color:var(--primary);}
     .bottom-nav{position:fixed;left:0;bottom:0;width:100%;background:linear-gradient(180deg,#fff,#f6fbff);border-top:1px solid rgba(0,0,0,0.03);padding:14px;text-align:center;color:var(--primary);font-size:18px;font-weight:700;z-index:45;display:flex;gap:10px;justify-content:center;align-items:center;}
     .bottom-nav span{cursor:pointer;padding:6px 10px;border-radius:8px;}
     .bottom-nav .active{background:linear-gradient(180deg,#eff7ff,#dfeffe);box-shadow:0 6px 14px rgba(11,96,214,0.06);}
-    /* chat screen */
     .chat-screen{display:none;flex-direction:column;flex:1;overflow:hidden;padding:8px 18px 0 18px;box-sizing:border-box;}
     .chat-header{display:flex;gap:10px;align-items:center;padding:8px 6px;border-bottom:1px dashed rgba(75,134,230,0.04);margin-bottom:8px;z-index:10;}
-    #backToChatListBtn{padding:4px 8px !important;border-radius:6px !important;font-size:13px !important;}
+    #backToChatListBtn{padding:6px 10px !important;border-radius:8px !important;font-size:14px !important;min-width:56px;}
     #current-chat-avatar{width:44px;height:44px;border-radius:50%;background:linear-gradient(180deg,#dbeeff,#c1ddff);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--primary);font-size:16px;flex-shrink:0;}
-    .chat-messages{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:6px;padding-bottom:116px;box-sizing:border-box;}
-    .bubble{padding:10px 14px;border-radius:18px;max-width:78%;line-height:1.4;box-shadow:0 6px 14px rgba(10,30,80,0.04);}
+    .chat-messages{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:6px;padding-bottom:220px;box-sizing:border-box;}
+    .bubble{padding:10px 14px;border-radius:18px;max-width:78%;line-height:1.4;box-shadow:0 6px 14px rgba(10,30,80,0.04);margin-bottom:8px;}
     .bubble.sent{align-self:flex-end;background:linear-gradient(180deg,var(--primary),var(--primary-dark));color:#fff;}
     .bubble.received{align-self:flex-start;background:#fff;color:var(--primary);border:1px solid rgba(75,134,230,0.04);}
     .msg-meta{display:block;font-size:11px;opacity:0.85;margin-top:6px;}
     /* Message Input Area - made fixed above bottom nav so it's always visible */
     .chat-input-area-wrapper{
-      /* switched to fixed to ensure visibility above the bottom nav and device UI */
       position:fixed;
       left:0;
       right:0;
-      bottom:108px; /* sits above the bottom-nav (adjust if your bottom nav height changes) */
+      bottom:64px;
       padding:8px 18px 10px 18px;
       background:#fff;
       box-sizing:border-box;
@@ -77,22 +75,16 @@
       -webkit-backdrop-filter: blur(4px);
       backdrop-filter: blur(4px);
       border-top:1px solid rgba(11,96,214,0.08);
-
-      /* smooth transition for the bottom property so movements are pleasant */
       transition: bottom 260ms cubic-bezier(.22,.9,.32,1), transform 260ms ease;
-      /* ensure small transform to keep GPU compositing smooth on mobile */
       transform: translateZ(0);
     }
-    /* optional class if we want to force a slightly higher position */
-    .chat-input-area-wrapper.keyboard-open{
-      /* the JS will set an inline bottom value, this class is only a visual flag */
-    }
-
     .chat-input{display:flex;gap:8px;align-items:center;border-radius:999px;padding:8px;background:#fff;border:2px solid var(--primary);transition:border-color 0.3s, transform 0.1s;max-width:920px;width:100%;box-sizing:border-box;}
     @keyframes gentleShake{0%,100%{transform:translateX(0);}25%{transform:translateX(-2px);}75%{transform:translateX(2px);}}
     .chat-input.typing{animation:gentleShake 0.25s ease-in-out;}
     .chat-input input{flex:1;border:none;outline:none;font-size:15px;padding:10px 6px;font-family:var(--hand-font);color:var(--primary);background:transparent;}
     .send-btn{width:44px;height:44px;border-radius:50%;border:none;background:linear-gradient(180deg,var(--primary),var(--primary-dark));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;cursor:pointer;box-shadow:0 4px 10px rgba(11,96,214,0.15);}
+    .chat-header-right{margin-left:auto;display:flex;align-items:center;gap:8px;}
+    .chat-menu-btn{padding:6px 10px;border-radius:8px;border:none;background:#fff;color:var(--primary);font-weight:700;cursor:pointer;box-shadow:0 4px 8px rgba(11,96,214,0.06);}
     /* Group modal */
     .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.35);display:none;align-items:center;justify-content:center;z-index:60;}
     .modal{width:92%;max-width:520px;background:#fff;border-radius:12px;padding:16px;box-sizing:border-box;box-shadow:0 20px 60px rgba(0,0,0,0.12);}
@@ -105,7 +97,7 @@
     @media (min-width:900px){
       .phone{max-width:420px;margin:0 auto;box-shadow:0 20px 60px rgba(0,0,0,0.08);}
       .plus-menu{right:calc(50% - 210px);}
-      .chat-input-area-wrapper{left:calc(50% - 210px);right:calc(50% - 210px);width:420px;bottom:108px;}
+      .chat-input-area-wrapper{left:calc(50% - 210px);right:calc(50% - 210px);width:420px;bottom:64px;}
     }
 
     /* === New Blue Modals === */
@@ -195,12 +187,15 @@
           <div id="current-chat-name" style="font-weight:700;color:var(--primary);"></div>
           <div id="current-chat-sub" style="font-size:12px;color:var(--muted)"></div>
         </div>
+        <div class="chat-header-right" aria-hidden="false">
+          <button id="chatMenuBtn" class="chat-menu-btn" aria-label="Chat menu">⋮</button>
+        </div>
       </div>
-      <div id="chat-messages" class="chat-messages"></div>
+      <div id="chat-messages" class="chat-messages" role="log" aria-live="polite"></div>
 
       <div class="chat-input-area-wrapper" aria-label="Message input area">
         <div id="chat-input-area" class="chat-input">
-          <input id="chatMessageInput" type="text" placeholder="Type a message...">
+          <input id="chatMessageInput" type="text" placeholder="Type a message..." aria-label="Type a message">
           <button id="sendChatMessageBtn" class="send-btn" aria-label="Send message">➤</button>
         </div>
       </div>
@@ -295,6 +290,8 @@
     const navYou = document.getElementById('nav-you');
     const listTitle = document.getElementById('list-title');
     const welcomeText = document.querySelector('.welcome');
+    const chatInputWrapper = document.querySelector('.chat-input-area-wrapper');
+    const chatMenuBtn = document.getElementById('chatMenuBtn');
 
     // Modal refs
     const modalBackdrop = document.getElementById('modalBackdrop');
@@ -429,11 +426,6 @@
 
     // --- Floating visibility control ---
     function updateFloatingVisibility() {
-      // Show floating + only when:
-      // - user is signed in (currentUser)
-      // - appSection is visible (not in auth)
-      // - individualChat (chat screen) is NOT visible
-      // - either navHome or navGroups is active
       const appVisible = appSection.style.display !== 'none';
       const chatVisible = individualChat.style.display !== 'none';
       const allowedNav = navHome.classList.contains('active') || navGroups.classList.contains('active');
@@ -466,7 +458,6 @@
                                 <div class="small">${u.phoneNumber || ''}</div>
                               </div>`;
             div.addEventListener('click', () => {
-              // toggle selection for group creation
               if (selectedGroupMembers[u.uid]) {
                 delete selectedGroupMembers[u.uid];
                 div.style.opacity = '1';
@@ -498,7 +489,6 @@
       });
     }
 
-    // --- Simple helper: escape HTML to avoid injection when rendering messages ---
     function escapeHtml(unsafe) {
       if (unsafe === undefined || unsafe === null) return '';
       return String(unsafe)
@@ -509,7 +499,6 @@
         .replaceAll("'", '&#039;');
     }
 
-    // --- Time formatter: converts ms timestamp to 12-hour format (hh:mm AM/PM) ---
     function formatTime(ms) {
       if (!ms) return '';
       const d = new Date(Number(ms));
@@ -522,14 +511,12 @@
       return hours + ':' + mins + ' ' + ampm;
     }
 
-    // --- Load chats (basic implementation: show other users as chat items) ---
     function loadChats() {
       chatList.innerHTML = '';
       if (!currentUser) {
         chatList.innerHTML = '<div class="small">Sign in to see chats.</div>';
         return;
       }
-      // For a simple demo: list all other users as chat starters
       const usersRef = dbRef(db, 'users');
       get(usersRef).then(snap => {
         if (!snap.exists()) {
@@ -559,23 +546,32 @@
       });
     }
 
-    // --- Open private chat with a user (basic) ---
+    // --- Helper to scroll latest message into view (takes fixed input into account) ---
+    function scrollLatestMessageIntoView(behavior = 'auto') {
+      const last = msgContainer.lastElementChild;
+      if (!last) return;
+      // use scrollIntoView with block: 'end' to ensure it's above the fixed input
+      try {
+        last.scrollIntoView({ behavior, block: 'end', inline: 'nearest' });
+      } catch (e) {
+        // fallback
+        msgContainer.scrollTop = msgContainer.scrollHeight;
+      }
+    }
+
     function openPrivateChatWith(userObj) {
       if (!currentUser) return alert('Not signed in');
-      // create deterministic chat id between two uids
       const chatId = [currentUser.uid, userObj.uid].sort().join('_');
       currentChat = { type: 'private', id: chatId, with: userObj };
       document.getElementById('current-chat-avatar').textContent = (userObj.email||'U').charAt(0).toUpperCase();
       document.getElementById('current-chat-name').textContent = userObj.email || userObj.phoneNumber || 'User';
       document.getElementById('current-chat-sub').textContent = userObj.phoneNumber || '';
 
-      // show chat screen
       appSection.style.display = 'none';
       individualChat.style.display = 'flex';
       msgContainer.innerHTML = '';
       updateFloatingVisibility();
 
-      // load messages from DB (messages/{chatId})
       const messagesRef = dbRef(db, 'messages/' + chatId);
       onValue(messagesRef, snap => {
         msgContainer.innerHTML = '';
@@ -584,18 +580,15 @@
           const isSent = m.sender === currentUser.uid;
           const div = document.createElement('div');
           div.className = 'bubble ' + (isSent ? 'sent' : 'received');
-
-          // For private chats, we only show text + time
           div.innerHTML = `<div>${escapeHtml(m.text)}</div>
                            <div class="msg-meta">${formatTime(m.timestamp)}</div>`;
           msgContainer.appendChild(div);
         });
-        // scroll to bottom
-        msgContainer.scrollTop = msgContainer.scrollHeight;
+        // ensure latest message is visible above the fixed input
+        scrollLatestMessageIntoView();
       });
     }
 
-    // --- Open a group chat ---
     function openGroupChat(groupObj) {
       if (!currentUser) return alert('Not signed in');
       currentChat = { type: 'group', id: groupObj.id, group: groupObj };
@@ -603,13 +596,11 @@
       document.getElementById('current-chat-name').textContent = groupObj.name || 'Group';
       document.getElementById('current-chat-sub').textContent = (Object.keys(groupObj.members||{}).length || 0) + ' members';
 
-      // show chat screen
       appSection.style.display = 'none';
       individualChat.style.display = 'flex';
       msgContainer.innerHTML = '';
       updateFloatingVisibility();
 
-      // load messages from DB (messages/{groupId})
       const messagesRef = dbRef(db, 'messages/' + groupObj.id);
       onValue(messagesRef, snap => {
         msgContainer.innerHTML = '';
@@ -619,7 +610,6 @@
           const div = document.createElement('div');
           div.className = 'bubble ' + (isSent ? 'sent' : 'received');
 
-          // for groups show sender name for received messages
           let senderLabel = '';
           if (!isSent) {
             const sender = usersCache[m.sender];
@@ -632,12 +622,10 @@
                            <div class="msg-meta">${formatTime(m.timestamp)}</div>`;
           msgContainer.appendChild(div);
         });
-        // scroll to bottom
-        msgContainer.scrollTop = msgContainer.scrollHeight;
+        scrollLatestMessageIntoView();
       });
     }
 
-    // --- Back to chat list ---
     backBtn.addEventListener('click', () => {
       individualChat.style.display = 'none';
       appSection.style.display = 'block';
@@ -645,7 +633,6 @@
       updateFloatingVisibility();
     });
 
-    // --- Send message handler (supports private & group) ---
     sendBtn.addEventListener('click', async () => {
       const text = (msgInput.value || '').trim();
       if (!text) return;
@@ -660,9 +647,10 @@
         timestamp: Date.now()
       });
       msgInput.value = '';
+      // small delay to allow DB event to arrive, then scroll
+      setTimeout(() => scrollLatestMessageIntoView('smooth'), 120);
     });
 
-    // Allow Enter key to send message
     msgInput.addEventListener('keypress', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
@@ -670,29 +658,23 @@
       }
     });
 
-    // --- Floating add button behavior (show add menu) ---
     floatingBtn.addEventListener('click', (e) => {
-      // toggle plus menu
       if (plusMenu.style.display === 'flex') {
         plusMenu.style.display = 'none';
       } else {
         plusMenu.style.display = 'flex';
-        // hide after 6 seconds automatically
         setTimeout(() => { plusMenu.style.display = 'none'; }, 6000);
       }
     });
 
-    // --- Plus menu choices ---
     plusIndividualBtn.addEventListener('click', () => {
       plusMenu.style.display = 'none';
-      // show add individual chat area
       addChatArea.style.display = 'block';
       addChatIdentifier.focus();
       updateFloatingVisibility();
     });
     plusGroupBtn.addEventListener('click', () => {
       plusMenu.style.display = 'none';
-      // open group modal
       modalBackdrop.style.display = 'flex';
     });
 
@@ -701,11 +683,9 @@
       updateFloatingVisibility();
     });
 
-    // --- Add person button: create a minimal "invitation" or chat entry ---
     addBtn.addEventListener('click', async () => {
       const val = (addChatIdentifier.value || '').trim();
       if (!val) return alert('Enter email or phone to add.');
-      // Try to find user by email or phone
       const usersRef = dbRef(db, 'users');
       const snapshot = await get(usersRef);
       let found = null;
@@ -719,15 +699,12 @@
       if (!found) {
         return alert('User not found in directory. They must sign up first.');
       }
-      // open chat with found user
       openPrivateChatWith(found);
       addChatArea.style.display = 'none';
       addChatIdentifier.value = '';
       updateFloatingVisibility();
     });
 
-    // --- Group modal open/close and creation (basic) ---
-    // navigate to group list when clicking navGroups
     navGroups.addEventListener('click', () => {
       navGroups.classList.add('active');
       navHome.classList.remove('active');
@@ -737,7 +714,6 @@
       updateFloatingVisibility();
       loadGroups();
     });
-    // navHome behavior
     navHome.addEventListener('click', () => {
       navHome.classList.add('active');
       navGroups.classList.remove('active');
@@ -752,12 +728,10 @@
       modalBackdrop.style.display = 'none';
       updateFloatingVisibility();
     });
-    // allow adding member by entering email/phone and pressing Enter
     addMemberInput.addEventListener('keypress', (e) => {
       if (e.key === 'Enter') {
         const q = (addMemberInput.value || '').trim();
         if (!q) return;
-        // find user
         let found = null;
         Object.values(usersCache).forEach(u => {
           if (u.email === q || u.phoneNumber === q || ('+880'+q) === u.phoneNumber) found = u;
@@ -777,7 +751,6 @@
       if (!name) return alert('Enter group name');
       const memberUids = Object.keys(selectedGroupMembers);
       if (memberUids.length === 0) return alert('Add at least one member');
-      // create group in DB
       const groupsRef = dbRef(db, 'groups');
       const newGroupRef = push(groupsRef);
       const groupId = newGroupRef.key;
@@ -799,7 +772,6 @@
       updateFloatingVisibility();
     });
 
-    // --- Load groups for current user (basic) ---
     function loadGroups() {
       groupList.innerHTML = '';
       if (!currentUser) {
@@ -833,7 +805,6 @@
       });
     }
 
-    // --- Simple sign-out when clicking @You (for demo) ---
     navYou.addEventListener('click', async () => {
       if (!currentUser) return alert('Not signed in');
       const ok = confirm('Sign out?');
@@ -842,52 +813,40 @@
       }
     });
 
-    // --- Ensure floating updates on window focus/resize and nav changes ---
     window.addEventListener('resize', updateFloatingVisibility);
     window.addEventListener('focus', updateFloatingVisibility);
 
-    // Ensure chat input stays visible when keyboard appears on mobile (improved & smooth)
-    // Replaces the original quick jump behavior with a smooth bottom transition and a visual-viewport aware adjustment.
     (function setupKeyboardAwareInput() {
-      const chatWrapper = document.querySelector('.chat-input-area-wrapper');
+      const chatWrapper = chatInputWrapper;
 
       function computeTargetBottom() {
-        // base bottom when keyboard closed
-        const baseBottom = 108;
-        // maximum extra lift to avoid "too much up"
-        const maxExtra = 12; // don't lift more than this (keeps it from going too high)
+        const baseBottom = 64;
+        const maxExtra = 6;
         if (window.visualViewport) {
           const vhDiff = window.innerHeight - window.visualViewport.height;
-          // vhDiff is approximate keyboard height on many mobile browsers
           const extra = Math.max(0, Math.min(maxExtra, vhDiff));
           return baseBottom + extra;
         }
-        // fallback: small lift
         return baseBottom + 28;
       }
 
       function onFocusAdjust() {
         const target = computeTargetBottom();
-        // apply smoothly via inline style; CSS transition will animate it
         chatWrapper.style.bottom = target + 'px';
         chatWrapper.classList.add('keyboard-open');
-        // also scroll messages container slightly to keep latest message visible
-        try { msgContainer.scrollTop = msgContainer.scrollHeight; } catch(e){}
+        try { scrollLatestMessageIntoView(); } catch(e){}
       }
 
       function onBlurReset() {
-        // small timeout to allow click on send button etc.
         setTimeout(() => {
-          chatWrapper.style.bottom = '108px';
+          chatWrapper.style.bottom = '64px';
           chatWrapper.classList.remove('keyboard-open');
         }, 120);
       }
 
-      // apply on focus/blur
       msgInput.addEventListener('focus', onFocusAdjust);
       msgInput.addEventListener('blur', onBlurReset);
 
-      // listen to visualViewport changes (keyboard appearance) and adjust while input is focused
       if (window.visualViewport) {
         window.visualViewport.addEventListener('resize', () => {
           if (document.activeElement === msgInput) {
@@ -896,14 +855,11 @@
         });
       }
 
-      // Defensive: if orientation changes, ensure layout resets
       window.addEventListener('orientationchange', () => {
-        setTimeout(() => { chatWrapper.style.bottom = '108px'; }, 400);
+        setTimeout(() => { chatWrapper.style.bottom = '64px'; }, 400);
       });
     })();
 
-    // === Blue Modal System (safe delegation) ===
-    // We use delegated click handling so elements that appear after script load still work.
     document.addEventListener('click', (e) => {
       const id = e.target && e.target.id;
       if (id === 'closeMainModal') {
@@ -924,9 +880,7 @@
       }
     });
 
-    // Also support opening the main modal from the floating button.
     floatingBtn.addEventListener('dblclick', () => {
-      // double-click to open main modal (keeps single-click behavior unchanged)
       const main = document.getElementById('mainModalBackdrop');
       if (main) {
         document.querySelector('.phone').classList.add('blurred-bg');
@@ -934,8 +888,14 @@
       }
     });
 
-    // --- Debug hints: (remove in production) ---
-    // console.log('App initialized (enhanced with group chat open & 12-hour timestamps)');
+    // small menu action
+    if (chatMenuBtn) {
+      chatMenuBtn.addEventListener('click', () => {
+        alert('Chat menu (⋮) clicked — implement actions as needed.');
+      });
+    }
+
+    console.log('Fixed build loaded.');
   </script>
 
   <!-- Main + Modal -->
