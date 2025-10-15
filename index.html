@@ -77,7 +77,17 @@
       -webkit-backdrop-filter: blur(4px);
       backdrop-filter: blur(4px);
       border-top:1px solid rgba(11,96,214,0.08);
+
+      /* smooth transition for the bottom property so movements are pleasant */
+      transition: bottom 260ms cubic-bezier(.22,.9,.32,1), transform 260ms ease;
+      /* ensure small transform to keep GPU compositing smooth on mobile */
+      transform: translateZ(0);
     }
+    /* optional class if we want to force a slightly higher position */
+    .chat-input-area-wrapper.keyboard-open{
+      /* the JS will set an inline bottom value, this class is only a visual flag */
+    }
+
     .chat-input{display:flex;gap:8px;align-items:center;border-radius:999px;padding:8px;background:#fff;border:2px solid var(--primary);transition:border-color 0.3s, transform 0.1s;max-width:920px;width:100%;box-sizing:border-box;}
     @keyframes gentleShake{0%,100%{transform:translateX(0);}25%{transform:translateX(-2px);}75%{transform:translateX(2px);}}
     .chat-input.typing{animation:gentleShake 0.25s ease-in-out;}
@@ -836,14 +846,61 @@
     window.addEventListener('resize', updateFloatingVisibility);
     window.addEventListener('focus', updateFloatingVisibility);
 
-    // Ensure chat input stays visible when keyboard appears on mobile (best-effort)
-    msgInput.addEventListener('focus', () => {
-      // Slightly increase bottom offset to try to keep input above system UI
-      document.querySelector('.chat-input-area-wrapper').style.bottom = '130px';
-      setTimeout(() => {
-        document.querySelector('.chat-input-area-wrapper').style.bottom = '72px';
-      }, 1200);
-    });
+    // Ensure chat input stays visible when keyboard appears on mobile (improved & smooth)
+    // Replaces the original quick jump behavior with a smooth bottom transition and a visual-viewport aware adjustment.
+    (function setupKeyboardAwareInput() {
+      const chatWrapper = document.querySelector('.chat-input-area-wrapper');
+
+      function computeTargetBottom() {
+        // base bottom when keyboard closed
+        const baseBottom = 72;
+        // maximum extra lift to avoid "too much up"
+        const maxExtra = 38; // don't lift more than this (keeps it from going too high)
+        if (window.visualViewport) {
+          const vhDiff = window.innerHeight - window.visualViewport.height;
+          // vhDiff is approximate keyboard height on many mobile browsers
+          const extra = Math.max(0, Math.min(maxExtra, vhDiff));
+          return baseBottom + extra;
+        }
+        // fallback: small lift
+        return baseBottom + 28;
+      }
+
+      function onFocusAdjust() {
+        const target = computeTargetBottom();
+        // apply smoothly via inline style; CSS transition will animate it
+        chatWrapper.style.bottom = target + 'px';
+        chatWrapper.classList.add('keyboard-open');
+        // also scroll messages container slightly to keep latest message visible
+        try { msgContainer.scrollTop = msgContainer.scrollHeight; } catch(e){}
+      }
+
+      function onBlurReset() {
+        // small timeout to allow click on send button etc.
+        setTimeout(() => {
+          chatWrapper.style.bottom = '72px';
+          chatWrapper.classList.remove('keyboard-open');
+        }, 120);
+      }
+
+      // apply on focus/blur
+      msgInput.addEventListener('focus', onFocusAdjust);
+      msgInput.addEventListener('blur', onBlurReset);
+
+      // listen to visualViewport changes (keyboard appearance) and adjust while input is focused
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', () => {
+          if (document.activeElement === msgInput) {
+            onFocusAdjust();
+          }
+        });
+      }
+
+      // Defensive: if orientation changes, ensure layout resets
+      window.addEventListener('orientationchange', () => {
+        setTimeout(() => { chatWrapper.style.bottom = '72px'; }, 400);
+      });
+    })();
 
     // === Blue Modal System (safe delegation) ===
     // We use delegated click handling so elements that appear after script load still work.
