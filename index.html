@@ -55,7 +55,7 @@
     .chat-header{display:flex;gap:10px;align-items:center;padding:8px 6px;border-bottom:1px dashed rgba(75,134,230,0.04);margin-bottom:8px;z-index:10;}
     #backToChatListBtn{padding:4px 8px !important;border-radius:6px !important;font-size:13px !important;}
     #current-chat-avatar{width:44px;height:44px;border-radius:50%;background:linear-gradient(180deg,#dbeeff,#c1ddff);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--primary);font-size:16px;flex-shrink:0;}
-    .chat-messages{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:6px;padding-bottom:140px;box-sizing:border-box;}
+    .chat-messages{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:6px;padding-bottom:180px;box-sizing:border-box;}
     .bubble{padding:10px 14px;border-radius:18px;max-width:78%;line-height:1.4;box-shadow:0 6px 14px rgba(10,30,80,0.04);}
     .bubble.sent{align-self:flex-end;background:linear-gradient(180deg,var(--primary),var(--primary-dark));color:#fff;}
     .bubble.received{align-self:flex-start;background:#fff;color:var(--primary);border:1px solid rgba(75,134,230,0.04);}
@@ -855,7 +855,7 @@
         // base bottom when keyboard closed
         const baseBottom = 72;
         // maximum extra lift to avoid "too much up"
-        const maxExtra = 38; // don't lift more than this (keeps it from going too high)
+        const maxExtra = 73; // don't lift more than this (keeps it from going too high)
         if (window.visualViewport) {
           const vhDiff = window.innerHeight - window.visualViewport.height;
           // vhDiff is approximate keyboard height on many mobile browsers
