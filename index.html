@@ -13,12 +13,21 @@
       --muted:#9aaecf;
       --hand-font:'Patrick Hand', 'Segoe UI', Arial, sans-serif;
       --header-height:56px;
+      --safe-top: env(safe-area-inset-top, 0px);
     }
+    /* ensure safe-area is applied so top controls don't go under status bar */
     html,body{height:100%;margin:0;font-family:var(--hand-font);background:linear-gradient(180deg,var(--bg),#eef6ff 60%);overflow:hidden;}
     /* keep phone as the main container */
-    .phone{width:100%;height:100vh;background:#fff;display:flex;flex-direction:column;box-sizing:border-box;position:relative;padding-top:var(--header-height);}
+    .phone{width:100%;height:100vh;background:#fff;display:flex;flex-direction:column;box-sizing:border-box;position:relative;padding-top:calc(var(--header-height) + var(--safe-top));}
     /* Top header - fixed except on chat screens (we will toggle via JS) */
-    .header{display:flex;align-items:center;padding:10px 14px;gap:10px;background:linear-gradient(180deg,var(--primary),var(--primary-dark));color:#fff;position:fixed;top:0;left:0;right:0;height:var(--header-height);z-index:120;box-sizing:border-box;}
+    .header{
+      display:flex;align-items:center;padding:10px 14px;gap:10px;
+      background:linear-gradient(180deg,var(--primary),var(--primary-dark));
+      color:#fff;position:fixed;top:0;left:0;right:0;
+      height:calc(var(--header-height) + var(--safe-top));
+      padding-top:var(--safe-top);
+      z-index:120;box-sizing:border-box;
+    }
     .logo{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--primary);background:linear-gradient(180deg,#fff,#f7fbff);}
     .title{font-size:20px;color:#fff;font-weight:700;}
     .menu{margin-left:auto;font-size:20px;color:#fff;}
@@ -49,22 +58,18 @@
     .floating-new{position:fixed;right:18px;bottom:64px;width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,var(--primary),var(--primary-dark));color:#fff;box-shadow:0 12px 28px rgba(11,96,214,0.2);border:4px solid #fff;font-weight:700;cursor:pointer;z-index:40;}
     .plus-menu{position:fixed;right:18px;bottom:160px;width:200px;background:#fff;border-radius:10px;padding:8px;box-shadow:0 20px 60px rgba(0,0,0,0.12);z-index:50;display:none;flex-direction:column;gap:8px;}
     .plus-menu button{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(11,96,214,0.06);background:#f6fbff;cursor:pointer;font-weight:700;color:var(--primary);}
-    .bottom-nav{position:fixed;left:0;bottom:0;width:100%;background:linear-gradient(180deg,#fff,#f6fbff);border-top:1px solid rgba(0,0,0,0.03);padding:14px 10px;text-align:center;color:var(--primary);font-size:18px;font-weight:700;z-index:45;display:flex;gap:10px;justify-content:center;align-items:center;flex-direction:column;}
-    .bottom-nav .nav-items{display:flex;gap:10px;justify-content:center;align-items:center;}
-    .bottom-nav .nav-items span{cursor:pointer;padding:6px 10px;border-radius:8px;}
-    .bottom-nav .nav-items .active{background:linear-gradient(180deg,#eff7ff,#dfeffe);box-shadow:0 6px 14px rgba(11,96,214,0.06);}
-    .bottom-nav .ad-placeholder{display:none;font-size:16px;color:var(--muted);padding:8px 6px;}
-    .bottom-nav.ad-mode .nav-items{display:none;}
-    .bottom-nav.ad-mode .ad-placeholder{display:block;}
-    .chat-screen{display:none;flex-direction:column;flex:1;overflow:hidden;padding:8px 18px 0 18px;box-sizing:border-box;
-      /* only chat screen uses the background image bg.png (place bg.png next to this HTML file) */
-      background-image: url('bg.png');
-      background-repeat: no-repeat;
-      background-size: cover;
-      background-position: top center;
-    }
+    .bottom-nav{position:fixed;left:0;bottom:0;width:100%;background:linear-gradient(180deg,#fff,#f6fbff);border-top:1px solid rgba(0,0,0,0.03);padding:14px;text-align:center;color:var(--primary);font-size:18px;font-weight:700;z-index:45;display:flex;gap:10px;justify-content:center;align-items:center;}
+    .bottom-nav span{cursor:pointer;padding:6px 10px;border-radius:8px;}
+    .bottom-nav .active{background:linear-gradient(180deg,#eff7ff,#dfeffe);box-shadow:0 6px 14px rgba(11,96,214,0.06);}
+    .chat-screen{display:none;flex-direction:column;flex:1;overflow:hidden;padding:8px 18px 0 18px;box-sizing:border-box;}
     /* Chat header (left back, middle centered name+avatar truncated, right menu) */
-    .chat-header{display:flex;align-items:center;padding:8px 6px;border-bottom:1px dashed rgba(75,134,230,0.04);margin-bottom:8px;z-index:10;gap:10px;}
+    .chat-header{
+      display:flex;align-items:center;padding:8px 6px;border-bottom:1px dashed rgba(75,134,230,0.04);margin-bottom:8px;z-index:10;gap:10px;
+      /* make sure chat header respects safe area on phones with notches */
+      padding-top: calc(8px + var(--safe-top));
+      box-sizing:border-box;
+      background:linear-gradient(180deg,transparent,transparent);
+    }
     .chat-header-left{flex:0 0 auto;}
     .chat-header-center{flex:1;display:flex;align-items:center;justify-content:center;gap:10px;min-width:0;}
     .chat-header-center .avatar{width:44px;height:44px;border-radius:50%;flex-shrink:0;}
@@ -72,7 +77,7 @@
     .chat-center-text .chat-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700;color:var(--primary);font-size:16px;max-width:100%;}
     .chat-center-text .small{font-size:12px;color:var(--muted);opacity:0.9;margin-top:3px;}
     #backToChatListBtn{padding:6px 10px !important;border-radius:8px !important;font-size:14px !important;min-width:56px;}
-    .chat-messages{flex:1;Overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:6px;padding-bottom:220px;box-sizing:border-box;}
+    .chat-messages{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:6px;padding-bottom:220px;box-sizing:border-box;}
     .bubble{padding:10px 14px;border-radius:18px;max-width:78%;line-height:1.4;box-shadow:0 6px 14px rgba(10,30,80,0.04);margin-bottom:8px;}
     .bubble.sent{align-self:flex-end;background:linear-gradient(180deg,var(--primary),var(--primary-dark));color:#fff;}
     .bubble.received{align-self:flex-start;background:#fff;color:var(--primary);border:1px solid rgba(75,134,230,0.04);}
@@ -227,14 +232,9 @@
       </div>
     </div>
 
+    <!-- Bottom nav replaced with AD placeholder as requested -->
     <div class="bottom-nav" id="bottom-nav">
-      <div class="nav-items">
-        <span id="nav-home" class="active">Home</span>
-        <span id="nav-groups">Groups</span>
-        <span id="nav-games">Games</span>
-        <span id="nav-you">@You</span>
-      </div>
-      <div id="ad-placeholder" class="ad-placeholder">( AD will appear here)</div>
+      <div style="font-weight:800;font-size:16px;color:var(--primary);">AD will appear here</div>
     </div>
 
     <div class="floating-new" id="floatingNewBtn" title="Add new" style="display:none;">+</div>
@@ -348,16 +348,18 @@
 
     // --- Helper: toggle top header (fixed) visibility ---
     function showTopHeader(shouldShow) {
-      // Edited: header is forced to stay visible/fixed so it cannot move (as requested).
-      if (topHeader) {
-        topHeader.style.display = 'flex';
-        topHeader.style.position = 'fixed';
-        topHeader.style.top = '0';
-      }
-      if (waveTop) waveTop.style.display = 'block';
-      // ensure phone content keeps proper top padding
+      if (topHeader) topHeader.style.display = shouldShow ? 'flex' : 'none';
+      if (waveTop) waveTop.style.display = shouldShow ? 'block' : 'none';
+      // adjust phone padding so content uses full height when header hidden
       const phoneEl = document.querySelector('.phone');
-      if (phoneEl) phoneEl.style.paddingTop = getComputedStyle(document.documentElement).getPropertyValue('--header-height') || '56px';
+      if (phoneEl) {
+        if (shouldShow) {
+          phoneEl.style.paddingTop = 'calc(var(--header-height) + env(safe-area-inset-top, 0px))';
+        } else {
+          // keep safe-area inset so top items don't sit under status bar
+          phoneEl.style.paddingTop = 'calc(env(safe-area-inset-top, 0px))';
+        }
+      }
     }
 
     // Initially ensure header is visible
@@ -476,15 +478,13 @@
         // ensure header visible when not signed in
         showTopHeader(true);
       }
-      // ensure ad-mode removed whenever UI updated to lists
-      bottomNav.classList.remove('ad-mode');
     }
 
     // --- Floating visibility control ---
     function updateFloatingVisibility() {
       const appVisible = appSection.style.display !== 'none';
       const chatVisible = individualChat.style.display !== 'none';
-      const allowedNav = navHome.classList.contains('active') || navGroups.classList.contains('active');
+      const allowedNav = navHome && navHome.classList && navHome.classList.contains('active') || (navGroups && navGroups.classList && navGroups.classList.contains('active'));
 
       if (currentUser && appVisible && !chatVisible && allowedNav) {
         floatingBtn.style.display = 'flex';
@@ -646,10 +646,8 @@
       appSection.style.display = 'none';
       individualChat.style.display = 'flex';
       msgContainer.innerHTML = '';
-      // keep top fixed header visible (changed so it cannot move)
-      showTopHeader(true);
-      // show ad placeholder at bottom while in chat
-      bottomNav.classList.add('ad-mode');
+      // hide top fixed header to give more space for chat screen
+      showTopHeader(false);
       updateFloatingVisibility();
 
       const messagesRef = dbRef(db, 'messages/' + chatId);
@@ -683,10 +681,8 @@
       appSection.style.display = 'none';
       individualChat.style.display = 'flex';
       msgContainer.innerHTML = '';
-      // keep top fixed header visible (changed so it cannot move)
-      showTopHeader(true);
-      // show ad placeholder at bottom while in chat
-      bottomNav.classList.add('ad-mode');
+      // hide top fixed header to give more space for chat screen
+      showTopHeader(false);
       updateFloatingVisibility();
 
       const messagesRef = dbRef(db, 'messages/' + groupObj.id);
@@ -718,9 +714,8 @@
       individualChat.style.display = 'none';
       appSection.style.display = 'block';
       currentChat = null;
-      // restore top header (kept visible) and remove ad placeholder
+      // restore top header
       showTopHeader(true);
-      bottomNav.classList.remove('ad-mode');
       updateFloatingVisibility();
     });
 
@@ -796,18 +791,18 @@
       updateFloatingVisibility();
     });
 
-    navGroups.addEventListener('click', () => {
+    navGroups && navGroups.addEventListener && navGroups.addEventListener('click', () => {
       navGroups.classList.add('active');
-      navHome.classList.remove('active');
+      navHome && navHome.classList && navHome.classList.remove('active');
       listTitle.innerText = 'Groups';
       chatList.style.display = 'none';
       groupList.style.display = 'block';
       updateFloatingVisibility();
       loadGroups();
     });
-    navHome.addEventListener('click', () => {
+    navHome && navHome.addEventListener && navHome.addEventListener('click', () => {
       navHome.classList.add('active');
-      navGroups.classList.remove('active');
+      navGroups && navGroups.classList && navGroups.classList.remove('active');
       listTitle.innerText = 'My chats';
       chatList.style.display = 'block';
       groupList.style.display = 'none';
@@ -896,7 +891,7 @@
       });
     }
 
-    navYou.addEventListener('click', async () => {
+    navYou && navYou.addEventListener && navYou.addEventListener('click', async () => {
       if (!currentUser) return alert('Not signed in');
       const ok = confirm('Sign out?');
       if (ok) {
