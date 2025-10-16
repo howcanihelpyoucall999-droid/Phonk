@@ -13,21 +13,12 @@
       --muted:#9aaecf;
       --hand-font:'Patrick Hand', 'Segoe UI', Arial, sans-serif;
       --header-height:56px;
-      --safe-top: env(safe-area-inset-top, 0px);
     }
-    /* ensure safe-area is applied so top controls don't go under status bar */
     html,body{height:100%;margin:0;font-family:var(--hand-font);background:linear-gradient(180deg,var(--bg),#eef6ff 60%);overflow:hidden;}
     /* keep phone as the main container */
-    .phone{width:100%;height:100vh;background:#fff;display:flex;flex-direction:column;box-sizing:border-box;position:relative;padding-top:calc(var(--header-height) + var(--safe-top));}
+    .phone{width:100%;height:100vh;background:#fff;display:flex;flex-direction:column;box-sizing:border-box;position:relative;padding-top:var(--header-height);}
     /* Top header - fixed except on chat screens (we will toggle via JS) */
-    .header{
-      display:flex;align-items:center;padding:10px 14px;gap:10px;
-      background:linear-gradient(180deg,var(--primary),var(--primary-dark));
-      color:#fff;position:fixed;top:0;left:0;right:0;
-      height:calc(var(--header-height) + var(--safe-top));
-      padding-top:var(--safe-top);
-      z-index:120;box-sizing:border-box;
-    }
+    .header{display:flex;align-items:center;padding:10px 14px;gap:10px;background:linear-gradient(180deg,var(--primary),var(--primary-dark));color:#fff;position:fixed;top:0;left:0;right:0;height:var(--header-height);z-index:120;box-sizing:border-box;}
     .logo{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--primary);background:linear-gradient(180deg,#fff,#f7fbff);}
     .title{font-size:20px;color:#fff;font-weight:700;}
     .menu{margin-left:auto;font-size:20px;color:#fff;}
@@ -63,13 +54,7 @@
     .bottom-nav .active{background:linear-gradient(180deg,#eff7ff,#dfeffe);box-shadow:0 6px 14px rgba(11,96,214,0.06);}
     .chat-screen{display:none;flex-direction:column;flex:1;overflow:hidden;padding:8px 18px 0 18px;box-sizing:border-box;}
     /* Chat header (left back, middle centered name+avatar truncated, right menu) */
-    .chat-header{
-      display:flex;align-items:center;padding:8px 6px;border-bottom:1px dashed rgba(75,134,230,0.04);margin-bottom:8px;z-index:10;gap:10px;
-      /* make sure chat header respects safe area on phones with notches */
-      padding-top: calc(8px + var(--safe-top));
-      box-sizing:border-box;
-      background:linear-gradient(180deg,transparent,transparent);
-    }
+    .chat-header{display:flex;align-items:center;padding:8px 6px;border-bottom:1px dashed rgba(75,134,230,0.04);margin-bottom:8px;z-index:10;gap:10px;}
     .chat-header-left{flex:0 0 auto;}
     .chat-header-center{flex:1;display:flex;align-items:center;justify-content:center;gap:10px;min-width:0;}
     .chat-header-center .avatar{width:44px;height:44px;border-radius:50%;flex-shrink:0;}
@@ -232,9 +217,11 @@
       </div>
     </div>
 
-    <!-- Bottom nav replaced with AD placeholder as requested -->
     <div class="bottom-nav" id="bottom-nav">
-      <div style="font-weight:800;font-size:16px;color:var(--primary);">AD will appear here</div>
+      <span id="nav-home" class="active">Home</span>
+      <span id="nav-groups">Groups</span>
+      <span id="nav-games">Games</span>
+      <span id="nav-you">@You</span>
     </div>
 
     <div class="floating-new" id="floatingNewBtn" title="Add new" style="display:none;">+</div>
@@ -352,14 +339,7 @@
       if (waveTop) waveTop.style.display = shouldShow ? 'block' : 'none';
       // adjust phone padding so content uses full height when header hidden
       const phoneEl = document.querySelector('.phone');
-      if (phoneEl) {
-        if (shouldShow) {
-          phoneEl.style.paddingTop = 'calc(var(--header-height) + env(safe-area-inset-top, 0px))';
-        } else {
-          // keep safe-area inset so top items don't sit under status bar
-          phoneEl.style.paddingTop = 'calc(env(safe-area-inset-top, 0px))';
-        }
-      }
+      if (phoneEl) phoneEl.style.paddingTop = shouldShow ? getComputedStyle(document.documentElement).getPropertyValue('--header-height') : '0px';
     }
 
     // Initially ensure header is visible
@@ -484,7 +464,7 @@
     function updateFloatingVisibility() {
       const appVisible = appSection.style.display !== 'none';
       const chatVisible = individualChat.style.display !== 'none';
-      const allowedNav = navHome && navHome.classList && navHome.classList.contains('active') || (navGroups && navGroups.classList && navGroups.classList.contains('active'));
+      const allowedNav = navHome.classList.contains('active') || navGroups.classList.contains('active');
 
       if (currentUser && appVisible && !chatVisible && allowedNav) {
         floatingBtn.style.display = 'flex';
@@ -791,18 +771,18 @@
       updateFloatingVisibility();
     });
 
-    navGroups && navGroups.addEventListener && navGroups.addEventListener('click', () => {
+    navGroups.addEventListener('click', () => {
       navGroups.classList.add('active');
-      navHome && navHome.classList && navHome.classList.remove('active');
+      navHome.classList.remove('active');
       listTitle.innerText = 'Groups';
       chatList.style.display = 'none';
       groupList.style.display = 'block';
       updateFloatingVisibility();
       loadGroups();
     });
-    navHome && navHome.addEventListener && navHome.addEventListener('click', () => {
+    navHome.addEventListener('click', () => {
       navHome.classList.add('active');
-      navGroups && navGroups.classList && navGroups.classList.remove('active');
+      navGroups.classList.remove('active');
       listTitle.innerText = 'My chats';
       chatList.style.display = 'block';
       groupList.style.display = 'none';
@@ -891,7 +871,7 @@
       });
     }
 
-    navYou && navYou.addEventListener && navYou.addEventListener('click', async () => {
+    navYou.addEventListener('click', async () => {
       if (!currentUser) return alert('Not signed in');
       const ok = confirm('Sign out?');
       if (ok) {
