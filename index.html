@@ -148,10 +148,7 @@
       border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
       cursor: pointer; font-weight: bold;
     }
-
-    /* Switch line (replaces the "Switch" text as requested) */
-    .switch-line { width:56px; height:8px; border-radius:8px; background:linear-gradient(90deg,var(--primary),var(--primary-dark)); box-shadow:0 6px 14px rgba(11,96,214,0.12); }
-  </style>
+</style>
 </head>
 <body>
   <div class="phone">
@@ -191,7 +188,7 @@
         <h3 style="margin:0" id="list-title">My chats</h3>
         <div style="display:flex;gap:8px;align-items:center;">
           <!-- replaced "Switch" text with integrated blue line as requested -->
-          <div class="switch-line" aria-hidden="true"></div>
+          
         </div>
       </div>
 
@@ -353,13 +350,13 @@
     let selectedGroupMembers = {}; // uid -> user object
     let isSigningUp = true; // Start in sign-up mode (matches UI)
 
-    // --- Helper: keep top header visible (user wanted main banner always present) ---
+    // --- Helper: show or hide top header. If false, hide the main banner (used on chat screen) ---
     function showTopHeader(shouldShow = true) {
-      // Force the top header to remain visible (consistent design across screens)
-      if (topHeader) topHeader.style.display = 'flex';
-      if (waveTop) waveTop.style.display = 'block';
+      if (!topHeader) return;
+      topHeader.style.display = shouldShow ? 'flex' : 'none';
+      if (waveTop) waveTop.style.display = shouldShow ? 'block' : 'none';
       const phoneEl = document.querySelector('.phone');
-      if (phoneEl) phoneEl.style.paddingTop = getComputedStyle(document.documentElement).getPropertyValue('--header-height');
+      if (phoneEl) phoneEl.style.paddingTop = shouldShow ? getComputedStyle(document.documentElement).getPropertyValue('--header-height') : '0px';
     }
 
     // Initially ensure header is visible
@@ -455,18 +452,19 @@
 
     // --- Update UI based on auth state ---
     function updateUI(user) {
+      // If the chat screen is visible, hide the top banner. Otherwise show the main header.
+      const chatVisible = individualChat.style.display === 'flex';
       if (user) {
         authSection.style.display = 'none';
         appSection.style.display = 'block';
-        individualChat.style.display = 'none';
+        // keep individualChat display as-is (we may be in chat)
         bottomNav.style.display = 'flex';
         navHome.classList.add('active');
         navGroups.classList.remove('active');
         listTitle.innerText = 'My chats';
         chatList.style.display = 'block';
         groupList.style.display = 'none';
-        // ensure top header visible on list screens
-        showTopHeader(true);
+        showTopHeader(!chatVisible);
       } else {
         authSection.style.display = 'flex';
         appSection.style.display = 'none';
@@ -475,7 +473,6 @@
         bottomNav.style.display = 'flex';
         navHome.classList.remove('active');
         navGroups.classList.remove('active');
-        // ensure header visible when not signed in
         showTopHeader(true);
       }
     }
@@ -646,8 +643,8 @@
       appSection.style.display = 'none';
       individualChat.style.display = 'flex';
       msgContainer.innerHTML = '';
-      // keep the global top header visible (per user's request)
-      showTopHeader(true);
+      // hide the global top header on chat screen (user requested header hidden in chat)
+      showTopHeader(false);
       updateFloatingVisibility();
 
       const messagesRef = dbRef(db, 'messages/' + chatId);
@@ -681,8 +678,8 @@
       appSection.style.display = 'none';
       individualChat.style.display = 'flex';
       msgContainer.innerHTML = '';
-      // keep the global top header visible (per user's request)
-      showTopHeader(true);
+      // hide the global top header on chat screen (user requested header hidden in chat)
+      showTopHeader(false);
       updateFloatingVisibility();
 
       const messagesRef = dbRef(db, 'messages/' + groupObj.id);
@@ -714,7 +711,7 @@
       individualChat.style.display = 'none';
       appSection.style.display = 'block';
       currentChat = null;
-      // keep top header visible
+      // show top header again on return to list screens
       showTopHeader(true);
       updateFloatingVisibility();
     });
