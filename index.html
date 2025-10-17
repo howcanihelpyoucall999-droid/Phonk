@@ -62,7 +62,21 @@
     .chat-center-text .chat-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700;color:var(--primary);font-size:16px;max-width:100%;}
     .chat-center-text .small{font-size:12px;color:var(--muted);opacity:0.9;margin-top:3px;}
     #backToChatListBtn{padding:6px 10px !important;border-radius:8px !important;font-size:14px !important;min-width:56px;}
-    .chat-messages{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:6px;padding-bottom:220px;box-sizing:border-box;}
+    .chat-messages{
+      flex:1;
+      overflow-y:auto;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      padding:6px;
+      padding-bottom:220px;
+      box-sizing:border-box;
+      /* background image applied only to this big blue box area */
+      background-image: url('bg.png');
+      background-repeat: no-repeat;
+      background-size: cover;
+      background-position: center;
+    }
     .bubble{padding:10px 14px;border-radius:18px;max-width:78%;line-height:1.4;box-shadow:0 6px 14px rgba(10,30,80,0.04);margin-bottom:8px;}
     .bubble.sent{align-self:flex-end;background:linear-gradient(180deg,var(--primary),var(--primary-dark));color:#fff;}
     .bubble.received{align-self:flex-start;background:#fff;color:var(--primary);border:1px solid rgba(75,134,230,0.04);}
@@ -335,11 +349,12 @@
 
     // --- Helper: toggle top header (fixed) visibility ---
     function showTopHeader(shouldShow) {
-      if (topHeader) topHeader.style.display = shouldShow ? 'flex' : 'none';
-      if (waveTop) waveTop.style.display = shouldShow ? 'block' : 'none';
-      // adjust phone padding so content uses full height when header hidden
+      // CHANGE: keep the header fixed and visible at all times (user requested it must not move)
+      if (topHeader) topHeader.style.display = 'flex';
+      if (waveTop) waveTop.style.display = 'block';
+      // adjust phone padding so content uses full height when header visible
       const phoneEl = document.querySelector('.phone');
-      if (phoneEl) phoneEl.style.paddingTop = shouldShow ? getComputedStyle(document.documentElement).getPropertyValue('--header-height') : '0px';
+      if (phoneEl) phoneEl.style.paddingTop = getComputedStyle(document.documentElement).getPropertyValue('--header-height');
     }
 
     // Initially ensure header is visible
@@ -626,8 +641,7 @@
       appSection.style.display = 'none';
       individualChat.style.display = 'flex';
       msgContainer.innerHTML = '';
-      // hide top fixed header to give more space for chat screen
-      showTopHeader(false);
+      // NOTE: header kept visible (user requested fixed header)
       updateFloatingVisibility();
 
       const messagesRef = dbRef(db, 'messages/' + chatId);
@@ -661,8 +675,7 @@
       appSection.style.display = 'none';
       individualChat.style.display = 'flex';
       msgContainer.innerHTML = '';
-      // hide top fixed header to give more space for chat screen
-      showTopHeader(false);
+      // NOTE: header kept visible (user requested fixed header)
       updateFloatingVisibility();
 
       const messagesRef = dbRef(db, 'messages/' + groupObj.id);
@@ -694,8 +707,7 @@
       individualChat.style.display = 'none';
       appSection.style.display = 'block';
       currentChat = null;
-      // restore top header
-      showTopHeader(true);
+      // header remains visible
       updateFloatingVisibility();
     });
 
