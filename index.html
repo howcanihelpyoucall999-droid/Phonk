@@ -146,6 +146,52 @@
       cursor: pointer; font-weight: bold;
     }
 
+
+/* === Minimal fixes injected: do NOT change any functionality ===
+   1) Ensure first message isn't hidden under fixed header
+   2) Give horizontal padding so bubbles don't clip on edges
+   3) Style message input so white inner area sits inside blue outline
+   4) Optional 'green' variant for received bubble (class: .received.green)
+*/
+:root{ --header-height:56px; }
+.chat-messages{
+  padding-top: calc(var(--header-height) + 12px) !important;
+  padding-left: 14px !important;
+  padding-right: 14px !important;
+  padding-bottom: 220px !important;
+  box-sizing: border-box !important;
+}
+.bubble{
+  margin-left:6px !important;
+  margin-right:6px !important;
+  max-width:78% !important;
+  box-sizing:border-box !important;
+}
+.chat-input-area-wrapper{
+  position: fixed !important;
+  left: 0; right: 0; bottom: 64px;
+  padding: 12px 18px 14px 18px !important;
+  background: linear-gradient(180deg,#ffffff,#f6fbff 60%) !important;
+  z-index: 160 !important;
+  box-sizing: border-box;
+}
+/* make the input look like a white interior inside a blue border */
+.chat-input{
+  border-radius: 999px !important;
+  padding: 10px !important;
+  background: linear-gradient(180deg,#fff,#fbfdff) !important;
+  border: 3px solid var(--primary) !important;
+  max-width: 920px; width: calc(100% - 36px); margin: 0 auto;
+  box-shadow: 0 8px 24px rgba(11,96,214,0.06);
+}
+/* green variant for a received bubble (apply class 'received green' to message container you want) */
+.bubble.received.green{
+  border: 3px solid #23a455 !important;
+  background: #fff !important;
+  color: var(--primary) !important;
+  box-shadow: 0 8px 20px rgba(35,164,85,0.06) !important;
+}
+
 </style>
 </head>
 <body>
