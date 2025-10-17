@@ -52,9 +52,9 @@
     .bottom-nav{position:fixed;left:0;bottom:0;width:100%;background:linear-gradient(180deg,#fff,#f6fbff);border-top:1px solid rgba(0,0,0,0.03);padding:14px;text-align:center;color:var(--primary);font-size:18px;font-weight:700;z-index:45;display:flex;gap:10px;justify-content:center;align-items:center;}
     .bottom-nav span{cursor:pointer;padding:6px 10px;border-radius:8px;}
     .bottom-nav .active{background:linear-gradient(180deg,#eff7ff,#dfeffe);box-shadow:0 6px 14px rgba(11,96,214,0.06);}
-    .chat-screen{display:none;flex-direction:column;flex:1;overflow:hidden;padding:8px 18px 0 18px;box-sizing:border-box;}
+    .chat-screen{display:none;flex-direction:column;flex:1;overflow:hidden;padding:0;box-sizing:border-box;background-image: url('bg.png');background-repeat:no-repeat;background-size:cover;background-position:center;}
     /* Chat header (left back, middle centered name+avatar truncated, right menu) */
-    .chat-header{display:flex;align-items:center;padding:8px 6px;border-bottom:1px dashed rgba(75,134,230,0.04);margin-bottom:8px;z-index:10;gap:10px;}
+    .chat-header{display:flex;align-items:center;padding:10px 12px;border-bottom:1px dashed rgba(75,134,230,0.04);margin-bottom:8px;z-index:140;gap:10px;position:fixed;top:0;left:0;right:0;background:linear-gradient(180deg,#ffffff,#fbfdff);box-shadow:0 6px 20px rgba(10,30,80,0.06);height:var(--header-height);box-sizing:border-box;}
     .chat-header-left{flex:0 0 auto;}
     .chat-header-center{flex:1;display:flex;align-items:center;justify-content:center;gap:10px;min-width:0;}
     .chat-header-center .avatar{width:44px;height:44px;border-radius:50%;flex-shrink:0;}
@@ -348,13 +348,12 @@
     let isSigningUp = true; // Start in sign-up mode (matches UI)
 
     // --- Helper: toggle top header (fixed) visibility ---
-    function showTopHeader(shouldShow) {
-      // CHANGE: keep the header fixed and visible at all times (user requested it must not move)
-      if (topHeader) topHeader.style.display = 'flex';
-      if (waveTop) waveTop.style.display = 'block';
-      // adjust phone padding so content uses full height when header visible
+    function showTopHeader(shouldShow = true) {
+      // if shouldShow === false we hide the global top header (so chat screen has only the chat header)
+      if (topHeader) topHeader.style.display = shouldShow ? 'flex' : 'none';
+      if (waveTop) waveTop.style.display = shouldShow ? 'block' : 'none';
       const phoneEl = document.querySelector('.phone');
-      if (phoneEl) phoneEl.style.paddingTop = getComputedStyle(document.documentElement).getPropertyValue('--header-height');
+      if (phoneEl) phoneEl.style.paddingTop = shouldShow ? getComputedStyle(document.documentElement).getPropertyValue('--header-height') : '0px';
     }
 
     // Initially ensure header is visible
@@ -641,7 +640,8 @@
       appSection.style.display = 'none';
       individualChat.style.display = 'flex';
       msgContainer.innerHTML = '';
-      // NOTE: header kept visible (user requested fixed header)
+      // hide the global top header on chat screen so it doesn't duplicate the chat header
+      showTopHeader(false);
       updateFloatingVisibility();
 
       const messagesRef = dbRef(db, 'messages/' + chatId);
@@ -675,7 +675,8 @@
       appSection.style.display = 'none';
       individualChat.style.display = 'flex';
       msgContainer.innerHTML = '';
-      // NOTE: header kept visible (user requested fixed header)
+      // hide the global top header on chat screen so it doesn't duplicate the chat header
+      showTopHeader(false);
       updateFloatingVisibility();
 
       const messagesRef = dbRef(db, 'messages/' + groupObj.id);
@@ -707,7 +708,8 @@
       individualChat.style.display = 'none';
       appSection.style.display = 'block';
       currentChat = null;
-      // header remains visible
+      // restore global header when returning to chat list
+      showTopHeader(true);
       updateFloatingVisibility();
     });
 
