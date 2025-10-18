@@ -97,6 +97,47 @@
     }
     
     .auth{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:20px;overflow-y:auto;background:#f0f4fc;}
+
+    .contacts-frame{
+      border:8px solid #ff8a33; /* orange frame like the screenshot */
+      border-radius:8px;
+      padding:10px;
+      box-sizing:border-box;
+      background:#fff;
+      /* Constrain height so the contacts area stays inside the orange box and can scroll */
+      max-height: calc(100vh - (var(--header-height) + var(--wave-height) + var(--fixed-list-header-height) + 180px));
+      overflow:hidden;
+      margin-bottom:12px;
+    }
+    .my-chat-box{
+      height:56px;
+      min-height:56px;
+      border-radius:8px;
+      display:flex;
+      align-items:center;
+      padding:10px 12px;
+      box-sizing:border-box;
+      font-weight:700;
+      color:var(--primary);
+      background:linear-gradient(180deg,#fffaf5,#fff7ef);
+      /* Make it non-interactive so contacts or elements cannot be added or clicked into this area */
+      pointer-events:none;
+      user-select:none;
+      margin-bottom:10px;
+      box-shadow:0 6px 14px rgba(11,96,214,0.03);
+    }
+    .contacts-scroll{
+      overflow-y:auto;
+      -webkit-overflow-scrolling:touch;
+      padding-top:12px; /* space before first contact */
+      padding-bottom:26px; /* space after last contact */
+      max-height: calc(100% - 86px);
+      box-sizing:border-box;
+    }
+    /* Extra spacing for first and last contact to make them easily visible */
+    .contacts-scroll .chat-item:first-child{ margin-top:12px; }
+    .contacts-scroll .chat-item:last-child{ margin-bottom:28px; }
+
     .welcome{font-size:22px;color:var(--primary);}
     .sub{color:var(--muted);font-size:13px;margin-bottom:12px;}
     input{border:1px solid rgba(75,134,230,0.08);border-radius:10px;padding:12px 14px;font-size:15px;background:linear-gradient(180deg,#fff,#fbfdff);font-family:var(--hand-font);color:var(--primary);width:90%;max-width:360px;margin-bottom:10px;box-sizing:border-box;}
@@ -346,8 +387,15 @@
         <button id="addChatBtn" class="btn primary">Add Person</button>
       </div>
 
-      <!-- Lists -->
-      <div id="chat-list-container"></div>
+      <!-- Contacts frame: top fixed box (my-chat-box) + scrollable contacts -->
+      <div class="contacts-frame" aria-hidden="false">
+        <!-- Top fixed area: only user's chat text should appear here. Non-interactive (pointer-events:none) so contacts cannot be placed here. -->
+        <div class="my-chat-box" id="myChatBox" title="Only your chat area. Contacts or others cannot be placed here." tabindex="-1">My chats</div>
+
+        <!-- Scrollable contacts area constrained inside the orange box -->
+        <div class="contacts-scroll" id="chat-list-container"></div>
+      </div>
+
       <div id="group-list-container" style="display:none;"></div>
     </div>
 
