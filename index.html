@@ -9,6 +9,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet" />
   <style>
     :root{
+      --input-area-height:74px;
+      --bottom-nav-height:64px;
       --bg:#e9f1ff;
       --primary:#0b60d6;
       --primary-dark:#0849a6;
@@ -84,26 +86,10 @@
       justify-content: space-between;
       box-shadow: 0 4px 10px rgba(0,0,0,0.02);
     }
-  position: fixed;
-  top: calc(var(--header-height) + var(--wave-height));
-  left: 0;
-  right: 0;
-  z-index: 999;
-  background: #fff;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-
     .fixed-list-header h3 {
         color: var(--primary);
         margin: 0;
     }
-  position: fixed;
-  top: calc(var(--header-height) + var(--wave-height));
-  left: 0;
-  right: 0;
-  z-index: 999;
-  background: #fff;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-
     .fixed-list-header .top-controls{
        display:flex;
        align-items:center;
@@ -111,14 +97,6 @@
        justify-content:space-between;
        width: 100%;
     }
-  position: fixed;
-  top: calc(var(--header-height) + var(--wave-height));
-  left: 0;
-  right: 0;
-  z-index: 999;
-  background: #fff;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-
     
     .auth{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:20px;overflow-y:auto;background:#f0f4fc;}
     .welcome{font-size:22px;color:var(--primary);}
@@ -316,6 +294,17 @@
       .plus-menu{right:calc(50% - 210px);}
       .chat-input-area-wrapper{left:calc(50% - 210px);right:calc(50% - 210px);width:420px;bottom:64px;} 
     }
+  
+    /* Ensures chat input is always visible and bottom nav hidden in chat mode */
+    .phone.chat-active .bottom-nav{ display:none !important; }
+    .phone.chat-active .chat-input-area-wrapper{ bottom: 0 !important; z-index: 200; }
+    .phone.chat-active .chat-messages{
+      padding-bottom: calc(var(--input-area-height) + 12px) !important;
+      /* ensure messages container size adapts */
+    }
+    /* Make sure chat-screen overlays do not get overlapped by other UI */
+    .chat-screen{ z-index:160; position:relative; }
+
   </style>
 </head>
 <body>
@@ -598,6 +587,23 @@
     // initial
     setTopBannerVisible(true);
     
+    // Ensure bottom-nav is hidden and input stays visible when inside an individual chat.
+    function enterChatMode(){
+      const phoneEl = document.querySelector('.phone');
+      if (phoneEl) phoneEl.classList.add('chat-active');
+      if (bottomNav) bottomNav.style.display = 'none';
+      if (chatInputWrapper) chatInputWrapper.style.bottom = '0px';
+      // adjust messages padding so last message is not hidden
+      if (msgContainer) msgContainer.style.paddingBottom = 'calc(var(--input-area-height) + 12px)';
+    }
+    function exitChatMode(){
+      const phoneEl = document.querySelector('.phone');
+      if (phoneEl) phoneEl.classList.remove('chat-active');
+      if (bottomNav) bottomNav.style.display = 'flex';
+      if (chatInputWrapper) chatInputWrapper.style.bottom = '64px';
+      if (msgContainer) msgContainer.style.paddingBottom = '120px';
+    }
+
     function updateAuthUI() {
       if (isSigningUp) {
         authSubmitBtn.textContent = 'Sign Up';
@@ -869,6 +875,8 @@
       // hide top banner (header + wave + fixed list header) on chat screen
       setTopBannerVisible(false);
       updateFloatingVisibility();
+      // ensure chat input stays visible and bottom nav hidden
+      enterChatMode();
 
       const messagesRef = dbRef(db, 'messages/' + chatId);
       onValue(messagesRef, snap => {
@@ -904,6 +912,8 @@
       // hide top banner on chat screen
       setTopBannerVisible(false);
       updateFloatingVisibility();
+      // ensure chat input stays visible and bottom nav hidden
+      enterChatMode();
 
       const messagesRef = dbRef(db, 'messages/' + groupObj.id);
       onValue(messagesRef, snap => {
@@ -936,6 +946,8 @@
       currentChat = null;
       // show top banner when returning to list
       setTopBannerVisible(true);
+      // restore bottom nav and input positioning
+      exitChatMode();
       updateFloatingVisibility();
     });
 
@@ -1204,6 +1216,10 @@
       // Show the fixed list header when the app is initialized and user is logged in
       const flh = document.getElementById('fixedListHeader');
       if (flh && appSection.style.display !== 'none' && currentUser) flh.style.display = 'flex';
+      // If the page was reloaded while in a chat, ensure UI is consistent
+      if (document.querySelector('.phone.chat-active')){
+        if (bottomNav) bottomNav.style.display = 'none';
+      }
     });
 
     console.log('User fixes applied: scroll position adjusted, side menu implemented, fixed header visibility fixed on auth page.');
