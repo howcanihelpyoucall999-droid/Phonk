@@ -1,9 +1,11 @@
+--- START OF FILE xxx.html ---
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Zag Messenger — User fixes (wave white, orange bar, fab position, header hide on chat)</title>
+  <title>Zag Messenger — User fixes (wave blue, logo, fab new position)</title>
   <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet" />
   <style>
     :root{
@@ -15,7 +17,7 @@
       --header-height:56px;
       --wave-height:28px;
       --orange-height:8px;
-      --fab-top-offset:160px; /* adjust this to move the + vertically */
+      --fab-top-offset:400px; /* ADJUSTED: from 160px to 400px to move the + to the black circle's position */
     }
     html,body{height:100%;margin:0;font-family:var(--hand-font);background:linear-gradient(180deg,var(--bg),#eef6ff 60%);overflow:hidden;}
     .phone{
@@ -46,11 +48,14 @@
       z-index:120;
       box-sizing:border-box;
     }
-    .logo{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--primary);background:linear-gradient(180deg,#fff,#f7fbff);}
+    /* UPDATED: Logo styles for image */
+    .logo{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;overflow:hidden;background:linear-gradient(180deg,#fff,#f7fbff);}
+    .logo img{width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;} /* Added rule for logo image */
+    
     .title{font-size:20px;color:#fff;font-weight:700;}
     .menu{margin-left:auto;font-size:20px;color:#fff;}
 
-    /* wave under the header: now white fill per user's request */
+    /* wave under the header: now blue fill per user's request */
     .wave-top{
       width:100%;
       height:var(--wave-height);
@@ -62,7 +67,7 @@
       margin-top:0;
     }
     .wave-top svg{width:100%;height:100%;display:block;}
-    .wave-top path{fill:#ffffff;} /* white wave */
+    .wave-top path{fill:var(--primary);} /* CHANGED: was #ffffff, now primary blue */
 
     /* orange bar below wave so list starts after it */
     .orange-bar{
@@ -98,7 +103,7 @@
     #add-chat-area{display:none;margin-bottom:12px;position:relative;}
     #closeAddChat{position:absolute;top:-10px;right:-10px;background:#fff;border:2px solid #ccc;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-weight:bold;color:#777;}
 
-    /* Floating + repositioned to the requested red-circle place (approx) */
+    /* Floating + repositioned to the requested position (black circle) */
     .floating-new{
       position:fixed;
       right:20px;
@@ -212,40 +217,12 @@
       .chat-input-area-wrapper{left:calc(50% - 210px);right:calc(50% - 210px);width:420px;bottom:64px;}
     }
   </style>
-
-<!-- BEGIN: USER REQUEST OVERRIDES (do not change other code) -->
-<style>
-  /* Make header + wave + bar fully blue */
-  .header{ background: #0b60d6 !important; color: #ffffff !important; }
-  .header .logo, .header .title, .header .menu { color: #ffffff !important; }
-  /* Wave fill */
-  .wave-top svg path, .wave-top path { fill: #0b60d6 !important; }
-  /* Orange bar -> blue */
-  .orange-bar{ background: #0b60d6 !important; }
-  /* Ensure all app contents start after header + wave + bar */
-  :root{
-    --user-header-h:56px;
-    --user-wave-h:28px;
-    --user-bar-h:8px;
-    --user-fab-offset:220px; /* adjust this number to move the + button up/down */
-  }
-  .phone{ padding-top: calc(var(--user-header-h) + var(--user-wave-h) + var(--user-bar-h)) !important; }
-  /* chat header should sit below the banner */
-  .chat-header{ top: calc(var(--user-header-h) + var(--user-wave-h) + var(--user-bar-h)) !important; }
-  /* chat messages must be padded below header+wave+bar+chat-header so content never goes 'into' the banner */
-  .chat-messages{ padding-top: calc(var(--user-header-h) + var(--user-wave-h) + var(--user-bar-h) + var(--user-header-h) + 12px) !important; }
-  /* Floating + (FAB) reposition to the circle area - change --user-fab-offset to tweak vertical spot */
-  .floating-new{ position: fixed !important; right: 20px !important;
-                 top: calc(var(--user-header-h) + var(--user-wave-h) + var(--user-bar-h) + var(--user-fab-offset)) !important; }
-  /* ensure plus-menu opens near the FAB */
-  .plus-menu{ right: 18px !important; top: calc(var(--user-header-h) + var(--user-wave-h) + var(--user-bar-h) + var(--user-fab-offset) - 80px) !important; }
-</style>
-<!-- END: USER REQUEST OVERRIDES -->
 </head>
 <body>
   <div class="phone">
     <div class="header" id="topHeader">
-      <div class="logo">Zg</div>
+      <!-- CHANGED: Replaced 'Zg' with img tag for logo.png -->
+      <div class="logo"><img src="logo.png" alt="Zag Messenger Logo"></div>
       <div class="title">Zag Messenger</div>
       <div class="menu" id="topHeaderMenu">☰</div>
     </div>
