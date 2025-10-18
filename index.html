@@ -438,6 +438,38 @@
   font-weight:700;
 }
 
+
+/* In-file profile page styles */
+.profile-page{ position: fixed; inset:0; background: white; z-index:12000; display:flex; flex-direction:column; }
+.profile-topbar{ height:64px; display:flex; align-items:center; gap:12px; padding:0 12px; background:linear-gradient(180deg,#0b66d6,#005bb5); color:white; }
+.profile-back{ background:rgba(255,255,255,0.06); color:white; border:none; padding:8px 10px; border-radius:8px; cursor:pointer; }
+.profile-title{ margin:0; font-size:18px; font-weight:700; }
+.profile-main{ padding:14px; overflow:auto; flex:1; }
+.profile-card{ display:flex; gap:14px; background:#fff; border-radius:12px; padding:14px; box-shadow:0 8px 30px rgba(11,102,214,0.06); align-items:flex-start; margin-bottom:18px; }
+.profile-left{ position:relative; }
+.profile-avatar-large{ width:96px; height:96px; border-radius:50%; background:linear-gradient(#e6f0ff,#dfeeff); display:flex; align-items:center; justify-content:center; font-size:36px; color:#0b66d6; overflow:hidden; }
+.profile-avatar-large img{ width:100%; height:100%; object-fit:cover; display:block; }
+.profile-pbtn{ position:absolute; right:-6px; bottom:-6px; background:#fff; border-radius:50%; border:1px solid rgba(0,0,0,0.06); padding:8px; cursor:pointer; box-shadow:0 6px 18px rgba(0,0,0,0.12); }
+.profile-right{ flex:1; }
+.profile-row{ margin-bottom:10px; }
+.profile-row label{ display:block; font-size:13px; color:#607; margin-bottom:6px; }
+.profile-readonly{ background:#f4f8ff; padding:10px; border-radius:8px; border:1px solid #eaf2ff; color:#234; }
+.profile-row input, .profile-row textarea{ width:100%; padding:10px; border-radius:8px; border:1px solid #e6eff9; font-size:15px; box-sizing:border-box; }
+.profile-actions{ display:flex; gap:8px; justify-content:flex-end; margin-top:6px; }
+.save-btn{ background:#0b66d6; color:white; padding:8px 12px; border-radius:8px; border:none; cursor:pointer; }
+.cancel-btn{ background:#eef5ff; color:#123; padding:8px 12px; border-radius:8px; border:none; cursor:pointer; }
+
+.profile-contacts-section h3{ margin-top:0; }
+.profile-contacts-list{ display:flex; flex-direction:column; gap:10px; margin-top:10px; }
+.profile-contact-row{ display:flex; align-items:center; gap:12px; background:#fff; padding:10px; border-radius:10px; box-shadow:0 6px 20px rgba(11,102,214,0.04); }
+.profile-contact-avatar{ width:56px; height:56px; border-radius:50%; background:linear-gradient(#e6f0ff,#dfeeff); display:flex; align-items:center; justify-content:center; font-weight:700; color:#0b66d6; overflow:hidden; }
+.profile-contact-meta{ display:flex; flex-direction:column; flex:1; }
+.profile-contact-name{ font-weight:700; color:#0b66d6; }
+.profile-contact-email{ font-size:13px; color:#7b95c8; }
+.profile-contact-actions{ display:flex; gap:8px; align-items:center; }
+.profile-delete-btn{ width:40px; height:40px; border-radius:50%; background:#fff; border:1px solid rgba(0,0,0,0.06); color:#d62828; font-weight:700; cursor:pointer; box-shadow:0 6px 18px rgba(0,0,0,0.06); }
+@media (max-width:520px){ .profile-card{ flex-direction:column; align-items:center; text-align:center; } .profile-avatar-large{ width:84px; height:84px; font-size:32px; } .profile-contact-avatar{ width:48px; height:48px; }}
+
 </style>
 </head>
 <body>
@@ -1764,6 +1796,178 @@
       }
     }catch(e){}
   };
+})(); 
+</script>
+
+<!-- START: In-file Profile Page -->
+<section id="profilePage" class="profile-page" aria-hidden="true" style="display:none;">
+  <header class="profile-topbar">
+    <button id="profileBackBtn" class="profile-back">‹ Back</button>
+    <h2 class="profile-title">Profile</h2>
+  </header>
+  <main class="profile-main">
+    <div class="profile-card">
+      <div class="profile-left">
+        <div id="profileAvatarLarge" class="profile-avatar-large"><span id="profileInitialLarge">Y</span></div>
+        <button id="profileChangeAvatarBtn" class="profile-pbtn" title="Change avatar">✎</button>
+        <input id="profileAvatarFile" type="file" accept="image/*" style="display:none">
+      </div>
+      <div class="profile-right">
+        <div class="profile-row"><label>Handle (email)</label><div id="profileHandle" class="profile-readonly"></div></div>
+        <div class="profile-row"><label for="profileDisplayName">Display name</label><input id="profileDisplayName" type="text" placeholder="Your name (shows in contacts)"></div>
+        <div class="profile-row"><label for="profileAbout">About</label><textarea id="profileAbout" rows="3" placeholder="Write something about yourself"></textarea></div>
+        <div class="profile-actions"><button id="profileSave" class="save-btn">Save</button><button id="profileCancel" class="cancel-btn">Cancel</button></div>
+      </div>
+    </div>
+
+    <section class="profile-contacts-section">
+      <h3>My Contacts</h3>
+      <div id="profileContactsList" class="profile-contacts-list"></div>
+      <div id="profileNoContacts" class="profile-no-contacts">No contacts found.</div>
+    </section>
+  </main>
+</section>
+<!-- END: In-file Profile Page -->
+
+<script>
+(function(){
+  // create helper functions and state
+  function detectEmail(){
+    try{ if(window.currentUser && typeof window.currentUser === 'string') return window.currentUser; }catch(e){};
+    const m = document.body.innerText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+    return (m && m[0]) ? m[0] : 'you@example.com';
+  }
+
+  function loadProfile(){
+    try{ const raw = localStorage.getItem('myProfile_v1'); if(raw) return JSON.parse(raw); }catch(e){};
+    const email = detectEmail();
+    const p = { email: email, name: '', about: '', avatar: '' };
+    localStorage.setItem('myProfile_v1', JSON.stringify(p));
+    return p;
+  }
+  function saveProfile(p){ localStorage.setItem('myProfile_v1', JSON.stringify(p)); applyProfile(p); updateContactsNames(p.email, p.name); }
+
+  function applyProfile(p){
+    document.getElementById('profileHandle').innerText = p.email || '';
+    document.getElementById('profileDisplayName').value = p.name || '';
+    document.getElementById('profileAbout').value = p.about || '';
+    const av = document.getElementById('profileAvatarLarge');
+    if(p.avatar){ av.innerHTML = '<img src="'+p.avatar+'">'; } else { document.getElementById('profileInitialLarge').innerText = (p.name && p.name.trim().length>0)? p.name.trim()[0].toUpperCase() : (p.email? p.email[0].toUpperCase() : 'Y'); av.innerHTML = '<span id="profileInitialLarge">'+ ( (p.name && p.name.trim().length>0)? p.name.trim()[0].toUpperCase() : (p.email? p.email[0].toUpperCase() : 'Y')) +'</span>'; }
+  }
+
+  function loadContacts(){ try{ const raw = localStorage.getItem('contacts_v1'); if(!raw) return []; return JSON.parse(raw); }catch(e){ return []; } }
+
+  function renderContacts(){
+    const list = document.getElementById('profileContactsList');
+    const no = document.getElementById('profileNoContacts');
+    const arr = loadContacts();
+    list.innerHTML = '';
+    if(!arr || arr.length === 0){ no.style.display = 'block'; return; } else { no.style.display = 'none'; }
+    arr.forEach((c, idx)=>{
+      const row = document.createElement('div'); row.className = 'profile-contact-row'; row.dataset.email = c.email || '';
+      const avatarHTML = c.avatar ? '<img src="'+c.avatar+'" style="width:100%;height:100%;object-fit:cover">' : (c.name? c.name[0].toUpperCase() : (c.email? c.email[0].toUpperCase() : 'C'));
+      row.innerHTML = '<div class="profile-contact-avatar">'+avatarHTML+'</div><div class="profile-contact-meta"><div class="profile-contact-name">'+(c.name || c.email)+'</div><div class="profile-contact-email">'+(c.email||'')+'</div></div><div class="profile-contact-actions"><button class="profile-delete-btn" data-index="'+idx+'">✕</button></div>';
+      list.appendChild(row);
+    });
+    // attach delete handlers
+    Array.from(list.querySelectorAll('.profile-delete-btn')).forEach(btn=>{
+      btn.addEventListener('click', (ev)=>{
+        ev.stopPropagation();
+        const i = parseInt(btn.dataset.index,10);
+        if(isNaN(i)) return;
+        if(!confirm('Delete this contact?')) return;
+        const arr2 = loadContacts();
+        const removed = arr2.splice(i,1);
+        localStorage.setItem('contacts_v1', JSON.stringify(arr2));
+        renderContacts();
+      });
+    });
+  }
+
+  // show/hide profile page
+  const profilePage = document.getElementById('profilePage');
+  function openProfilePage(){ profilePage.style.display = 'flex'; profilePage.setAttribute('aria-hidden','false'); window.scrollTo(0,0); enterProfileMode(); }
+  function closeProfilePage(){ profilePage.style.display = 'none'; profilePage.setAttribute('aria-hidden','true'); exitProfileMode(); }
+
+  // attempt to preserve original state when opening profile: hide app section and other overlays so profile is clean
+  function enterProfileMode(){
+    // hide any open individual chat and app sections so the profile page is standalone
+    try{ const appSection = document.querySelector('.app-section'); if(appSection) appSection.style.display = 'none'; const individual = document.querySelector('.individual-chat'); if(individual) individual.style.display = 'none'; }catch(e){}
+    // hide floating actions and bottom nav if present
+    try{ const bottom = document.querySelector('.bottom-nav'); if(bottom) bottom.style.display = 'none'; const fab = document.querySelector('.fab'); if(fab) fab.style.display = 'none'; }catch(e){}
+  }
+  function exitProfileMode(){
+    // restore app-section display
+    try{ const appSection = document.querySelector('.app-section'); if(appSection) appSection.style.display = ''; const individual = document.querySelector('.individual-chat'); if(individual) individual.style.display = 'none'; }catch(e){}
+    try{ const bottom = document.querySelector('.bottom-nav'); if(bottom) bottom.style.display = ''; const fab = document.querySelector('.fab'); if(fab) fab.style.display = ''; }catch(e){}
+  }
+
+  // wire UI
+  document.getElementById('profileBackBtn').addEventListener('click', ()=>{ closeProfilePage(); });
+
+  document.getElementById('profileChangeAvatarBtn').addEventListener('click', ()=> document.getElementById('profileAvatarFile').click());
+  document.getElementById('profileAvatarFile').addEventListener('change', (ev)=>{
+    const f = ev.target.files && ev.target.files[0]; if(!f) return;
+    const r = new FileReader(); r.onload = function(e){ const p = loadProfile(); p.avatar = e.target.result; saveProfile(p); renderContacts(); }; r.readAsDataURL(f);
+  });
+
+  document.getElementById('profileSave').addEventListener('click', ()=>{
+    const p = loadProfile();
+    p.name = document.getElementById('profileDisplayName').value || '';
+    p.about = document.getElementById('profileAbout').value || '';
+    saveProfile(p);
+    alert('Profile saved');
+    renderContacts();
+  });
+  document.getElementById('profileCancel').addEventListener('click', ()=>{
+    const p = loadProfile(); applyProfile(p);
+  });
+
+  // attach open handler to any bottom nav button with text '@You' (case-insensitive) - non-destructive, won't remove existing handlers
+  function attachYouHandler(){
+    const candidates = Array.from(document.querySelectorAll('button, a, div, span')).filter(el=> el.innerText && el.innerText.trim().toLowerCase() === '@you');
+    if(candidates.length === 0){
+      // try contains
+      const contains = Array.from(document.querySelectorAll('button, a, div, span')).filter(el=> el.innerText && el.innerText.trim().toLowerCase().includes('@you'));
+      contains.forEach(el=> addListenerToYou(el));
+    } else {
+      candidates.forEach(el => addListenerToYou(el));
+    }
+  }
+  function addListenerToYou(el){
+    if(el.__hasProfileHook) return;
+    el.__hasProfileHook = true;
+    el.addEventListener('click', function(ev){
+      try{ ev.preventDefault(); }catch(e){};
+      const p = loadProfile(); applyProfile(p); renderContacts(); openProfilePage();
+    });
+  }
+  // update contact names in main contact list if user changes display name
+  function updateContactsNames(email, newName){
+    if(!email) return;
+    try{
+      // update DOM: find nodes that show this email and replace their name-like sibling text
+      const nodes = Array.from(document.querySelectorAll('*')).filter(n=> n.innerText && n.innerText.includes(email));
+      nodes.forEach(node=>{
+        // try to update a nearby element with larger text
+        const candidate = node.closest && node.closest('li, div, article, section') ? node.closest('li, div, article, section') : node.parentElement;
+        if(candidate){
+          const nameEl = Array.from(candidate.querySelectorAll('div, span, p, h3')).find(x=> x !== node && x.innerText && x.innerText.trim().length>0 && !x.innerText.includes('@'));
+          if(nameEl) nameEl.innerText = newName || email;
+        }
+      });
+      // also update stored contacts array
+      const arr = JSON.parse(localStorage.getItem('contacts_v1') || '[]');
+      const updated = arr.map(c=> c.email === email ? Object.assign({}, c, { name: newName }) : c);
+      localStorage.setItem('contacts_v1', JSON.stringify(updated));
+    }catch(e){}
+  }
+
+  // initialize on load (attach handlers)
+  window.addEventListener('load', ()=>{ try{ attachYouHandler(); }catch(e){} });
+  // also try again after some delay to catch dynamic content
+  setTimeout(()=>{ try{ attachYouHandler(); }catch(e){} }, 800);
+
 })(); 
 </script>
 </body>
