@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Zag Messenger — User fixes (wave blue, logo, fab new position, fixed chat list header, removed orange bar, transparent message bar background)</title>
+  <title>Zag Messenger — User fixes (scroll fix, side menu, auth page header fix)</title>
   <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet" />
   <style>
     :root{
@@ -18,9 +18,6 @@
       --wave-height:28px;
       --fixed-list-header-height:48px; /* New: height of the fixed 'My chats' header */
       --fab-top-offset:400px; /* Adjusted: to move the + to the black circle's position */
-      --bottom-nav-height: 64px; /* Approximate height of bottom navigation */
-      --chat-input-padding: 8px 18px 10px 18px;
-      --chat-input-area-wrapper-height: 80px; /* Approx (padding + input/btn height) */
     }
     html,body{height:100%;margin:0;font-family:var(--hand-font);background:linear-gradient(180deg,var(--bg),#eef6ff 60%);overflow:hidden;}
     .phone{
@@ -30,7 +27,7 @@
       display:flex;
       flex-direction:column;
       box-sizing:border-box;
-      /* UPDATED: Padding top to account for top header + wave */
+      /* Padding top to account for top header + wave */
       padding-top: calc(var(--header-height) + var(--wave-height));
       position:relative;
     }
@@ -55,7 +52,7 @@
     .logo img{width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;}
     
     .title{font-size:20px;color:#fff;font-weight:700;}
-    .menu{margin-left:auto;font-size:20px;color:#fff;}
+    .menu{margin-left:auto;font-size:20px;color:#fff; cursor:pointer;} /* Added cursor */
 
     /* wave under the header: now blue fill per user's request */
     .wave-top{
@@ -114,8 +111,8 @@
         display:none;
         flex:1;
         overflow-y:auto;
-        /* Padding top to start below the new fixed list header */
-        padding:var(--fixed-list-header-height) 18px 120px 18px; 
+        /* UPDATED: Increased padding-top to ensure content starts safely below the fixed header */
+        padding:calc(var(--fixed-list-header-height) + 8px) 18px 120px 18px; 
         box-sizing:border-box;
     }
     .chats h3{color:var(--primary);margin:8px 0 12px;}
@@ -131,7 +128,6 @@
     .floating-new{
       position:fixed;
       right:20px;
-      /* Position below wave and fixed list header/some chats */
       top: calc(var(--header-height) + var(--wave-height) + var(--fab-top-offset));
       width:64px;
       height:64px;
@@ -168,7 +164,7 @@
 
     .chat-screen{display:none;flex-direction:column;flex:1;overflow:hidden;padding:0;box-sizing:border-box;background-image: url('bg.png');background-repeat:no-repeat;background-size:cover;background-position:center;}
 
-    /* chat header now positioned below header+wave when visible; will be adjusted by JS when top header is hidden */
+    /* chat header now positioned below header+wave when visible */
     .chat-header{
       display:flex;
       align-items:center;
@@ -184,7 +180,6 @@
       box-shadow:0 6px 20px rgba(10,30,80,0.06);
       height:var(--header-height);
       box-sizing:border-box;
-      /* Position below top header + wave */
       top: calc(var(--header-height) + var(--wave-height));
     }
     .chat-header-left{flex:0 0 auto;}
@@ -211,9 +206,7 @@
       flex-direction:column;
       gap:8px;
       padding:6px;
-      /* Ensure messages are below chat-header (which is below top header + wave) */
       padding-top: calc(var(--header-height) + var(--wave-height) + var(--header-height) + 12px);
-      /* UPDATED: Adjusted space for chat input wrapper + bottom nav. Input wrapper is ~80px, bottom nav is ~64px. Keep margin for keyboard visibility. */
       padding-bottom:120px; 
       box-sizing:border-box;
       background-image: url('bg.png');
@@ -232,21 +225,17 @@
       right:0;
       bottom:64px; 
       padding:8px 18px 10px 18px;
-      /* CHANGED: Make background transparent */
+      /* Background transparent as requested */
       background:transparent; 
       box-sizing:border-box;
       width:100%;
       z-index:80;
       display:flex;
       justify-content:center;
-      /* Removed backdrop-filter to prevent any semi-white effect */
-      /* -webkit-backdrop-filter: blur(4px); */
-      /* backdrop-filter: blur(4px); */
       border-top:1px solid rgba(11,96,214,0.08);
       transition: bottom 260ms cubic-bezier(.22,.9,.32,1), transform 260ms ease;
       transform: translateZ(0);
     }
-    /* Note: The blue border is correctly on .chat-input, which is inside the transparent wrapper */
     .chat-input{display:flex;gap:8px;align-items:center;border-radius:999px;padding:8px;background:#fff;border:2px solid var(--primary);transition:border-color 0.3s, transform 0.1s;max-width:920px;width:100%;box-sizing:border-box;}
     @keyframes gentleShake{0%,100%{transform:translateX(0);}25%{transform:translateX(-2px);}75%{transform:translateX(2px);}}
     .chat-input.typing{animation:gentleShake 0.25s ease-in-out;}
@@ -254,10 +243,53 @@
     .send-btn{width:44px;height:44px;border-radius:50%;border:none;background:linear-gradient(180deg,var(--primary),var(--primary-dark));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;cursor:pointer;box-shadow:0 4px 10px rgba(11,96,214,0.15);}
     .chat-header-right{margin-left:auto;display:flex;align-items:center;gap:8px;}
     
+    /* Side Menu CSS */
+    .side-menu-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.3);
+        z-index: 200;
+        display: none;
+        transition: opacity 0.3s;
+        opacity: 0;
+    }
+    .side-menu {
+        position: fixed;
+        top: 0;
+        right: 0;
+        height: 100%;
+        width: 80%; /* Adjust as needed */
+        max-width: 320px;
+        background: #fff;
+        z-index: 210;
+        box-shadow: -4px 0 16px rgba(0,0,0,0.15);
+        transform: translateX(100%);
+        transition: transform 0.3s ease-out;
+        padding: 20px;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+    }
+    .side-menu.open {
+        transform: translateX(0);
+    }
+    .side-menu-backdrop.visible {
+        opacity: 1;
+        display: block;
+    }
+    .side-menu-header {
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--primary);
+        margin-bottom: 20px;
+        border-bottom: 1px solid rgba(0,0,0,0.05);
+        padding-bottom: 10px;
+    }
+
+
     @media (min-width:900px){
       .phone{max-width:420px;margin:0 auto;box-shadow:0 20px 60px rgba(0,0,0,0.08);}
       .plus-menu{right:calc(50% - 210px);}
-      /* Set width of input area for desktop view */
       .chat-input-area-wrapper{left:calc(50% - 210px);right:calc(50% - 210px);width:420px;bottom:64px;} 
     }
   </style>
@@ -267,6 +299,7 @@
     <div class="header" id="topHeader">
       <div class="logo"><img src="logo.png" alt="Zag Messenger Logo"></div>
       <div class="title">Zag Messenger</div>
+      <!-- Added ID for easier targeting in JS for menu click -->
       <div class="menu" id="topHeaderMenu">☰</div>
     </div>
 
@@ -294,6 +327,7 @@
     </div>
 
     <!-- Fixed List Header (My chats / Groups title) -->
+    <!-- This will be hidden/shown by JS based on auth state and current view -->
     <div class="fixed-list-header" id="fixedListHeader" style="display:none;">
       <div class="top-controls">
         <h3 style="margin:0" id="list-title">My chats</h3>
@@ -363,6 +397,16 @@
       <button id="plusGroupBtn">Group Chat</button>
     </div>
   </div>
+
+  <!-- Side Menu HTML -->
+  <div class="side-menu-backdrop" id="sideMenuBackdrop">
+    <div class="side-menu" id="sideMenu">
+        <div class="side-menu-header">Menu</div>
+        <p style="color:var(--muted)">Content for the right-side menu will go here.</p>
+        <p style="color:var(--muted)">Example menu items (Settings, Profile, etc.)</p>
+    </div>
+  </div>
+
 
   <!-- Group Modal -->
   <div class="modal-backdrop" id="modalBackdrop">
@@ -437,11 +481,16 @@
     const welcomeText = document.querySelector('.welcome');
     const chatInputWrapper = document.querySelector('.chat-input-area-wrapper');
     const chatMenuBtn = document.getElementById('chatMenuBtn');
+    const topHeaderMenu = document.getElementById('topHeaderMenu'); // New: Menu button
 
     const topHeader = document.getElementById('topHeader');
     const waveTop = document.getElementById('waveTop');
     const chatHeader = document.getElementById('chatHeader');
     const fixedListHeader = document.getElementById('fixedListHeader'); 
+    
+    // Side Menu DOM Refs
+    const sideMenuBackdrop = document.getElementById('sideMenuBackdrop');
+    const sideMenu = document.getElementById('sideMenu');
 
     // Modal refs
     const modalBackdrop = document.getElementById('modalBackdrop');
@@ -461,13 +510,40 @@
     let selectedGroupMembers = {};
     let isSigningUp = true;
 
+    // Side Menu Functions
+    function openSideMenu() {
+        sideMenuBackdrop.style.display = 'block';
+        setTimeout(() => {
+            sideMenuBackdrop.classList.add('visible');
+            sideMenu.classList.add('open');
+        }, 10);
+    }
+
+    function closeSideMenu() {
+        sideMenuBackdrop.classList.remove('visible');
+        sideMenu.classList.remove('open');
+        setTimeout(() => {
+            sideMenuBackdrop.style.display = 'none';
+        }, 300); // Match CSS transition time
+    }
+
+    topHeaderMenu.addEventListener('click', openSideMenu);
+    sideMenuBackdrop.addEventListener('click', (e) => {
+        // Close if click is on the backdrop itself (not the menu)
+        if (e.target === sideMenuBackdrop) {
+            closeSideMenu();
+        }
+    });
+
+
     // show/hide top header + wave + fixed list header together and adjust content padding
     function setTopBannerVisible(visible) {
       const phoneEl = document.querySelector('.phone');
       if (visible) {
         topHeader.style.display = 'flex';
         waveTop.style.display = 'block';
-        fixedListHeader.style.display = 'flex'; 
+        
+        // fixedListHeader visibility is managed in updateUI for auth check
         
         // ensure phone content starts after header + wave
         phoneEl.style.paddingTop = 'calc(var(--header-height) + var(--wave-height))';
@@ -483,7 +559,7 @@
         // hide them on chat screens
         topHeader.style.display = 'none';
         waveTop.style.display = 'none';
-        fixedListHeader.style.display = 'none'; 
+        fixedListHeader.style.display = 'none'; // Ensure hidden on chat screen too
         
         phoneEl.style.paddingTop = '0px';
         
@@ -589,7 +665,8 @@
         groupList.style.display = 'none';
         // show banner on list screens
         setTopBannerVisible(true);
-        fixedListHeader.style.display = 'flex';
+        // UPDATED: Show fixed header only when signed in
+        fixedListHeader.style.display = 'flex'; 
       } else {
         authSection.style.display = 'flex';
         appSection.style.display = 'none';
@@ -599,7 +676,8 @@
         navHome.classList.remove('active');
         navGroups.classList.remove('active');
         setTopBannerVisible(true);
-        fixedListHeader.style.display = 'none';
+        // UPDATED: Hide fixed header on auth screen
+        fixedListHeader.style.display = 'none'; 
       }
     }
 
@@ -1099,12 +1177,12 @@
     }
 
     window.addEventListener('load', () => {
-      // Show the fixed list header when the app is initialized
+      // Show the fixed list header when the app is initialized and user is logged in
       const flh = document.getElementById('fixedListHeader');
-      if (flh && appSection.style.display !== 'none') flh.style.display = 'flex';
+      if (flh && appSection.style.display !== 'none' && currentUser) flh.style.display = 'flex';
     });
 
-    console.log('User fixes applied: message bar background made transparent.');
+    console.log('User fixes applied: scroll position adjusted, side menu implemented, fixed header visibility fixed on auth page.');
   </script>
 
   <!-- Main + Modal -->
