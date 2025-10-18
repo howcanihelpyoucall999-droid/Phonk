@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Zag Messenger — User fixes (wave blue, logo, fab new position, fixed chat list header, removed orange bar)</title>
+  <title>Zag Messenger — User fixes (wave blue, logo, fab new position, fixed chat list header, removed orange bar, transparent message bar background)</title>
   <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet" />
   <style>
     :root{
@@ -18,6 +18,9 @@
       --wave-height:28px;
       --fixed-list-header-height:48px; /* New: height of the fixed 'My chats' header */
       --fab-top-offset:400px; /* Adjusted: to move the + to the black circle's position */
+      --bottom-nav-height: 64px; /* Approximate height of bottom navigation */
+      --chat-input-padding: 8px 18px 10px 18px;
+      --chat-input-area-wrapper-height: 80px; /* Approx (padding + input/btn height) */
     }
     html,body{height:100%;margin:0;font-family:var(--hand-font);background:linear-gradient(180deg,var(--bg),#eef6ff 60%);overflow:hidden;}
     .phone{
@@ -68,10 +71,9 @@
     .wave-top svg{width:100%;height:100%;display:block;}
     .wave-top path{fill:var(--primary);} 
 
-    /* Fixed header for 'My chats' list - NEW ELEMENT */
+    /* Fixed header for 'My chats' list */
     .fixed-list-header {
       position: fixed;
-      /* Position directly under the wave */
       top: calc(var(--header-height) + var(--wave-height)); 
       left: 0;
       right: 0;
@@ -192,7 +194,6 @@
     .chat-center-text .chat-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700;color:var(--primary);font-size:16px;max-width:100%;}
     .chat-center-text .small{font-size:12px;color:var(--muted);opacity:0.9;margin-top:3px;}
     #backToChatListBtn{padding:6px 10px !important;border-radius:8px !important;font-size:14px !important;min-width:56px;}
-    /* UPDATED: Chat menu button style - blue background/white text */
     .chat-menu-btn{
       padding:6px 10px;
       border-radius:8px;
@@ -212,7 +213,7 @@
       padding:6px;
       /* Ensure messages are below chat-header (which is below top header + wave) */
       padding-top: calc(var(--header-height) + var(--wave-height) + var(--header-height) + 12px);
-      /* UPDATED: Added space for chat input wrapper + bottom nav */
+      /* UPDATED: Adjusted space for chat input wrapper + bottom nav. Input wrapper is ~80px, bottom nav is ~64px. Keep margin for keyboard visibility. */
       padding-bottom:120px; 
       box-sizing:border-box;
       background-image: url('bg.png');
@@ -229,21 +230,23 @@
       position:fixed;
       left:0;
       right:0;
-      /* Adjusted to sit right above the bottom-nav */
       bottom:64px; 
       padding:8px 18px 10px 18px;
-      background:#fff;
+      /* CHANGED: Make background transparent */
+      background:transparent; 
       box-sizing:border-box;
       width:100%;
       z-index:80;
       display:flex;
       justify-content:center;
-      -webkit-backdrop-filter: blur(4px);
-      backdrop-filter: blur(4px);
+      /* Removed backdrop-filter to prevent any semi-white effect */
+      /* -webkit-backdrop-filter: blur(4px); */
+      /* backdrop-filter: blur(4px); */
       border-top:1px solid rgba(11,96,214,0.08);
       transition: bottom 260ms cubic-bezier(.22,.9,.32,1), transform 260ms ease;
       transform: translateZ(0);
     }
+    /* Note: The blue border is correctly on .chat-input, which is inside the transparent wrapper */
     .chat-input{display:flex;gap:8px;align-items:center;border-radius:999px;padding:8px;background:#fff;border:2px solid var(--primary);transition:border-color 0.3s, transform 0.1s;max-width:920px;width:100%;box-sizing:border-box;}
     @keyframes gentleShake{0%,100%{transform:translateX(0);}25%{transform:translateX(-2px);}75%{transform:translateX(2px);}}
     .chat-input.typing{animation:gentleShake 0.25s ease-in-out;}
@@ -251,8 +254,6 @@
     .send-btn{width:44px;height:44px;border-radius:50%;border:none;background:linear-gradient(180deg,var(--primary),var(--primary-dark));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;cursor:pointer;box-shadow:0 4px 10px rgba(11,96,214,0.15);}
     .chat-header-right{margin-left:auto;display:flex;align-items:center;gap:8px;}
     
-    /* ... other CSS rules remain unchanged ... */
-
     @media (min-width:900px){
       .phone{max-width:420px;margin:0 auto;box-shadow:0 20px 60px rgba(0,0,0,0.08);}
       .plus-menu{right:calc(50% - 210px);}
@@ -339,7 +340,7 @@
 
       <div id="chat-messages" class="chat-messages" role="log" aria-live="polite"></div>
 
-      <!-- Message Input Bar - Restored/Verified -->
+      <!-- Message Input Bar - Transparent Background -->
       <div class="chat-input-area-wrapper" aria-label="Message input area">
         <div id="chat-input-area" class="chat-input">
           <input id="chatMessageInput" type="text" placeholder="Type a message..." aria-label="Type a message">
@@ -1103,7 +1104,7 @@
       if (flh && appSection.style.display !== 'none') flh.style.display = 'flex';
     });
 
-    console.log('User fixes applied: message bar restored, + button function checked, chat menu button styled.');
+    console.log('User fixes applied: message bar background made transparent.');
   </script>
 
   <!-- Main + Modal -->
