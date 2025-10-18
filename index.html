@@ -305,7 +305,140 @@
     /* Make sure chat-screen overlays do not get overlapped by other UI */
     .chat-screen{ z-index:160; position:relative; }
 
-  </style>
+  
+/* --- CHAT FIX: strong overlay, pinned input, prevent overlaps --- */
+.individual-chat, .chat-screen {
+  position: fixed !important;
+  inset: 0 !important; /* top:0; right:0; bottom:0; left:0; */
+  display: none !important;
+  z-index: 9999 !important;
+  background: var(--chat-bg, #fff) !important;
+  -webkit-overflow-scrolling: touch;
+  overflow: hidden !important;
+}
+
+/* messages container fills the remaining area above input */
+.chat-messages {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+  padding: 16px !important;
+  box-sizing: border-box !important;
+}
+
+/* pinned input wrapper */
+.chat-input-area-wrapper {
+  position: fixed !important;
+  left: 16px !important;
+  right: 16px !important;
+  bottom: env(safe-area-inset-bottom, 12px) !important;
+  z-index: 10010 !important;
+  box-sizing: border-box;
+  transition: bottom 150ms ease;
+  pointer-events: auto;
+}
+
+/* make sure bottom nav and floating action button don't overlap when chat is open */
+.phone.chat-active .bottom-nav,
+.phone.chat-active .fab,
+.phone.chat-active .floating-action {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/* Increase message bubble z-index if needed */
+.chat-messages .message, .chat-messages .message:last-child {
+  z-index: 10005;
+}
+
+/* ensure contact list cannot get above the chat overlay */
+.contacts-list, .app-section, .main-list {
+  z-index: 1;
+}
+
+/* if for any reason any element has pointer events that reach through, stop it */
+.phone.chat-active *:not(.chat-input-area-wrapper):not(.chat-messages) {
+  pointer-events: auto;
+}
+
+/* make sure floating add button has lower z than chat */
+.fab { z-index: 1000 !important; }
+
+
+/* Profile editor styles */
+.profile-editor-modal {
+  position: fixed;
+  inset: 0;
+  display: none;
+  justify-content: center;
+  align-items: center;
+  background: rgba(0,0,0,0.45);
+  z-index: 11000;
+}
+.profile-editor-card {
+  width: 92%;
+  max-width: 540px;
+  background: white;
+  border-radius: 14px;
+  padding: 18px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+  box-sizing: border-box;
+  font-family: inherit;
+}
+.profile-editor-header { display:flex; align-items:center; gap:12px; margin-bottom:12px; }
+.profile-avatar { width:78px; height:78px; border-radius:50%; background:linear-gradient(#e6f0ff,#dfeeff); display:flex; align-items:center; justify-content:center; font-size:34px; color:#1a73e8; position:relative; overflow:hidden; }
+.profile-avatar img{ width:100%; height:100%; object-fit:cover; display:block; }
+.pencil-btn {
+  background: #ffffffcc;
+  border-radius: 50%;
+  border: 1px solid rgba(0,0,0,0.06);
+  padding:6px;
+  position: absolute;
+  right: -6px;
+  bottom: -6px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+  cursor:pointer;
+}
+.profile-row { margin-bottom:10px; }
+.profile-row label{ display:block; font-size:13px; color:#666; margin-bottom:6px; }
+.profile-row input, .profile-row textarea {
+  width:100%; padding:10px 12px; border-radius:8px; border:1px solid #e6eef9; font-size:15px; box-sizing:border-box;
+  font-family: inherit;
+}
+.profile-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:12px; }
+.profile-actions button { padding:8px 14px; border-radius:8px; border:none; cursor:pointer; font-weight:600; }
+.save-btn { background: #0b66d6; color:white; }
+.cancel-btn { background: #f1f5f9; color:#123; }
+
+/* Delete contact button style for contact rows */
+.contact-delete-btn {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:36px; height:36px;
+  border-radius:50%;
+  background:#fff;
+  border:1px solid rgba(0,0,0,0.06);
+  box-shadow: 0 6px 18px rgba(10,20,40,0.06);
+  cursor:pointer;
+  margin-left:8px;
+  color:#d62828;
+  font-weight:700;
+  font-size:16px;
+}
+.contact-actions { display:flex; align-items:center; gap:8px; float:right; margin-right:8px; }
+.small-pencil {
+  display:inline-block;
+  width:36px; height:36px; border-radius:50%; background:#0b66d6; color:white; text-align:center; line-height:36px; cursor:pointer;
+  font-weight:700;
+}
+
+</style>
 </head>
 <body>
   <div class="phone">
@@ -1235,5 +1368,403 @@
     </div>
   </div>
 
+<script>
+// --- CHAT FIX JS ---
+(function(){
+  // helper elements (try to find common ids/classnames used in the app)
+  const phone = document.querySelector('.phone') || document.body;
+  const bottomNav = document.querySelector('.bottom-nav');
+  const fab = document.querySelector('.fab') || document.querySelector('.floating-action') || null;
+  const chatWrapper = document.querySelector('.individual-chat') || document.querySelector('.chat-screen');
+  const msgContainer = document.querySelector('.chat-messages') || document.querySelector('#msgContainer') || null;
+  const chatInputWrapper = document.querySelector('.chat-input-area-wrapper') || document.querySelector('.chat-input') || null;
+
+  // Ensure functions exist (if earlier code created them, don't override - but provide improved versions)
+  window.enterChatMode = window.enterChatMode || function(){
+    if (phone) phone.classList.add('chat-active');
+    if (chatWrapper) chatWrapper.style.display = 'flex';
+    if (bottomNav) bottomNav.style.display = 'none';
+    if (fab) fab.style.display = 'none';
+    // force input to bottom
+    if (chatInputWrapper) {
+      chatInputWrapper.style.bottom = 'env(safe-area-inset-bottom, 8px)';
+      chatInputWrapper.style.position = 'fixed';
+    }
+    // reserve padding for messages so last message is visible
+    if (msgContainer) {
+      const h = chatInputWrapper ? chatInputWrapper.offsetHeight : 80;
+      msgContainer.style.paddingBottom = (h + 24) + 'px';
+      // scroll to bottom
+      setTimeout(()=>{ try{ msgContainer.scrollTop = msgContainer.scrollHeight; }catch(e){} }, 120);
+    }
+    // adjust for keyboard if available
+    adjustForKeyboard();
+  };
+
+  window.exitChatMode = window.exitChatMode || function(){
+    if (phone) phone.classList.remove('chat-active');
+    if (chatWrapper) chatWrapper.style.display = 'none';
+    if (bottomNav) bottomNav.style.display = '';
+    if (fab) fab.style.display = '';
+    if (chatInputWrapper) {
+      chatInputWrapper.style.bottom = 'env(safe-area-inset-bottom, 12px)';
+    }
+    if (msgContainer) msgContainer.style.paddingBottom = '';
+  };
+
+  // If visualViewport available, adjust input position when keyboard opens on mobile browsers
+  function adjustForKeyboard(){
+    try{
+      const vv = window.visualViewport;
+      if (!chatInputWrapper) return;
+      if (vv){
+        // number of pixels the viewport lost from window.innerHeight
+        const keyboardHeight = Math.max(0, window.innerHeight - vv.height - (vv.offsetTop || 0));
+        // Add safe area inset
+        const safeInset = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--safe-inset-bottom') || 0) || 0;
+        // set bottom to keyboardHeight to push input above keyboard (plus small offset)
+        chatInputWrapper.style.bottom = (keyboardHeight + 8) + 'px';
+        // increase padding bottom of messages so last message not hidden
+        if (msgContainer){
+          const h = chatInputWrapper.offsetHeight + keyboardHeight + 8;
+          msgContainer.style.paddingBottom = h + 'px';
+          // keep scroll at bottom
+          setTimeout(()=>{ try{ msgContainer.scrollTop = msgContainer.scrollHeight; }catch(e){} }, 50);
+        }
+      } else {
+        // fallback
+        chatInputWrapper.style.bottom = 'env(safe-area-inset-bottom, 12px)';
+        if (msgContainer) {
+          msgContainer.style.paddingBottom = (chatInputWrapper.offsetHeight + 24) + 'px';
+        }
+      }
+    }catch(e){
+      console.warn('adjustForKeyboard error', e);
+    }
+  }
+
+  // attach listeners
+  if (window.visualViewport){
+    window.visualViewport.addEventListener('resize', adjustForKeyboard);
+    window.visualViewport.addEventListener('scroll', adjustForKeyboard);
+  }
+  window.addEventListener('resize', adjustForKeyboard);
+  window.addEventListener('orientationchange', adjustForKeyboard);
+
+  // When input inside chat gets focus (user opens keyboard), adjust right away
+  document.addEventListener('focusin', (ev)=>{
+    if (chatInputWrapper && chatInputWrapper.contains(ev.target)) {
+      setTimeout(adjustForKeyboard, 60);
+    }
+  });
+  document.addEventListener('focusout', (ev)=>{
+    if (chatInputWrapper && chatInputWrapper.contains(ev.target)) {
+      setTimeout(()=>{
+        // restore
+        chatInputWrapper.style.bottom = 'env(safe-area-inset-bottom, 12px)';
+        if (msgContainer) msgContainer.style.paddingBottom = (chatInputWrapper.offsetHeight + 24) + 'px';
+      }, 60);
+    }
+  });
+
+  // Safety: when opening any chat list item, force-enter chat mode (for inconsistent existing handlers)
+  document.addEventListener('click', (ev)=>{
+    const row = ev.target.closest && ev.target.closest('.contact-row, .list-item, .user-row, .person-row');
+    if (row){
+      // small delay so original click handler runs then we enforce chat mode
+      setTimeout(()=>{
+        if (document.querySelector('.individual-chat') && document.querySelector('.individual-chat').style.display !== 'none'){
+          window.enterChatMode();
+        }
+      }, 80);
+    }
+  });
+
+  // Expose adjustForKeyboard for debugging
+  window.__adjustChatForKeyboard = adjustForKeyboard;
+
+  // if we are already inside a chat when page loads, enter chat mode now
+  if (document.querySelector('.individual-chat') && document.querySelector('.individual-chat').style.display !== 'none'){
+    window.enterChatMode();
+  }
+})();
+</script>
+
+<!-- Profile editor modal -->
+<div id="profileEditorModal" class="profile-editor-modal" aria-hidden="true">
+  <div class="profile-editor-card" role="dialog" aria-modal="true">
+    <div class="profile-editor-header">
+      <div class="profile-avatar" id="profileAvatar">
+        <span id="profileInitial">Y</span>
+        <button class="pencil-btn" id="avatarChangeBtn" title="Change photo">✎</button>
+      </div>
+      <div style="flex:1;">
+        <div style="font-weight:700; font-size:18px;" id="profileEmailDisplay">you@example.com</div>
+        <div style="font-size:13px; color:#567; margin-top:4px;">Handle name is your email (cannot change)</div>
+      </div>
+    </div>
+
+    <div class="profile-row">
+      <label for="profileNameInput">Display name</label>
+      <input id="profileNameInput" type="text" placeholder="Your display name">
+    </div>
+
+    <div class="profile-row">
+      <label for="profileAboutInput">About</label>
+      <textarea id="profileAboutInput" rows="3" placeholder="Write something about yourself..."></textarea>
+    </div>
+
+    <div style="display:none;">
+      <input id="profileImageFile" type="file" accept="image/*">
+    </div>
+
+    <div class="profile-actions">
+      <button class="cancel-btn" id="profileCancelBtn">Cancel</button>
+      <button class="save-btn" id="profileSaveBtn">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  // Utility: find '@You' element(s) by text
+  function findYouElements(){
+    const els = Array.from(document.querySelectorAll('button, a, div, span, li')).filter(el=>el.innerText && el.innerText.trim().includes('@You'));
+    return els;
+  }
+
+  // Detect an email present on the page (try to find logged-in email)
+  function detectMyEmail(){
+    // try known global variable
+    try{ if(window.currentUser && typeof window.currentUser === 'string' && window.currentUser.includes('@')) return window.currentUser; }catch(e){}
+    // try meta or profile area
+    const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
+    const allText = document.body.innerText;
+    const m = allText.match(emailRegex);
+    if(m) return m[0];
+    return ''; // fallback empty
+  }
+
+  function loadProfile(){
+    const stored = localStorage.getItem('myProfile_v1');
+    if(stored) return JSON.parse(stored);
+    // default profile with detected email
+    const email = detectMyEmail() || 'you@example.com';
+    const p = { email: email, name: '', about: '', avatar: '' };
+    localStorage.setItem('myProfile_v1', JSON.stringify(p));
+    return p;
+  }
+  function saveProfile(p){
+    localStorage.setItem('myProfile_v1', JSON.stringify(p));
+    applyProfileToUI(p);
+    // update contacts list: if contact row with same email exists, update its visible name
+    updateContactNameInList(p.email, p.name);
+  }
+
+  function applyProfileToUI(p){
+    const emailEl = document.getElementById('profileEmailDisplay');
+    const initialEl = document.getElementById('profileInitial');
+    const avatarEl = document.getElementById('profileAvatar');
+    if(emailEl) emailEl.innerText = p.email;
+    if(p.avatar && avatarEl){
+      avatarEl.innerHTML = '<img src="'+p.avatar+'" alt="avatar">';
+    } else {
+      if(initialEl) initialEl.innerText = (p.name && p.name.trim().length>0) ? p.name.trim()[0].toUpperCase() : (p.email ? p.email[0].toUpperCase() : 'Y');
+    }
+    // also update any small @You display if exists
+    const youEls = findYouElements();
+    youEls.forEach(el=>{
+      // show small pencil near it
+      if(!el.querySelector('.small-pencil')){
+        const sp = document.createElement('span');
+        sp.className = 'small-pencil';
+        sp.title = 'Edit profile';
+        sp.innerText = '✎';
+        sp.style.marginLeft = '8px';
+        sp.addEventListener('click', (ev)=>{ ev.stopPropagation(); openProfileEditor(); });
+        el.appendChild(sp);
+      }
+    });
+  }
+
+  function openProfileEditor(){
+    const modal = document.getElementById('profileEditorModal');
+    const profile = loadProfile();
+    if(!modal) return;
+    modal.style.display = 'flex';
+    modal.setAttribute('aria-hidden','false');
+    // populate fields
+    document.getElementById('profileEmailDisplay').innerText = profile.email;
+    document.getElementById('profileNameInput').value = profile.name || '';
+    document.getElementById('profileAboutInput').value = profile.about || '';
+    // avatar
+    if(profile.avatar){
+      document.getElementById('profileAvatar').innerHTML = '<img src="'+profile.avatar+'"> <button class="pencil-btn" id="avatarChangeBtn" title="Change photo">✎</button>';
+      // rebind change btn
+      const changeBtn = document.getElementById('avatarChangeBtn');
+      if(changeBtn) changeBtn.addEventListener('click', ()=> document.getElementById('profileImageFile').click());
+    } else {
+      document.getElementById('profileAvatar').innerHTML = '<span id="profileInitial">'+(profile.name?profile.name[0].toUpperCase(): (profile.email?profile.email[0].toUpperCase():'Y'))+'</span><button class="pencil-btn" id="avatarChangeBtn" title="Change photo">✎</button>';
+      const changeBtn = document.getElementById('avatarChangeBtn');
+      if(changeBtn) changeBtn.addEventListener('click', ()=> document.getElementById('profileImageFile').click());
+    }
+  }
+
+  function closeProfileEditor(){
+    const modal = document.getElementById('profileEditorModal');
+    if(!modal) return;
+    modal.style.display = 'none';
+    modal.setAttribute('aria-hidden','true');
+  }
+
+  // When avatar file selected, convert to base64 and preview
+  document.addEventListener('change', (ev)=>{
+    if(ev.target && ev.target.id === 'profileImageFile' && ev.target.files && ev.target.files[0]){
+      const f = ev.target.files[0];
+      const reader = new FileReader();
+      reader.onload = function(e){
+        const data = e.target.result;
+        const p = loadProfile();
+        p.avatar = data;
+        saveProfile(p);
+        // refresh editor UI if open
+        openProfileEditor();
+      };
+      reader.readAsDataURL(f);
+    }
+  });
+
+  // Save/Cancel handlers
+  document.addEventListener('click', (ev)=>{
+    if(ev.target && ev.target.id === 'profileSaveBtn'){
+      const p = loadProfile();
+      p.name = document.getElementById('profileNameInput').value || '';
+      p.about = document.getElementById('profileAboutInput').value || '';
+      saveProfile(p);
+      closeProfileEditor();
+    }
+    if(ev.target && ev.target.id === 'profileCancelBtn'){
+      closeProfileEditor();
+    }
+    // close modal when clicking outside the card
+    if(ev.target && ev.target.id === 'profileEditorModal'){
+      closeProfileEditor();
+    }
+  });
+
+  // Update contact name in list if an element shows the email
+  function updateContactNameInList(email, newName){
+    if(!email) return;
+    // find elements containing this email text and try to update their parent row title
+    const els = Array.from(document.querySelectorAll('*')).filter(el=> el.children.length>0 && el.innerText && el.innerText.includes(email));
+    els.forEach(el=>{
+      // try to find a sibling or element within el which is the name display (commonly large text)
+      const candidate = Array.from(el.querySelectorAll('div, span, p, h3')).find(x=> x.innerText && x.innerText !== email && x.innerText.trim().length>0);
+      if(candidate){
+        candidate.innerText = newName || email;
+      } else {
+        // fallback: if el itself looks like email container, set previous sibling text
+        if(el.previousElementSibling){
+          el.previousElementSibling.innerText = newName || email;
+        }
+      }
+    });
+  }
+
+  // Add delete buttons to contact rows: find rows that contain an email and append a delete button
+  function addDeleteButtonsToContacts(){
+    const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
+    // find item nodes that look like contact rows: have an email inside and are visible
+    const allNodes = Array.from(document.querySelectorAll('div, li, article, section')).filter(n=> n.innerText && emailRegex.test(n.innerText));
+    allNodes.forEach(node=>{
+      if(node.querySelector('.contact-delete-btn')) return; // already has delete
+      const m = node.innerText.match(emailRegex);
+      if(!m) return;
+      const email = m[0];
+      // create actions container
+      let actions = node.querySelector('.contact-actions');
+      if(!actions){
+        actions = document.createElement('div');
+        actions.className = 'contact-actions';
+        // append to node (try different spots)
+        node.style.position = 'relative';
+        node.appendChild(actions);
+      }
+      const del = document.createElement('button');
+      del.className = 'contact-delete-btn';
+      del.title = 'Delete contact';
+      del.innerText = '×';
+      del.addEventListener('click', (ev)=>{
+        ev.stopPropagation();
+        // remove the node from DOM
+        node.remove();
+        // optionally remove from localStorage contacts array if stored
+        try{
+          const stored = localStorage.getItem('contacts_v1');
+          if(stored){
+            const arr = JSON.parse(stored);
+            const filtered = arr.filter(c=> c.email !== email);
+            localStorage.setItem('contacts_v1', JSON.stringify(filtered));
+          }
+        }catch(e){}
+      });
+      actions.appendChild(del);
+    });
+  }
+
+  // Expose openProfileEditor to global so other code can call it
+  window.openProfileEditor = openProfileEditor;
+
+  // When '@You' elements are clicked, open profile editor
+  function bindYouClicks(){
+    const youEls = findYouElements();
+    youEls.forEach(el=>{
+      el.addEventListener('click', (ev)=>{
+        ev.preventDefault();
+        openProfileEditor();
+      });
+      // add pencil small icon if not present
+      if(!el.querySelector('.small-pencil')){
+        const sp = document.createElement('span');
+        sp.className = 'small-pencil';
+        sp.title = 'Edit profile';
+        sp.innerText = '✎';
+        sp.style.marginLeft = '8px';
+        sp.addEventListener('click', (ev)=>{ ev.stopPropagation(); openProfileEditor(); });
+        el.appendChild(sp);
+      }
+    });
+  }
+
+  // Initialize on page load
+  window.addEventListener('load', ()=>{
+    try{
+      const profile = loadProfile();
+      applyProfileToUI(profile);
+      bindYouClicks();
+      addDeleteButtonsToContacts();
+      // run again after short delay to catch dynamically loaded contacts
+      setTimeout(()=>{ addDeleteButtonsToContacts(); bindYouClicks(); }, 900);
+    }catch(e){ console.warn('profile editor init failed', e); }
+  });
+
+  // Public: deleteContact(email)
+  window.deleteContactByEmail = function(email){
+    if(!email) return;
+    // find first node containing that email and remove it
+    const node = Array.from(document.querySelectorAll('*')).find(n=> n.innerText && n.innerText.includes(email) && n.children.length>0);
+    if(node) node.remove();
+    // update stored contacts array if present
+    try{
+      const stored = localStorage.getItem('contacts_v1');
+      if(stored){
+        const arr = JSON.parse(stored);
+        const filtered = arr.filter(c=> c.email !== email);
+        localStorage.setItem('contacts_v1', JSON.stringify(filtered));
+      }
+    }catch(e){}
+  };
+})(); 
+</script>
 </body>
 </html>
