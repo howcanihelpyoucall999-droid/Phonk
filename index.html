@@ -704,6 +704,7 @@
 
     onAuthStateChanged(auth, async (user) => {
       currentUser = user;
+      try { if (user) { localStorage.setItem('signedIn','true'); } else { localStorage.removeItem('signedIn'); } } catch(e) {}
       if (user) {
         await createUserProfile(user);
         loadUsersCache();
@@ -848,16 +849,26 @@
         chatList.innerHTML = '<div class="small">Sign in to see chats.</div>';
         return;
       }
-      const usersRef = dbRef(db, 'users');
-      get(usersRef).then(snap => {
+      // Read contacts for current user (only show contacts the user added or who added them)
+      const contactsRef = dbRef(db, 'contacts/' + currentUser.uid);
+      get(contactsRef).then(async (snap) => {
         if (!snap.exists()) {
           chatList.innerHTML = '<div class="small">No contacts yet.</div>';
           return;
         }
         chatList.innerHTML = '';
-        snap.forEach(s => {
-          const u = s.val();
-          if (u.uid === currentUser.uid) return;
+        const contactUids = Object.keys(snap.val() || {});
+        for (const uid of contactUids) {
+          let u = usersCache[uid];
+          if (!u) {
+            try {
+              const userSnap = await get(dbRef(db, 'users/' + uid));
+              if (userSnap.exists()) u = userSnap.val();
+            } catch (e) {
+              console.error('Error fetching user for contact', uid, e);
+            }
+          }
+          if (!u) continue;
           const item = document.createElement('div');
           item.className = 'chat-item';
           item.dataset.uid = u.uid;
@@ -870,7 +881,7 @@
             openPrivateChatWith(u);
           });
           chatList.appendChild(item);
-        });
+        }
       }).catch(err => {
         console.error('loadChats error', err);
         chatList.innerHTML = '<div class="small">Error loading chats.</div>';
@@ -1048,6 +1059,15 @@
       });
       if (!found) {
         return alert('User not found in directory. They must sign up first.');
+      }
+      // add reciprocal contacts so both users see each other
+      try {
+        if (currentUser) {
+          await set(dbRef(db, 'contacts/' + currentUser.uid + '/' + found.uid), true);
+          await set(dbRef(db, 'contacts/' + found.uid + '/' + currentUser.uid), true);
+        }
+      } catch (e) {
+        console.error('Error adding reciprocal contacts', e);
       }
       openPrivateChatWith(found);
       addChatArea.style.display = 'none';
