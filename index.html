@@ -96,7 +96,7 @@
        width: 100%;
     }
 
-    .auth{flex:1;display:flex;flex-direction:column;justify-content:flex-start;align-items:center;text-align:center;padding:20px 20px 60px 20px;overflow-y:auto;background:#f0f4fc;padding-top: calc(var(--header-height) + var(--wave-height) + 12px);}
+    .auth{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:20px;overflow-y:auto;background:#f0f4fc;}
     .welcome{font-size:22px;color:var(--primary);}
     .sub{color:var(--muted);font-size:13px;margin-bottom:12px;}
     input{border:1px solid rgba(75,134,230,0.08);border-radius:10px;padding:12px 14px;font-size:15px;background:linear-gradient(180deg,#fff,#fbfdff);font-family:var(--hand-font);color:var(--primary);width:90%;max-width:360px;margin-bottom:10px;box-sizing:border-box;}
@@ -332,7 +332,28 @@
     }
     /* --- END: Startup loader overlay styles --- */
 
-  </style>
+  
+/* Profile section styles */
+.profile-section { display:none; flex:1; overflow-y:auto; padding: calc(var(--header-height) + var(--wave-height) + 12px) 18px 120px 18px; box-sizing:border-box; }
+.profile-card { max-width:420px; margin:12px auto; background:linear-gradient(180deg,#fff,#fbfdff); border-radius:12px; padding:16px; box-shadow:0 12px 30px rgba(10,30,80,0.06); }
+.profile-avatar { width:120px; height:120px; border-radius:50%; overflow:hidden; display:block; margin:0 auto 12px; border:6px solid #fff; background:#f0f6ff; align-items:center; justify-content:center; display:flex; font-weight:700; color:var(--primary); font-size:42px; }
+.profile-edit-pic { position:relative; display:flex; justify-content:center; }
+.pencil-btn { position:absolute; right:calc(50% - 40px); top:68px; background:var(--primary); color:#fff; border-radius:50%; width:36px; height:36px; display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 6px 14px rgba(11,96,214,0.12); border:3px solid #fff; }
+.profile-field { margin:8px 0; display:flex; flex-direction:column; gap:6px; }
+.profile-field input[type="text"], .profile-field textarea { width:100%; padding:10px; border-radius:10px; border:1px solid rgba(11,96,214,0.06); font-size:15px; }
+.profile-field .handle { color:var(--muted); font-size:13px; }
+.save-profile-btn { margin-top:12px; }
+.profile-contacts { margin-top:18px; }
+.contact-row { display:flex; align-items:center; gap:10px; padding:8px; border-radius:8px; background:#fff; border:1px solid rgba(11,96,214,0.04); margin-bottom:8px; }
+.contact-row .contact-name { flex:1; font-weight:700; color:var(--primary); }
+.contact-row .delete-btn { background:#ff4d4f; color:#fff; border:none; padding:6px 8px; border-radius:8px; cursor:pointer; }
+.avatar-grid { display:grid; grid-template-columns: repeat(5,1fr); gap:8px; padding:12px; max-width:640px; margin:0 auto; }
+.avatar-grid img { width:100%; height:56px; object-fit:cover; border-radius:8px; cursor:pointer; border:2px solid transparent; }
+.avatar-grid img.selected { outline:3px solid var(--primary); border-color:var(--primary); }
+.avatar-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:99999; align-items:center; justify-content:center; }
+.avatar-modal .modal-inner { width:92%; max-width:760px; background:#fff; border-radius:12px; padding:12px; max-height:80vh; overflow:auto; }
+
+</style>
 </head>
 <body>
   <!-- Startup loader (visible immediately, will be hidden after 1s) -->
@@ -367,10 +388,7 @@
 
       <div class="toggle-btns">
         <button id="toSignIn" class="btn ghost">Already have an account? Sign In</button>
-        <button id="toSignUp" class="btn ghost" style="display:none;">Don\'t have an account? Sign Up</button>
-      </div>
-      <div class="agree" style="font-size:12px;color:var(--muted);max-width:360px;margin:8px auto;">
-        / By clicking the sign in or sign up button you are agreeing with our <a href="policy.html">(Private policy)</a> &amp; <a href="terms.html">(Terms of Service)</a> /
+        <button id="toSignUp" class="btn ghost" style="display:none;">Don't have an account? Sign Up</button>
       </div>
     </div>
 
@@ -400,6 +418,46 @@
     </div>
 
     <!-- Chat Screen -->
+    
+    <!-- Profile Section (@You) -->
+    <div class="profile-section" id="profile-section" aria-hidden="true">
+      <div class="profile-card" id="profile-card">
+        <div class="profile-edit-pic">
+          <div id="profileAvatar" class="profile-avatar" aria-hidden="false">U</div>
+          <div id="pencilBtn" class="pencil-btn" title="Change profile picture">✎</div>
+        </div>
+        <div class="profile-field">
+          <label style="font-size:13px;color:var(--muted)">Display name (optional)</label>
+          <input id="profileDisplayName" type="text" placeholder="Your name (max 10 words)">
+        </div>
+        <div class="profile-field">
+          <label style="font-size:13px;color:var(--muted)">Handle (cannot change)</label>
+          <div class="handle" id="profileHandle">@you</div>
+        </div>
+        <div class="profile-field">
+          <label style="font-size:13px;color:var(--muted)">About (max 10 words)</label>
+          <textarea id="profileAbout" rows="2" placeholder='Hi, I am using Zag Messenger' maxlength="200"></textarea>
+        </div>
+        <button id="saveProfileBtn" class="btn primary save-profile-btn">Save</button>
+
+        <hr style="margin:14px 0;border:none;border-top:1px dashed rgba(11,96,214,0.06)">
+
+        <div class="profile-contacts">
+          <h4 style="margin:6px 0 10px;color:var(--primary)">Your contacts</h4>
+          <div id="profileContactsList"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Avatar picker modal -->
+    <div class="avatar-modal" id="avatarModal" aria-hidden="true">
+      <div class="modal-inner">
+        <h4 style="margin-top:0">Choose profile picture</h4>
+        <div class="avatar-grid" id="avatarGrid"></div>
+        <div style="text-align:right;margin-top:8px;"><button id="closeAvatarModal" class="btn ghost">Close</button></div>
+      </div>
+    </div>
+
     <div class="chat-screen" id="individual-chat-container">
       <div class="chat-header" role="banner" id="chatHeader">
         <div class="chat-header-left">
@@ -705,7 +763,6 @@
       }
     });
 
-    let startupChecked = false;
     onAuthStateChanged(auth, async (user) => {
       currentUser = user;
       if (user) {
@@ -716,7 +773,6 @@
       }
       updateUI(user);
       updateFloatingVisibility();
-      if (!startupChecked) { try{ hideLoader(); }catch(e){}; startupChecked = true; }
     });
 
     function updateUI(user) {
@@ -734,7 +790,6 @@
         setTopBannerVisible(true);
         // UPDATED: Show fixed header only when signed in
         fixedListHeader.style.display = 'flex'; 
-        try { topHeaderMenu.style.display = 'block'; } catch(e){}
       } else {
         authSection.style.display = 'flex';
         appSection.style.display = 'none';
@@ -746,7 +801,6 @@
         setTopBannerVisible(true);
         // UPDATED: Hide fixed header on auth screen
         fixedListHeader.style.display = 'none'; 
-        try { topHeaderMenu.style.display = 'none'; } catch(e){}
       }
     }
 
@@ -1167,7 +1221,6 @@
       const ok = confirm('Sign out?');
       if (ok) {
         await signOut(auth);
-        try{ localStorage.removeItem('signedIn'); }catch(e){}
       }
     });
 
@@ -1251,6 +1304,186 @@
         alert('Chat menu (⋮) clicked — implement actions as needed.');
       });
     }
+
+    
+    // --- Profile page & avatar picker logic ---
+    const profileSection = document.getElementById('profile-section');
+    const profileAvatar = document.getElementById('profileAvatar');
+    const pencilBtn = document.getElementById('pencilBtn');
+    const avatarModal = document.getElementById('avatarModal');
+    const avatarGrid = document.getElementById('avatarGrid');
+    const closeAvatarModal = document.getElementById('closeAvatarModal');
+    const profileDisplayName = document.getElementById('profileDisplayName');
+    const profileHandle = document.getElementById('profileHandle');
+    const profileAbout = document.getElementById('profileAbout');
+    const saveProfileBtn = document.getElementById('saveProfileBtn');
+    const profileContactsList = document.getElementById('profileContactsList');
+
+    // prepare 30 placeholder avatar image URLs (you can replace these with real files)
+    const avatarUrls = Array.from({length:30}).map((_,i)=> 'avatars/avatar' + (i+1) + '.png');
+
+    function openProfile() {
+      if (!currentUser) return alert('Not signed in');
+      // hide other views
+      authSection.style.display = 'none';
+      appSection.style.display = 'none';
+      individualChat.style.display = 'none';
+      profileSection.style.display = 'block';
+      setTopBannerVisible(true);
+      // hide floating and other
+      floatingBtn.style.display = 'none';
+      // load profile data
+      loadProfile();
+      loadProfileContacts();
+    }
+
+    function closeProfile() {
+      profileSection.style.display = 'none';
+      appSection.style.display = 'block';
+      setTopBannerVisible(true);
+      updateFloatingVisibility();
+    }
+
+    function renderAvatarGrid(selectedUrl) {
+      avatarGrid.innerHTML = '';
+      avatarUrls.forEach(url => {
+        const img = document.createElement('img');
+        img.src = url;
+        img.alt = 'avatar';
+        if (url === selectedUrl) img.classList.add('selected');
+        img.addEventListener('click', () => {
+          // mark selected visually
+          avatarGrid.querySelectorAll('img').forEach(x=>x.classList.remove('selected'));
+          img.classList.add('selected');
+          // set current avatar preview
+          profileAvatar.style.backgroundImage = 'url(\"' + url + '\")';
+          profileAvatar.textContent = '';
+          profileAvatar.dataset.selected = url;
+        });
+        avatarGrid.appendChild(img);
+      });
+    }
+
+    pencilBtn.addEventListener('click', () => {
+      renderAvatarGrid(profileAvatar.dataset.selected || '');
+      avatarModal.style.display = 'flex';
+      avatarModal.setAttribute('aria-hidden','false');
+    });
+    closeAvatarModal.addEventListener('click', () => {
+      avatarModal.style.display = 'none';
+      avatarModal.setAttribute('aria-hidden','true');
+    });
+
+    async function loadProfile() {
+      if (!currentUser) return;
+      try {
+        const snap = await get(dbRef(db, 'users/' + currentUser.uid));
+        let data = snap.exists() ? snap.val() : {};
+        // Name
+        if (data.displayName) profileDisplayName.value = data.displayName;
+        else profileDisplayName.value = '';
+        // handle = email (cannot change)
+        profileHandle.textContent = currentUser.email || (data.email || 'Unknown');
+        // about
+        if (data.about) profileAbout.value = data.about;
+        else profileAbout.value = 'Hi, I am using Zag Messenger';
+        // avatar
+        if (data.profilePic) {
+          profileAvatar.style.backgroundImage = 'url(\"' + data.profilePic + '\")';
+          profileAvatar.textContent = '';
+          profileAvatar.dataset.selected = data.profilePic;
+        } else {
+          // choose a random avatar from list for preview
+          const rnd = avatarUrls[Math.floor(Math.random()*avatarUrls.length)];
+          profileAvatar.style.backgroundImage = 'url(\"' + rnd + '\")';
+          profileAvatar.textContent = '';
+          profileAvatar.dataset.selected = '';
+        }
+      } catch (e) {
+        console.error('loadProfile error', e);
+      }
+    }
+
+    async function saveProfile() {
+      if (!currentUser) return alert('Not signed in');
+      // limit display name to 10 words
+      let name = (profileDisplayName.value || '').trim();
+      let about = (profileAbout.value || '').trim();
+      const nameWords = name.split(/\s+/).filter(Boolean);
+      if (nameWords.length > 10) name = nameWords.slice(0,10).join(' ');
+      const aboutWords = (about.split(/\s+/).filter(Boolean));
+      if (aboutWords.length > 10) about = aboutWords.slice(0,10).join(' ');
+      const profilePic = profileAvatar.dataset.selected || '';
+
+      const updates = {};
+      if (name) updates.displayName = name;
+      if (about) updates.about = about;
+      if (profilePic) updates.profilePic = profilePic;
+
+      try {
+        await update(dbRef(db, 'users/' + currentUser.uid), updates);
+        alert('Profile saved');
+        loadProfile();
+      } catch (e) {
+        console.error('saveProfile error', e);
+        alert('Failed to save profile');
+      }
+    }
+
+    saveProfileBtn.addEventListener('click', saveProfile);
+
+    async function loadProfileContacts() {
+      profileContactsList.innerHTML = '';
+      if (!currentUser) return;
+      try {
+        const snap = await get(dbRef(db, 'contacts/' + currentUser.uid));
+        if (!snap.exists()) {
+          profileContactsList.innerHTML = '<div class=\"small\">No contacts yet.</div>';
+          return;
+        }
+        const uids = Object.keys(snap.val() || {});
+        for (const uid of uids) {
+          // fetch user info
+          let u = usersCache[uid];
+          if (!u) {
+            const usnap = await get(dbRef(db, 'users/' + uid));
+            if (usnap.exists()) u = usnap.val();
+          }
+          if (!u) continue;
+          const row = document.createElement('div');
+          row.className = 'contact-row';
+          row.innerHTML = `<div style=\"width:44px;height:44px;border-radius:50%;background:linear-gradient(180deg,#dbeeff,#c1ddff);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--primary);\">${(u.email||'U').charAt(0).toUpperCase()}</div>
+                           <div class=\"contact-name\">${u.email || u.phoneNumber || 'User'}</div>
+                           <button class=\"delete-btn\">Delete</button>`;
+          const delBtn = row.querySelector('.delete-btn');
+          delBtn.addEventListener('click', async () => {
+            const ok = confirm('Delete this contact?');
+            if (!ok) return;
+            try {
+              await set(dbRef(db, 'contacts/' + currentUser.uid + '/' + uid), null);
+              // re-render
+              loadProfileContacts();
+            } catch (e) {
+              console.error('delete contact error', e);
+            }
+          });
+          profileContactsList.appendChild(row);
+        }
+      } catch (e) {
+        console.error('loadProfileContacts error', e);
+      }
+    }
+
+    // override navYou behaviour to open profile
+    try { navYou.replaceWith(navYou.cloneNode(true)); } catch(e) {}
+    const newNavYou = document.getElementById('nav-you');
+    if (newNavYou) {
+      newNavYou.addEventListener('click', () => {
+        if (!currentUser) return alert('Not signed in');
+        openProfile();
+      });
+    }
+    // End profile logic
 
     window.addEventListener('load', () => {
       // Show the fixed list header when the app is initialized and user is logged in
