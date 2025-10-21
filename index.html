@@ -96,7 +96,7 @@
        width: 100%;
     }
 
-    .auth{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:20px;overflow-y:auto;background:#f0f4fc;}
+    .auth{flex:1;display:flex;flex-direction:column;justify-content:flex-start;align-items:center;text-align:center;padding:20px 20px 60px 20px;overflow-y:auto;background:#f0f4fc;padding-top: calc(var(--header-height) + var(--wave-height) + 12px);}
     .welcome{font-size:22px;color:var(--primary);}
     .sub{color:var(--muted);font-size:13px;margin-bottom:12px;}
     input{border:1px solid rgba(75,134,230,0.08);border-radius:10px;padding:12px 14px;font-size:15px;background:linear-gradient(180deg,#fff,#fbfdff);font-family:var(--hand-font);color:var(--primary);width:90%;max-width:360px;margin-bottom:10px;box-sizing:border-box;}
@@ -367,7 +367,10 @@
 
       <div class="toggle-btns">
         <button id="toSignIn" class="btn ghost">Already have an account? Sign In</button>
-        <button id="toSignUp" class="btn ghost" style="display:none;">Don't have an account? Sign Up</button>
+        <button id="toSignUp" class="btn ghost" style="display:none;">Don\'t have an account? Sign Up</button>
+      </div>
+      <div class="agree" style="font-size:12px;color:var(--muted);max-width:360px;margin:8px auto;">
+        / By clicking the sign in or sign up button you are agreeing with our <a href="policy.html">(Private policy)</a> &amp; <a href="terms.html">(Terms of Service)</a> /
       </div>
     </div>
 
@@ -702,9 +705,9 @@
       }
     });
 
+    let startupChecked = false;
     onAuthStateChanged(auth, async (user) => {
       currentUser = user;
-      try { if (user) { localStorage.setItem('signedIn','true'); } else { localStorage.removeItem('signedIn'); } } catch(e) {}
       if (user) {
         await createUserProfile(user);
         loadUsersCache();
@@ -713,6 +716,7 @@
       }
       updateUI(user);
       updateFloatingVisibility();
+      if (!startupChecked) { try{ hideLoader(); }catch(e){}; startupChecked = true; }
     });
 
     function updateUI(user) {
@@ -730,6 +734,7 @@
         setTopBannerVisible(true);
         // UPDATED: Show fixed header only when signed in
         fixedListHeader.style.display = 'flex'; 
+        try { topHeaderMenu.style.display = 'block'; } catch(e){}
       } else {
         authSection.style.display = 'flex';
         appSection.style.display = 'none';
@@ -741,6 +746,7 @@
         setTopBannerVisible(true);
         // UPDATED: Hide fixed header on auth screen
         fixedListHeader.style.display = 'none'; 
+        try { topHeaderMenu.style.display = 'none'; } catch(e){}
       }
     }
 
@@ -849,26 +855,16 @@
         chatList.innerHTML = '<div class="small">Sign in to see chats.</div>';
         return;
       }
-      // Read contacts for current user (only show contacts the user added or who added them)
-      const contactsRef = dbRef(db, 'contacts/' + currentUser.uid);
-      get(contactsRef).then(async (snap) => {
+      const usersRef = dbRef(db, 'users');
+      get(usersRef).then(snap => {
         if (!snap.exists()) {
           chatList.innerHTML = '<div class="small">No contacts yet.</div>';
           return;
         }
         chatList.innerHTML = '';
-        const contactUids = Object.keys(snap.val() || {});
-        for (const uid of contactUids) {
-          let u = usersCache[uid];
-          if (!u) {
-            try {
-              const userSnap = await get(dbRef(db, 'users/' + uid));
-              if (userSnap.exists()) u = userSnap.val();
-            } catch (e) {
-              console.error('Error fetching user for contact', uid, e);
-            }
-          }
-          if (!u) continue;
+        snap.forEach(s => {
+          const u = s.val();
+          if (u.uid === currentUser.uid) return;
           const item = document.createElement('div');
           item.className = 'chat-item';
           item.dataset.uid = u.uid;
@@ -881,7 +877,7 @@
             openPrivateChatWith(u);
           });
           chatList.appendChild(item);
-        }
+        });
       }).catch(err => {
         console.error('loadChats error', err);
         chatList.innerHTML = '<div class="small">Error loading chats.</div>';
@@ -1060,15 +1056,6 @@
       if (!found) {
         return alert('User not found in directory. They must sign up first.');
       }
-      // add reciprocal contacts so both users see each other
-      try {
-        if (currentUser) {
-          await set(dbRef(db, 'contacts/' + currentUser.uid + '/' + found.uid), true);
-          await set(dbRef(db, 'contacts/' + found.uid + '/' + currentUser.uid), true);
-        }
-      } catch (e) {
-        console.error('Error adding reciprocal contacts', e);
-      }
       openPrivateChatWith(found);
       addChatArea.style.display = 'none';
       addChatIdentifier.value = '';
@@ -1180,6 +1167,7 @@
       const ok = confirm('Sign out?');
       if (ok) {
         await signOut(auth);
+        try{ localStorage.removeItem('signedIn'); }catch(e){}
       }
     });
 
