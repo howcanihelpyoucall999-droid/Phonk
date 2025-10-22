@@ -1364,6 +1364,11 @@
       floatingBtn.style.display = 'none';
       setBottomActive(navYou);
       try { fixedHeaderTitle.innerText = 'Profile settings'; } catch(e) {}
+      // Ensure handle shows the email and is read-only
+      try {
+        profileHandle.value = currentUser.email || '';
+        profileHandle.readOnly = true;
+      } catch(e){}
       loadProfile();
       loadProfileContacts();
     }
@@ -1420,8 +1425,12 @@
         let data = snap.exists() ? snap.val() : {};
         if (data.displayName) profileDisplayName.value = data.displayName;
         else profileDisplayName.value = (currentUser.email || '').split('@')[0] || '';
-        if (data.handle) profileHandle.value = data.handle;
-        else profileHandle.value = '';
+        // Handle should be the user's email and not editable per request
+        try {
+          profileHandle.value = currentUser.email || '';
+          profileHandle.readOnly = true;
+          profileHandle.title = 'Handle is fixed and cannot be changed';
+        } catch(e){}
         if (data.about) profileAbout.value = data.about;
         else profileAbout.value = 'Hi, I am using Zag Messenger';
         if (data.profilePic) {
@@ -1438,17 +1447,18 @@
         console.error('loadProfile error', e);
       }
     }
+} catch (e) {
+        console.error('loadProfile error', e);
+      }
+    }
 
     async function saveProfile() {
       if (!currentUser) return alert('Not signed in');
       let name = (profileDisplayName.value || '').trim();
       let about = (profileAbout.value || '').trim();
-      let handle = (profileHandle.value || '').trim();
       if (!name) return alert('Please enter your name (required).');
-      // Normalize handle: remove leading @ if present
-      if (handle.startsWith('@')) handle = handle.substring(1);
       const profilePic = profileAvatar.dataset.selected || '';
-      const updates = { displayName: name, about: about, handle: handle };
+      const updates = { displayName: name, about: about };
       if (profilePic) updates.profilePic = profilePic;
       try {
         await update(dbRef(db, 'users/' + currentUser.uid), updates);
@@ -1513,15 +1523,31 @@
     // ensure Home / Groups clear navYou active and update fixed header title
     navHome.addEventListener('click', (ev)=>{
       try { profileSection.style.display = 'none'; } catch(e){}
+      appSection.style.display = 'block';
+      chatList.style.display = 'block';
+      groupList.style.display = 'none';
       setBottomActive(navHome);
       try { fixedHeaderTitle.innerText = 'My chats'; } catch(e){}
+      // ensure top banner and fixed header visible and reload chats
+      setTopBannerVisible(true);
+      fixedListHeader.style.display = 'flex';
+      loadChats();
+      updateFloatingVisibility();
     });
     navGroups.addEventListener('click', (ev)=>{
       try { profileSection.style.display = 'none'; } catch(e){}
+      appSection.style.display = 'block';
+      chatList.style.display = 'none';
+      groupList.style.display = 'block';
       setBottomActive(navGroups);
       try { fixedHeaderTitle.innerText = 'Groups'; } catch(e){}
+      setTopBannerVisible(true);
+      fixedListHeader.style.display = 'flex';
+      loadGroups();
+      updateFloatingVisibility();
     });
     // --- end profile updates ---
+
 
     window.addEventListener('load', () => {
       // Show the fixed list header when the app is initialized and user is logged in
