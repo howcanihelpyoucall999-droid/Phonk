@@ -434,7 +434,10 @@
 
         <div class="profile-field">
           <label style="font-size:13px;color:var(--muted)">Handle (public)</label>
-          <input id="profileHandle" type="text" placeholder="@yourhandle">
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input id="profileHandle" type="text" placeholder="@yourhandle" readonly>
+            <div id="handleNote" style="font-size:12px;color:var(--muted)">(cannot change)</div>
+          </div>
         </div>
 
         <div class="profile-field" id="profileAboutField">
@@ -1513,13 +1516,25 @@
     // ensure Home / Groups clear navYou active and update fixed header title
     navHome.addEventListener('click', (ev)=>{
       try { profileSection.style.display = 'none'; } catch(e){}
+      try { appSection.style.display = 'block'; } catch(e){}
       setBottomActive(navHome);
       try { fixedHeaderTitle.innerText = 'My chats'; } catch(e){}
+      try { listTitle.innerText = 'My chats'; } catch(e){}
+      try { chatList.style.display = 'block'; } catch(e){}
+      try { groupList.style.display = 'none'; } catch(e){}
+      try { updateFloatingVisibility(); } catch(e){}
+      try { loadChats(); } catch(e){}
     });
     navGroups.addEventListener('click', (ev)=>{
       try { profileSection.style.display = 'none'; } catch(e){}
+      try { appSection.style.display = 'block'; } catch(e){}
       setBottomActive(navGroups);
       try { fixedHeaderTitle.innerText = 'Groups'; } catch(e){}
+      try { listTitle.innerText = 'Groups'; } catch(e){}
+      try { chatList.style.display = 'none'; } catch(e){}
+      try { groupList.style.display = 'block'; } catch(e){}
+      try { updateFloatingVisibility(); } catch(e){}
+      try { loadGroups(); } catch(e){}
     });
     // --- end profile updates ---
 
