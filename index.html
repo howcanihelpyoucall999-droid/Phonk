@@ -96,7 +96,7 @@
        width: 100%;
     }
 
-    .auth{flex:1;display:flex;flex-direction:column;justify-content:flex-start;align-items:center;text-align:center;padding:20px 20px 60px 20px;overflow-y:auto;background:#f0f4fc;padding-top: calc(var(--header-height) + var(--wave-height) + 12px);}
+    .auth{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:20px;overflow-y:auto;background:#f0f4fc;}
     .welcome{font-size:22px;color:var(--primary);}
     .sub{color:var(--muted);font-size:13px;margin-bottom:12px;}
     input{border:1px solid rgba(75,134,230,0.08);border-radius:10px;padding:12px 14px;font-size:15px;background:linear-gradient(180deg,#fff,#fbfdff);font-family:var(--hand-font);color:var(--primary);width:90%;max-width:360px;margin-bottom:10px;box-sizing:border-box;}
@@ -332,32 +332,7 @@
     }
     /* --- END: Startup loader overlay styles --- */
 
-  
-    /* PROFILE SECTION */
-    .profile-section { display:none; padding:18px; box-sizing:border-box; overflow-y:auto; height: calc(100vh - calc(var(--header-height) + var(--wave-height))); }
-    .profile-card{background:linear-gradient(180deg,#fff,#fbfdff);border-radius:12px;padding:16px;margin-bottom:12px;border:1px solid rgba(75,134,230,0.06);display:flex;gap:12px;align-items:center;}
-    .profile-avatar-wrap{position:relative;}
-    .profile-avatar{width:96px;height:96px;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#dbeeff,#c1ddff);font-weight:700;color:var(--primary);font-size:28px;}
-    .edit-avatar-btn{position:absolute;right:-6px;bottom:-6px;background:#fff;border:2px solid var(--primary);border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 6px 14px rgba(11,96,214,0.08);}
-    .profile-fields{flex:1;display:flex;flex-direction:column;gap:8px;}
-    .profile-fields input, .profile-fields textarea{padding:10px;border-radius:8px;border:1px solid rgba(75,134,230,0.08);font-size:14px;width:100%;box-sizing:border-box;}
-    .profile-meta-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
-    .small-muted{font-size:13px;color:var(--muted);}
-    .contacts-list-compact{max-height:240px;overflow-y:auto;padding-top:6px;}
-    .contact-row{display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;background:#fff;margin-bottom:8px;border:1px solid rgba(0,0,0,0.03);}
-    .contact-row .c-avatar{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#dbeeff,#c1ddff);font-weight:700;color:var(--primary);}
-    .contact-row .c-info{flex:1;}
-    .contact-row .c-actions{display:flex;gap:8px;}
-    .btn-danger{background:#ff4d4f;color:#fff;border:none;padding:6px 10px;border-radius:8px;cursor:pointer;font-weight:700;}
-    /* Avatar picker modal */
-    .avatar-picker-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.45);display:none;align-items:center;justify-content:center;z-index:9999;}
-    .avatar-picker{width:92%;max-width:720px;background:#fff;border-radius:12px;padding:12px;box-sizing:border-box;max-height:80vh;overflow:auto;}
-    .avatar-grid{display:grid;grid-template-columns: repeat(auto-fit,minmax(80px,1fr));gap:10px;}
-    .avatar-grid img{width:100%;height:80px;object-fit:cover;border-radius:8px;cursor:pointer;border:2px solid transparent;}
-    .avatar-grid img.selected{border-color:var(--primary);box-shadow:0 8px 20px rgba(11,96,214,0.08);}
-    .profile-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:8px;}
-
-</style>
+  </style>
 </head>
 <body>
   <!-- Startup loader (visible immediately, will be hidden after 1s) -->
@@ -392,10 +367,7 @@
 
       <div class="toggle-btns">
         <button id="toSignIn" class="btn ghost">Already have an account? Sign In</button>
-        <button id="toSignUp" class="btn ghost" style="display:none;">Don\'t have an account? Sign Up</button>
-      </div>
-      <div class="agree" style="font-size:12px;color:var(--muted);max-width:360px;margin:8px auto;">
-        / By clicking the sign in or sign up button you are agreeing with our <a href="policy.html">(Private policy)</a> &amp; <a href="terms.html">(Terms of Service)</a> /
+        <button id="toSignUp" class="btn ghost" style="display:none;">Don't have an account? Sign Up</button>
       </div>
     </div>
 
@@ -452,46 +424,6 @@
         <div id="chat-input-area" class="chat-input">
           <input id="chatMessageInput" type="text" placeholder="Type a message..." aria-label="Type a message">
           <button id="sendChatMessageBtn" class="send-btn" aria-label="Send message">➤</button>
-        </div>
-      </div>
-    </div>
-
-    
-    <!-- Profile / @You Section -->
-    <div class="profile-section" id="profile-section" style="display:none;">
-      <div class="profile-card">
-        <div class="profile-avatar-wrap">
-          <div id="profileAvatar" class="profile-avatar">U</div>
-          <div id="editAvatarBtn" class="edit-avatar-btn" title="Choose avatar">✎</div>
-        </div>
-        <div class="profile-fields">
-          <div class="profile-meta-row">
-            <input id="displayNameInput" placeholder="Display name (editable)" maxlength="50" />
-            <input id="handleInput" placeholder="Handle (email - read only)" readonly />
-          </div>
-          <textarea id="aboutInput" rows="2" placeholder="About (max 10 words)"></textarea>
-          <div class="small-muted">If left empty, default will be: <em>Hi, I am using Zag Messenger</em></div>
-          <div class="profile-actions">
-            <button id="saveProfileBtn" class="btn primary">Save Profile</button>
-            <button id="signOutFromProfile" class="btn ghost">Sign Out</button>
-          </div>
-        </div>
-      </div>
-
-      <div style="margin-bottom:10px;font-weight:700;color:var(--primary);">Your contacts</div>
-      <div class="contacts-list-compact" id="profileContactsList">
-        <!-- contacts will be rendered here -->
-      </div>
-    </div>
-
-    <!-- Avatar picker modal -->
-    <div class="avatar-picker-backdrop" id="avatarPickerBackdrop">
-      <div class="avatar-picker" role="dialog" aria-modal="true">
-        <h3 style="margin-top:0;color:var(--primary)">Choose an avatar</h3>
-        <div class="avatar-grid" id="avatarGrid"></div>
-        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px;">
-          <button id="closeAvatarPicker" class="btn ghost">Cancel</button>
-          <button id="confirmAvatarBtn" class="btn primary">Choose</button>
         </div>
       </div>
     </div>
@@ -770,7 +702,6 @@
       }
     });
 
-    let startupChecked = false;
     onAuthStateChanged(auth, async (user) => {
       currentUser = user;
       if (user) {
@@ -781,7 +712,6 @@
       }
       updateUI(user);
       updateFloatingVisibility();
-      if (!startupChecked) { try{ hideLoader(); }catch(e){}; startupChecked = true; }
     });
 
     function updateUI(user) {
@@ -799,7 +729,6 @@
         setTopBannerVisible(true);
         // UPDATED: Show fixed header only when signed in
         fixedListHeader.style.display = 'flex'; 
-        try { topHeaderMenu.style.display = 'block'; } catch(e){}
       } else {
         authSection.style.display = 'flex';
         appSection.style.display = 'none';
@@ -811,7 +740,6 @@
         setTopBannerVisible(true);
         // UPDATED: Hide fixed header on auth screen
         fixedListHeader.style.display = 'none'; 
-        try { topHeaderMenu.style.display = 'none'; } catch(e){}
       }
     }
 
@@ -1232,7 +1160,6 @@
       const ok = confirm('Sign out?');
       if (ok) {
         await signOut(auth);
-        try{ localStorage.removeItem('signedIn'); }catch(e){}
       }
     });
 
@@ -1360,222 +1287,121 @@
     })();
     // --- END: Startup loader behaviour ---
 
-    
-    // --- START: Profile / @You page features ---
-    const profileSection = document.getElementById('profile-section');
-    const profileAvatar = document.getElementById('profileAvatar');
-    const editAvatarBtn = document.getElementById('editAvatarBtn');
-    const avatarPickerBackdrop = document.getElementById('avatarPickerBackdrop');
-    const avatarGrid = document.getElementById('avatarGrid');
-    const closeAvatarPicker = document.getElementById('closeAvatarPicker');
-    const confirmAvatarBtn = document.getElementById('confirmAvatarBtn');
-    const displayNameInput = document.getElementById('displayNameInput');
-    const handleInput = document.getElementById('handleInput');
-    const aboutInput = document.getElementById('aboutInput');
-    const saveProfileBtn = document.getElementById('saveProfileBtn');
-    const signOutFromProfile = document.getElementById('signOutFromProfile');
-    const profileContactsList = document.getElementById('profileContactsList');
-
-    let selectedAvatar = null;
-    // Generate avatar grid (expects profile1.png ... avatar30.png to exist)
-    function buildAvatarGrid(){
-      avatarGrid.innerHTML = '';
-      for(let i=1;i<=30;i++){
-        const fn = 'avatars/avatar'+i+'.png';
-        const img = document.createElement('img');
-        img.src = fn;
-        img.dataset.fn = fn;
-        img.alt = 'avatar '+i;
-        img.addEventListener('error', ()=>{ img.style.opacity = '0.6'; img.style.objectFit='contain'; });
-        img.addEventListener('click', ()=> {
-          document.querySelectorAll('#avatarGrid img').forEach(x=>x.classList.remove('selected'));
-          img.classList.add('selected');
-          selectedAvatar = fn;
-        });
-        avatarGrid.appendChild(img);
-      }
-    }
-    buildAvatarGrid();
-
-    function showProfile(){
-      if(!currentUser) return alert('Not signed in');
-      // show profile section, hide others
-      authSection.style.display = 'none';
-      appSection.style.display = 'none';
-      individualChat.style.display = 'none';
-      profileSection.style.display = 'block';
-      // ensure top banner is visible
-      setTopBannerVisible(true);
-      // load user profile from DB
-      const uref = dbRef(db, 'users/' + currentUser.uid);
-      get(uref).then(snap => {
-        const data = snap.exists()?snap.val():{};
-        // display name: editable. If not set, show name derived from email's local part
-        const emailVal = (data.email || currentUser.email || '');
-        const defaultName = emailVal.includes('@') ? emailVal.split('@')[0] : (emailVal || 'User');
-        displayNameInput.value = data.displayName || defaultName;
-        handleInput.value = data.email || '';
-        aboutInput.value = data.about || '';
-        // show avatar preview
-        if (data.profilePic) {
-          profileAvatar.innerHTML = '';
-          const img = document.createElement('img');
-          img.src = data.profilePic;
-          img.alt = 'avatar';
-          img.style.width='100%';
-          img.style.height='100%';
-          img.style.objectFit='cover';
-          profileAvatar.appendChild(img);
-        } else {
-          // fallback initial
-          profileAvatar.textContent = (displayNameInput.value||'U').charAt(0).toUpperCase();
-        }
-      }).catch(err=>{
-        console.error('Failed loading profile',err);
-      });
-      // load contacts for current user
-      loadProfileContacts();
-      updateFloatingVisibility();
-    }
-
-    navYou.removeEventListener ? null : null;
-    // override @You click to open profile instead of signing out
-    navYou.replaceWith(navYou.cloneNode(true));
-    // re-query navYou since we replaced it
-    const _navYou = document.getElementById('nav-you');
-    _navYou.addEventListener('click', (e)=>{
-      if(!currentUser) return alert('Not signed in');
-      showProfile();
-    });
-
-    editAvatarBtn.addEventListener('click', ()=>{
-      avatarPickerBackdrop.style.display = 'flex';
-      buildAvatarGrid();
-    });
-    closeAvatarPicker.addEventListener('click', ()=>{ avatarPickerBackdrop.style.display = 'none'; selectedAvatar = null; document.querySelectorAll('#avatarGrid img').forEach(x=>x.classList.remove('selected')); });
-    confirmAvatarBtn.addEventListener('click', ()=>{
-      if(!selectedAvatar) return alert('Choose an avatar first');
-      // preview immediately
-      profileAvatar.innerHTML = '';
-      const img = document.createElement('img');
-      img.src = selectedAvatar;
-      img.style.width='100%';
-      img.style.height='100%';
-      img.style.objectFit='cover';
-      profileAvatar.appendChild(img);
-      avatarPickerBackdrop.style.display = 'none';
-    });
-
-    // Save profile to database
-    saveProfileBtn.addEventListener('click', async ()=>{
-      if(!currentUser) return alert('Not signed in');
-      // About must be max 10 words
-      const aboutText = (aboutInput.value || '').trim();
-      const words = aboutText === '' ? [] : aboutText.split(/\s+/);
-      if(words.length > 10) return alert('About must be 10 words or fewer.');
-      const displayName = (displayNameInput.value || '').trim();
-      // handle (email) is read-only
-      const updateData = { displayName: displayName || null, about: aboutText || null };
-      if(selectedAvatar) updateData.profilePic = selectedAvatar;
-      const uref = dbRef(db, 'users/' + currentUser.uid);
-      try{
-        await update(uref, updateData);
-        alert('Profile updated.');
-        // refresh UI
-        showProfile();
-      }catch(err){
-        console.error('Failed to save profile',err);
-        alert('Failed to save profile: '+err.message);
-      }
-    });
-
-    // Sign out button inside profile
-    signOutFromProfile.addEventListener('click', async ()=>{
-      const ok = confirm('Sign out?');
-      if(!ok) return;
-      await signOut(auth);
-      profileSection.style.display = 'none';
-      updateUI(null);
-    });
-
-    // Contacts handling inside profile: expects 'contacts/{uid}/{contactUid}: true' structure
-    function loadProfileContacts(){
-      profileContactsList.innerHTML = '<div class="small-muted">Loading...</div>';
-      const cRef = dbRef(db, 'contacts/' + currentUser.uid);
-      get(cRef).then(snap=>{
-        profileContactsList.innerHTML = '';
-        if(!snap.exists()){
-          profileContactsList.innerHTML = '<div class="small-muted">No contacts yet.</div>';
-          return;
-        }
-        const data = snap.val();
-        const uids = Object.keys(data || {});
-        if(uids.length===0){
-          profileContactsList.innerHTML = '<div class="small-muted">No contacts yet.</div>';
-          return;
-        }
-        uids.forEach(uid=>{
-          const u = usersCache[uid];
-          const row = document.createElement('div');
-          row.className = 'contact-row';
-          row.innerHTML = `<div class="c-avatar">${(u && u.email ? u.email.charAt(0).toUpperCase() : 'U')}</div>
-                           <div class="c-info"><div style="font-weight:700;color:var(--primary)">${u ? (u.email || u.phoneNumber) : uid}</div><div class="small-muted">${u ? (u.phoneNumber || '') : ''}</div></div>
-                           <div class="c-actions"><button class="btn btn-danger" data-uid="${uid}">Delete</button></div>`;
-          const delBtn = row.querySelector('button.btn-danger');
-          delBtn.addEventListener('click', async ()=>{
-            const ok = confirm('Delete this contact?');
-            if(!ok) return;
-            try{
-              await set(dbRef(db, 'contacts/' + currentUser.uid + '/' + uid), null);
-              // optionally remove reciprocal reference? We'll keep it simple and remove only from current user's contacts.
-              loadProfileContacts();
-              loadUsersCache(); // refresh cache for UI consistency
-            }catch(err){
-              console.error('Failed deleting contact',err);
-              alert('Failed to delete contact: '+err.message);
-            }
-          });
-          profileContactsList.appendChild(row);
-        });
-      }).catch(err=>{
-        console.error('Failed loading contacts',err);
-        profileContactsList.innerHTML = '<div class="small-muted">Error loading contacts.</div>';
-      });
-    }
-
-    // When adding a chat via addBtn, also save into contacts for the current user (so profile shows them)
-    const originalAddBtnHandler = addBtn.onclick;
-    // modify addBtn click behavior: ensure we add to contacts after opening chat
-    addBtn.addEventListener('click', async (ev)=>{
-      const val = (addChatIdentifier.value || '').trim();
-      if (!val) return alert('Enter email or phone to add.');
-      const usersRef = dbRef(db, 'users');
-      const snapshot = await get(usersRef);
-      let found = null;
-      snapshot.forEach(s => {
-        const u = s.val();
-        if (!u) return;
-        if (u.email === val || u.phoneNumber === val || ('+880'+val) === u.phoneNumber) {
-          found = u;
-        }
-      });
-      if (!found) {
-        return alert('User not found in directory. They must sign up first.');
-      }
-      // add to contacts for current user
-      try{
-        await set(dbRef(db, 'contacts/' + currentUser.uid + '/' + found.uid), true);
-      }catch(e){ console.warn('Could not save contact', e); }
-      openPrivateChatWith(found);
-      addChatArea.style.display = 'none';
-      addChatIdentifier.value = '';
-      updateFloatingVisibility();
-    });
-
-    // --- END: Profile / @You features ---
-
     console.log('User fixes applied: scroll position adjusted, side menu implemented, fixed header visibility fixed on auth page.');
-  </script>
+  
+    // --- enhancements: avatar custom URL, render, and profile UI fixes ---
+    (function(){
+      if (typeof window.avatarFilenames === 'undefined') {
+        window.avatarFilenames = Array.from({length:30}).map((_,i)=> 'avatar' + (i+1) + '.png');
+      }
+      window.renderAvatarGrid = function(selectedUrl){
+        try{
+          const avatarGridEl = document.getElementById('avatarGrid');
+          if (!avatarGridEl) return;
+          avatarGridEl.innerHTML = '';
+          window.avatarFilenames.forEach(url => {
+            const img = document.createElement('img');
+            img.src = url;
+            img.alt = 'avatar';
+            if (url === selectedUrl) img.classList.add('selected');
+            img.addEventListener('click', () => {
+              avatarGridEl.querySelectorAll('img').forEach(x=>x.classList.remove('selected'));
+              img.classList.add('selected');
+              const profileAvatar = document.getElementById('profileAvatar');
+              if (profileAvatar) {
+                profileAvatar.style.backgroundImage = 'url("' + url + '")';
+                profileAvatar.textContent = '';
+                profileAvatar.dataset.selected = url;
+              }
+            });
+            avatarGridEl.appendChild(img);
+          });
+        }catch(e){ console.error(e); }
+      };
+
+      const addBtn = document.getElementById('addCustomAvatarBtn');
+      const customInput = document.getElementById('customAvatarUrl');
+      addBtn && addBtn.addEventListener('click', ()=>{
+        const url = (customInput.value||'').trim();
+        if (!url) return alert('Paste a valid image URL');
+        try { new URL(url); } catch(e){ return alert('Invalid URL'); }
+        window.avatarFilenames = [url].concat(window.avatarFilenames.filter(u=>u!==url));
+        renderAvatarGrid(url);
+        customInput.value = '';
+      });
+
+      const saveAvatarBtn = document.getElementById('saveAvatarModal');
+      saveAvatarBtn && saveAvatarBtn.addEventListener('click', ()=>{
+        const profileAvatar = document.getElementById('profileAvatar');
+        if (!profileAvatar) return;
+        const sel = profileAvatar.dataset.selected;
+        if (sel) {
+          profileAvatar.style.backgroundImage = 'url("' + sel + '")';
+          profileAvatar.textContent = '';
+        }
+        const avatarModal = document.getElementById('avatarModal');
+        if (avatarModal) { avatarModal.style.display = 'none'; avatarModal.setAttribute('aria-hidden','true'); }
+      });
+
+      const pencil = document.getElementById('pencilBtn');
+      pencil && pencil.addEventListener('click', ()=>{
+        renderAvatarGrid(document.getElementById('profileAvatar')?.dataset?.selected || '');
+        const m = document.getElementById('avatarModal');
+        if (m) { m.style.display = 'flex'; m.setAttribute('aria-hidden','false'); }
+      });
+
+      const saveProfileBtn = document.getElementById('saveProfileBtn');
+      saveProfileBtn && saveProfileBtn.addEventListener('click', async ()=>{
+        if (!currentUser) return alert('Not signed in');
+        const name = (document.getElementById('profileDisplayName').value||'').trim();
+        const about = (document.getElementById('profileAbout').value||'').trim();
+        const pic = (document.getElementById('profileAvatar').dataset && document.getElementById('profileAvatar').dataset.selected) || '';
+        if (!name) return alert('Please enter your name');
+        const updates = { displayName: name, about: about };
+        if (pic) updates.profilePic = pic;
+        try {
+          await update(dbRef(db, 'users/' + currentUser.uid), updates);
+          alert('Profile saved');
+          try{ loadProfile(); }catch(e){}
+        } catch(e){ console.error('saveProfile', e); alert('Failed to save profile'); }
+      });
+
+      const originalLoadProfile = window.loadProfile;
+      window.loadProfile = async function(){
+        try{
+          if (typeof originalLoadProfile === 'function') await originalLoadProfile();
+          const handleEl = document.getElementById('profileHandle');
+          if (handleEl && currentUser) handleEl.textContent = currentUser.email || '';
+          const nameEl = document.getElementById('profileDisplayName');
+          if (nameEl && currentUser && !nameEl.value) nameEl.value = (currentUser.email||'').split('@')[0] || '';
+        }catch(e){ console.error(e); }
+      };
+
+      const bottomItems = document.querySelectorAll('#bottom-nav span');
+      bottomItems.forEach(it=> {
+        it.addEventListener('click', (ev)=>{
+          bottomItems.forEach(x=>x.classList.remove('active'));
+          it.classList.add('active');
+          try{ if (it.id !== 'nav-you') document.getElementById('profile-section').style.display='none'; }catch(e){}
+          try{
+            if (it.id === 'nav-home') { navHome.click(); }
+            else if (it.id === 'nav-groups') { navGroups.click(); }
+            else if (it.id === 'nav-games') { navGames.click(); }
+            else if (it.id === 'nav-you') {
+              if (currentUser) {
+                try{ document.getElementById('profile-section').style.display='block'; }catch(e){};
+                try{ listTitle.innerText = 'Profile settings'; }catch(e){};
+                try{ navYou.classList.add('active'); navHome.classList.remove('active'); navGroups.classList.remove('active'); }catch(e){}
+                try{ loadProfile(); loadProfileContacts(); }catch(e){}
+              } else alert('Not signed in');
+            }
+          }catch(e){ console.error('bottom nav click handler', e); }
+        });
+      });
+    })();
+    // --- end enhancements ---
+
+</script>
 
   <!-- Main + Modal -->
   <div class="main-modal-backdrop" id="mainModalBackdrop" style="display:none;">
