@@ -1364,11 +1364,6 @@
       floatingBtn.style.display = 'none';
       setBottomActive(navYou);
       try { fixedHeaderTitle.innerText = 'Profile settings'; } catch(e) {}
-      // Ensure handle shows the email and is read-only
-      try {
-        profileHandle.value = currentUser.email || '';
-        profileHandle.readOnly = true;
-      } catch(e){}
       loadProfile();
       loadProfileContacts();
     }
@@ -1425,12 +1420,8 @@
         let data = snap.exists() ? snap.val() : {};
         if (data.displayName) profileDisplayName.value = data.displayName;
         else profileDisplayName.value = (currentUser.email || '').split('@')[0] || '';
-        // Handle should be the user's email and not editable per request
-        try {
-          profileHandle.value = currentUser.email || '';
-          profileHandle.readOnly = true;
-          profileHandle.title = 'Handle is fixed and cannot be changed';
-        } catch(e){}
+        if (data.handle) profileHandle.value = data.handle;
+        else profileHandle.value = '';
         if (data.about) profileAbout.value = data.about;
         else profileAbout.value = 'Hi, I am using Zag Messenger';
         if (data.profilePic) {
@@ -1447,18 +1438,17 @@
         console.error('loadProfile error', e);
       }
     }
-} catch (e) {
-        console.error('loadProfile error', e);
-      }
-    }
 
     async function saveProfile() {
       if (!currentUser) return alert('Not signed in');
       let name = (profileDisplayName.value || '').trim();
       let about = (profileAbout.value || '').trim();
+      let handle = (profileHandle.value || '').trim();
       if (!name) return alert('Please enter your name (required).');
+      // Normalize handle: remove leading @ if present
+      if (handle.startsWith('@')) handle = handle.substring(1);
       const profilePic = profileAvatar.dataset.selected || '';
-      const updates = { displayName: name, about: about };
+      const updates = { displayName: name, about: about, handle: handle };
       if (profilePic) updates.profilePic = profilePic;
       try {
         await update(dbRef(db, 'users/' + currentUser.uid), updates);
@@ -1523,31 +1513,15 @@
     // ensure Home / Groups clear navYou active and update fixed header title
     navHome.addEventListener('click', (ev)=>{
       try { profileSection.style.display = 'none'; } catch(e){}
-      appSection.style.display = 'block';
-      chatList.style.display = 'block';
-      groupList.style.display = 'none';
       setBottomActive(navHome);
       try { fixedHeaderTitle.innerText = 'My chats'; } catch(e){}
-      // ensure top banner and fixed header visible and reload chats
-      setTopBannerVisible(true);
-      fixedListHeader.style.display = 'flex';
-      loadChats();
-      updateFloatingVisibility();
     });
     navGroups.addEventListener('click', (ev)=>{
       try { profileSection.style.display = 'none'; } catch(e){}
-      appSection.style.display = 'block';
-      chatList.style.display = 'none';
-      groupList.style.display = 'block';
       setBottomActive(navGroups);
       try { fixedHeaderTitle.innerText = 'Groups'; } catch(e){}
-      setTopBannerVisible(true);
-      fixedListHeader.style.display = 'flex';
-      loadGroups();
-      updateFloatingVisibility();
     });
     // --- end profile updates ---
-
 
     window.addEventListener('load', () => {
       // Show the fixed list header when the app is initialized and user is logged in
@@ -1562,86 +1536,32 @@
     // --- START: Startup loader behaviour (added) ---
     (function startupLoaderBehaviour(){
       const loader = document.getElementById('startup-loader');
-
-      function hideLoader() {
+      function hideLoaderInstant() {
         if (!loader) return;
         try {
-          // stop animation and fade out
           loader.style.transition = 'opacity 220ms ease';
           loader.style.opacity = '0';
           loader.style.pointerEvents = 'none';
-          // also stop the CSS animation to ensure it doesn't run in background
-          const inner = loader.querySelector('.loader');
-          if (inner) inner.style.animation = 'none';
           setTimeout(()=>{ if(loader.parentElement) loader.parentElement.removeChild(loader); }, 260);
-        } catch(e){ try{ if(loader.parentElement) loader.parentElement.removeChild(loader);}catch(_){} }
+        } catch(e){}
       }
 
-      // Wait for either Firebase auth state to be known or 1 second timeout, whichever comes first.
-      // This ensures loader always hides at 1s, but will use auth info if available earlier.
-      function checkAuthOnce() {
-        return new Promise((resolve) => {
-          let resolved = false;
-          // If firebase auth is available and has currentUser, resolve immediately.
-          try {
-            if (typeof auth !== 'undefined' && auth.currentUser) {
-              resolved = true;
-              resolve(auth.currentUser);
-              return;
-            }
-          } catch(e){}
-
-          // Listen once for auth state change
-          try {
-            if (typeof onAuthStateChanged === 'function' && typeof auth !== 'undefined') {
-              const unsubs = [];
-              const cb = function(user) {
-                if (resolved) return;
-                resolved = true;
-                resolve(user);
-                // no direct unsubscribe function is returned here because firebase returns the unsubscribe when called,
-                // but this environment already called onAuthStateChanged earlier; we attempt to be defensive.
-              };
-              try {
-                onAuthStateChanged(auth, cb);
-              } catch(e){}
-            }
-          } catch(e){}
-
-          // Always fallback to timeout after 1 second
-          setTimeout(() => {
-            if (resolved) return;
-            resolved = true;
-            // If auth object exists try to use auth.currentUser; otherwise null
-            try {
-              if (typeof auth !== 'undefined' && auth.currentUser) resolve(auth.currentUser);
-              else resolve(null);
-            } catch(e){ resolve(null); }
-          }, 1000);
-        });
-      }
-
-      // Kick the check on window load (keeps previous behavior)
-      window.addEventListener('load', async () => {
-        try {
-          const u = await checkAuthOnce();
-          // Update UI according to user presence.
-          try {
-            if (u) {
-              updateUI(u);
-              // Ensure caches and lists are loaded (best effort)
-              try { loadUsersCache(); loadChats(); loadGroups(); } catch(e){}
-            } else {
-              updateUI(null);
-            }
-          } catch(e){ console.error('startup UI update error', e); }
-        } catch(e){
-          console.error('startup checkAuthOnce error', e);
-          try { updateUI(null); } catch(e){}
-        } finally {
-          // hide the loader at the end (ensures it stops after ~1s)
-          hideLoader();
-        }
+      // Keep loader visible for exactly 1 second, then decide screen based on auth state
+      window.addEventListener('load', () => {
+        setTimeout(() => {
+          // prefer the canonical firebase auth currentUser if available, otherwise use currentUser variable
+          const u = (typeof auth !== 'undefined' && auth.currentUser) ? auth.currentUser : (typeof currentUser !== 'undefined' ? currentUser : null);
+          if (u) {
+            // user is signed in -> show app area
+            updateUI(u);
+            // ensure caches and lists are loaded
+            try { loadUsersCache(); loadChats(); loadGroups(); } catch(e){}
+          } else {
+            // no user -> remain on auth screen
+            updateUI(null);
+          }
+          hideLoaderInstant();
+        }, 1000); // 1 second as requested
       });
     })();
     // --- END: Startup loader behaviour ---
