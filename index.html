@@ -433,11 +433,9 @@
         </div>
 
         <div class="profile-field">
-          <label style="font-size:13px;color:var(--muted)">Handle (public)</label>
-          <div style="display:flex;gap:8px;align-items:center;">
-            <input id="profileHandle" type="text" placeholder="@yourhandle" readonly>
+          <label style="font-size:13px;color:var(--muted)">Handle</label>
+          <input id="profileHandle" type="text" placeholder="@yourhandle" readonly>
             <div id="handleNote" style="font-size:12px;color:var(--muted)">(cannot change)</div>
-          </div>
         </div>
 
         <div class="profile-field" id="profileAboutField">
@@ -1423,8 +1421,12 @@
         let data = snap.exists() ? snap.val() : {};
         if (data.displayName) profileDisplayName.value = data.displayName;
         else profileDisplayName.value = (currentUser.email || '').split('@')[0] || '';
-        if (data.handle) profileHandle.value = data.handle;
-        else profileHandle.value = '';
+        try {
+        var displayName = (currentUser && currentUser.displayName) ? currentUser.displayName : null;
+        if (!displayName && currentUser && currentUser.email) displayName = currentUser.email.split('@')[0];
+        profileHandle.value = displayName || data.handle || '';
+        profileHandle.readOnly = true;
+      } catch(e) { console.error('profileHandle set error', e); };
         if (data.about) profileAbout.value = data.about;
         else profileAbout.value = 'Hi, I am using Zag Messenger';
         if (data.profilePic) {
@@ -1516,25 +1518,13 @@
     // ensure Home / Groups clear navYou active and update fixed header title
     navHome.addEventListener('click', (ev)=>{
       try { profileSection.style.display = 'none'; } catch(e){}
-      try { appSection.style.display = 'block'; } catch(e){}
       setBottomActive(navHome);
       try { fixedHeaderTitle.innerText = 'My chats'; } catch(e){}
-      try { listTitle.innerText = 'My chats'; } catch(e){}
-      try { chatList.style.display = 'block'; } catch(e){}
-      try { groupList.style.display = 'none'; } catch(e){}
-      try { updateFloatingVisibility(); } catch(e){}
-      try { loadChats(); } catch(e){}
     });
     navGroups.addEventListener('click', (ev)=>{
       try { profileSection.style.display = 'none'; } catch(e){}
-      try { appSection.style.display = 'block'; } catch(e){}
       setBottomActive(navGroups);
       try { fixedHeaderTitle.innerText = 'Groups'; } catch(e){}
-      try { listTitle.innerText = 'Groups'; } catch(e){}
-      try { chatList.style.display = 'none'; } catch(e){}
-      try { groupList.style.display = 'block'; } catch(e){}
-      try { updateFloatingVisibility(); } catch(e){}
-      try { loadGroups(); } catch(e){}
     });
     // --- end profile updates ---
 
@@ -1582,7 +1572,47 @@
     // --- END: Startup loader behaviour ---
 
     console.log('Profile & contacts improvements applied: handle field, contact deletion removes from Home, @You opens profile.');
-  </script>
+  
+// --- auth-state listener to control initial loading and navigation (added) ---
+try {
+  var auth = (typeof getAuth === 'function') ? getAuth() : (window.firebase && firebase.auth ? firebase.auth() : null);
+  var splashEl = document.getElementById('splash') || document.querySelector('.splash') || document.getElementById('loading') || document.querySelector('.loading');
+  var signInSection = document.getElementById('signInSection') || document.getElementById('authSection') || document.getElementById('signin-section') || document.querySelector('.auth-section');
+  var appSectionEl = document.getElementById('appSection') || document.getElementById('mainApp') || document.querySelector('.app-section') || document.querySelector('#app');
+  var profileHandleEl = document.getElementById('profileHandle');
+
+  function handleAuthState(user) {
+    try { if (splashEl) splashEl.style.display = 'none'; } catch(e){}
+    if (user) {
+      try {
+        var name = user.displayName || (user.email ? user.email.split('@')[0] : '');
+        if (profileHandleEl) { profileHandleEl.value = name; profileHandleEl.readOnly = true; }
+      } catch(e){}
+      try { if (signInSection) signInSection.style.display = 'none'; } catch(e){}
+      try { if (appSectionEl) appSectionEl.style.display = 'block'; } catch(e){}
+      try { if (typeof fixedHeaderTitle !== 'undefined') fixedHeaderTitle.innerText = 'My chats'; } catch(e){}
+      try { if (typeof loadChats === 'function') loadChats(); } catch(e){}
+    } else {
+      try { if (signInSection) signInSection.style.display = 'block'; } catch(e){}
+      try { if (appSectionEl) appSectionEl.style.display = 'none'; } catch(e){}
+    }
+  }
+
+  if (auth) {
+    if (typeof onAuthStateChanged === 'function') {
+      onAuthStateChanged(auth, handleAuthState);
+    } else if (auth.onAuthStateChanged) {
+      auth.onAuthStateChanged(handleAuthState);
+    } else {
+      setTimeout(function(){ handleAuthState(null); }, 1200);
+    }
+  } else {
+    setTimeout(function(){ if (splashEl) splashEl.style.display = 'none'; if (signInSection) signInSection.style.display = 'block'; }, 800);
+  }
+} catch(e) { console.error('auth listener error', e); }
+// --- end added auth-state listener ---
+
+</script>
 
   <!-- Main + Modal -->
   <div class="main-modal-backdrop" id="mainModalBackdrop" style="display:none;">
