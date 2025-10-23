@@ -1612,6 +1612,55 @@ try {
 } catch(e) { console.error('auth listener error', e); }
 // --- end added auth-state listener ---
 
+
+// --- improved auth-state listener with 1s fade-out (updated Oct23) ---
+try {
+  var auth = (typeof getAuth === 'function') ? getAuth() : (window.firebase && firebase.auth ? firebase.auth() : null);
+  var splashEl = document.getElementById('splash') || document.querySelector('.splash') || document.getElementById('loading') || document.querySelector('.loading');
+  var signInSection = document.getElementById('signInSection') || document.getElementById('authSection') || document.getElementById('signin-section') || document.querySelector('.auth-section');
+  var appSectionEl = document.getElementById('appSection') || document.getElementById('mainApp') || document.querySelector('.app-section') || document.querySelector('#app');
+  var profileHandleEl = document.getElementById('profileHandle');
+
+  function fadeOutSplash() {
+    if (!splashEl) return;
+    splashEl.style.transition = 'opacity 0.6s ease';
+    splashEl.style.opacity = '0';
+    setTimeout(function(){ splashEl.style.display = 'none'; }, 600);
+  }
+
+  function handleAuthState(user) {
+    setTimeout(function() {
+      fadeOutSplash();
+      if (user) {
+        try {
+          var name = user.displayName || (user.email ? user.email.split('@')[0] : '');
+          if (profileHandleEl) { profileHandleEl.value = name; profileHandleEl.readOnly = true; }
+        } catch(e){}
+        try { if (signInSection) signInSection.style.display = 'none'; } catch(e){}
+        try { if (appSectionEl) appSectionEl.style.display = 'block'; } catch(e){}
+        try { if (typeof fixedHeaderTitle !== 'undefined') fixedHeaderTitle.innerText = 'My chats'; } catch(e){}
+        try { if (typeof loadChats === 'function') loadChats(); } catch(e){}
+      } else {
+        try { if (signInSection) signInSection.style.display = 'block'; } catch(e){}
+        try { if (appSectionEl) appSectionEl.style.display = 'none'; } catch(e){}
+      }
+    }, 1000); // 1 second delay + fade timing
+  }
+
+  if (auth) {
+    if (typeof onAuthStateChanged === 'function') {
+      onAuthStateChanged(auth, handleAuthState);
+    } else if (auth.onAuthStateChanged) {
+      auth.onAuthStateChanged(handleAuthState);
+    } else {
+      setTimeout(function(){ handleAuthState(null); }, 1000);
+    }
+  } else {
+    setTimeout(function(){ handleAuthState(null); }, 1000);
+  }
+} catch(e) { console.error('auth listener fade error', e); }
+// --- end improved auth-state listener ---
+
 </script>
 
   <!-- Main + Modal -->
