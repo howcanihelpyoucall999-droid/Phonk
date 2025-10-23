@@ -352,6 +352,11 @@
 .avatar-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:99999; align-items:center; justify-content:center; }
 .avatar-modal .modal-inner { width:92%; max-width:760px; background:#fff; border-radius:12px; padding:12px; max-height:80vh; overflow:auto; }
 
+
+/* Games modal minor styles */
+#gameInviteModal div[role="list"] { max-height:260px; overflow:auto; }
+.modal-game, #gameInviteModal, #incomingInviteModal { display:none; align-items:center; justify-content:center; }
+
 </style>
 </head>
 <body>
@@ -414,6 +419,58 @@
       <!-- Lists -->
       <div id="chat-list-container"></div>
       <div id="group-list-container" style="display:none;"></div>
+
+      <!-- Games section (added) -->
+      <div id="games-section" style="display:none;padding:12px;">
+        <h3 style="color:var(--primary);margin-top:0;margin-bottom:8px;">Games</h3>
+        <div class="games-grid" style="display:flex;gap:12px;flex-wrap:wrap;">
+          <div class="game-card" data-game="tictactoe" style="flex:1 1 180px;padding:18px;border-radius:12px;background:linear-gradient(180deg,#fff,#f6fbff);border:1px solid rgba(11,96,214,0.06);cursor:pointer;text-align:center;font-weight:700;">
+            Tic‑Tac‑Toe
+            <div style="font-size:12px;color:var(--muted);margin-top:8px;">Play 1v1 with a contact</div>
+          </div>
+          <div class="game-card" data-game="rps" style="flex:1 1 180px;padding:18px;border-radius:12px;background:linear-gradient(180deg,#fff,#f6fbff);border:1px solid rgba(11,96,214,0.06);cursor:pointer;text-align:center;font-weight:700;">
+            Rock Paper Scissors
+            <div style="font-size:12px;color:var(--muted);margin-top:8px;">Quick challenge — best of one</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Game invite modal -->
+      <div id="gameInviteModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:9999;align-items:center;justify-content:center;">
+        <div style="width:92%;max-width:420px;background:#fff;border-radius:12px;padding:12px;">
+          <h4 style="margin:0 0 10px;color:var(--primary)">Invite contact to play <span id="inviteGameName"></span></h4>
+          <div id="onlineContactsList" style="max-height:260px;overflow:auto;padding:6px 0"></div>
+          <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;">
+            <button id="cancelInviteBtn" class="btn ghost" style="padding:8px 12px;">Cancel</button>
+            <button id="sendInviteBtn" class="btn primary" style="padding:8px 12px;">Invite</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Incoming invite modal -->
+      <div id="incomingInviteModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:10000;align-items:center;justify-content:center;">
+        <div style="width:92%;max-width:420px;background:#fff;border-radius:12px;padding:12px;">
+          <h4 style="margin:0 0 6px;color:var(--primary)"><span id="incomingFromName"></span> invited you to play <span id="incomingGameName"></span></h4>
+          <div id="incomingInviteMsg" style="margin-top:6px;color:var(--muted);font-size:13px;">Would you like to play?</div>
+          <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;">
+            <button id="declineInviteBtn" class="btn ghost" style="padding:8px 12px;">Decline</button>
+            <button id="acceptInviteBtn" class="btn primary" style="padding:8px 12px;">Accept</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Game screen -->
+      <div id="game-screen" style="display:none;position:fixed;inset:0;background:linear-gradient(180deg,rgba(255,255,255,0.98),#fbfdff);z-index:9998;padding:12px;overflow:auto;">
+        <div style="max-width:560px;margin:0 auto;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+            <button id="closeGameScreen" class="btn ghost" style="padding:6px 10px;">&lt; Back</button>
+            <h3 id="gameScreenTitle" style="margin:0;color:var(--primary);font-size:18px;"></h3>
+            <div style="margin-left:auto;color:var(--muted);" id="gamePlayersInfo"></div>
+          </div>
+          <div id="gameContent"></div>
+        </div>
+      </div>
+
     </div>
 
     <!-- Chat Screen -->
@@ -433,9 +490,8 @@
         </div>
 
         <div class="profile-field">
-          <label style="font-size:13px;color:var(--muted)">Handle</label>
-          <input id="profileHandle" type="text" placeholder="@yourhandle" readonly>
-            <div id="handleNote" style="font-size:12px;color:var(--muted)">(cannot change)</div>
+          <label style="font-size:13px;color:var(--muted)">Handle (public)</label>
+          <input id="profileHandle" type="text" placeholder="@yourhandle">
         </div>
 
         <div class="profile-field" id="profileAboutField">
@@ -1421,12 +1477,8 @@
         let data = snap.exists() ? snap.val() : {};
         if (data.displayName) profileDisplayName.value = data.displayName;
         else profileDisplayName.value = (currentUser.email || '').split('@')[0] || '';
-        try {
-        var displayName = (currentUser && currentUser.displayName) ? currentUser.displayName : null;
-        if (!displayName && currentUser && currentUser.email) displayName = currentUser.email.split('@')[0];
-        profileHandle.value = displayName || data.handle || '';
-        profileHandle.readOnly = true;
-      } catch(e) { console.error('profileHandle set error', e); };
+        if (data.handle) profileHandle.value = data.handle;
+        else profileHandle.value = '';
         if (data.about) profileAbout.value = data.about;
         else profileAbout.value = 'Hi, I am using Zag Messenger';
         if (data.profilePic) {
@@ -1572,96 +1624,408 @@
     // --- END: Startup loader behaviour ---
 
     console.log('Profile & contacts improvements applied: handle field, contact deletion removes from Home, @You opens profile.');
-  
-// --- auth-state listener to control initial loading and navigation (added) ---
-try {
-  var auth = (typeof getAuth === 'function') ? getAuth() : (window.firebase && firebase.auth ? firebase.auth() : null);
-  var splashEl = document.getElementById('splash') || document.querySelector('.splash') || document.getElementById('loading') || document.querySelector('.loading');
-  var signInSection = document.getElementById('signInSection') || document.getElementById('authSection') || document.getElementById('signin-section') || document.querySelector('.auth-section');
-  var appSectionEl = document.getElementById('appSection') || document.getElementById('mainApp') || document.querySelector('.app-section') || document.querySelector('#app');
-  var profileHandleEl = document.getElementById('profileHandle');
 
-  function handleAuthState(user) {
-    try { if (splashEl) splashEl.style.display = 'none'; } catch(e){}
-    if (user) {
-      try {
-        var name = user.displayName || (user.email ? user.email.split('@')[0] : '');
-        if (profileHandleEl) { profileHandleEl.value = name; profileHandleEl.readOnly = true; }
-      } catch(e){}
-      try { if (signInSection) signInSection.style.display = 'none'; } catch(e){}
-      try { if (appSectionEl) appSectionEl.style.display = 'block'; } catch(e){}
-      try { if (typeof fixedHeaderTitle !== 'undefined') fixedHeaderTitle.innerText = 'My chats'; } catch(e){}
-      try { if (typeof loadChats === 'function') loadChats(); } catch(e){}
-    } else {
-      try { if (signInSection) signInSection.style.display = 'block'; } catch(e){}
-      try { if (appSectionEl) appSectionEl.style.display = 'none'; } catch(e){}
+// --- START: Games & presence/invite/session logic (added) ---
+(function initGamesFeature(){
+  // presence: simple online indicator stored at /presence/{uid} = true
+  function setMyPresenceOnline() {
+    if (!currentUser) return;
+    try {
+      const pRef = dbRef(db, 'presence/' + currentUser.uid);
+      set(pRef, true).catch(()=>{});
+      // best-effort: clear on unload
+      window.addEventListener('beforeunload', () => {
+        try { set(dbRef(db, 'presence/' + currentUser.uid), null); } catch(e){}
+      });
+    } catch(e){}
+  }
+
+  // Listen for all presences
+  let presenceSnapshot = {};
+  function initPresenceListener(){
+    try {
+      const presRef = dbRef(db, 'presence');
+      onValue(presRef, snap => {
+        presenceSnapshot = snap.exists() ? snap.val() : {};
+        // re-render UI where relevant
+      });
+    } catch(e){}
+  }
+
+  // Wire nav games
+  navGames && navGames.addEventListener('click', () => {
+    setBottomActive(navGames);
+    try { profileSection.style.display = 'none'; } catch(e){}
+    // hide other list views
+    chatList.style.display = 'none';
+    groupList.style.display = 'none';
+    document.getElementById('games-section').style.display = 'block';
+    listTitle && (listTitle.innerText = 'Games');
+    updateFloatingVisibility();
+  });
+
+  // Attach click to game cards (delegation)
+  document.addEventListener('click', (ev) => {
+    const el = ev.target.closest && ev.target.closest('.game-card');
+    if (el) {
+      const game = el.dataset.game;
+      openGameInvitePicker(game);
     }
-  }
+  });
 
-  if (auth) {
-    if (typeof onAuthStateChanged === 'function') {
-      onAuthStateChanged(auth, handleAuthState);
-    } else if (auth.onAuthStateChanged) {
-      auth.onAuthStateChanged(handleAuthState);
-    } else {
-      setTimeout(function(){ handleAuthState(null); }, 1200);
-    }
-  } else {
-    setTimeout(function(){ if (splashEl) splashEl.style.display = 'none'; if (signInSection) signInSection.style.display = 'block'; }, 800);
-  }
-} catch(e) { console.error('auth listener error', e); }
-// --- end added auth-state listener ---
+  // Open invite picker: only online contacts allowed
+  let selectedInviteTarget = null;
+  let pendingInviteRef = null;
+  let currentInviteId = null;
+  let currentInviterListener = null;
 
+  async function openGameInvitePicker(gameId){
+    if (!currentUser) return alert('Please sign in to use games.');
+    const modal = document.getElementById('gameInviteModal');
+    const title = document.getElementById('inviteGameName');
+    title.textContent = gameId === 'tictactoe' ? 'Tic‑Tac‑Toe' : (gameId === 'rps' ? 'Rock Paper Scissors' : gameId);
+    const list = document.getElementById('onlineContactsList');
+    list.innerHTML = '<div class="small">Loading contacts…</div>';
+    modal.style.display = 'flex';
+    selectedInviteTarget = null;
 
-// --- improved auth-state listener with 1s fade-out (updated Oct23) ---
-try {
-  var auth = (typeof getAuth === 'function') ? getAuth() : (window.firebase && firebase.auth ? firebase.auth() : null);
-  var splashEl = document.getElementById('splash') || document.querySelector('.splash') || document.getElementById('loading') || document.querySelector('.loading');
-  var signInSection = document.getElementById('signInSection') || document.getElementById('authSection') || document.getElementById('signin-section') || document.querySelector('.auth-section');
-  var appSectionEl = document.getElementById('appSection') || document.getElementById('mainApp') || document.querySelector('.app-section') || document.querySelector('#app');
-  var profileHandleEl = document.getElementById('profileHandle');
-
-  function fadeOutSplash() {
-    if (!splashEl) return;
-    splashEl.style.transition = 'opacity 0.6s ease';
-    splashEl.style.opacity = '0';
-    setTimeout(function(){ splashEl.style.display = 'none'; }, 600);
-  }
-
-  function handleAuthState(user) {
-    setTimeout(function() {
-      fadeOutSplash();
-      if (user) {
-        try {
-          var name = user.displayName || (user.email ? user.email.split('@')[0] : '');
-          if (profileHandleEl) { profileHandleEl.value = name; profileHandleEl.readOnly = true; }
-        } catch(e){}
-        try { if (signInSection) signInSection.style.display = 'none'; } catch(e){}
-        try { if (appSectionEl) appSectionEl.style.display = 'block'; } catch(e){}
-        try { if (typeof fixedHeaderTitle !== 'undefined') fixedHeaderTitle.innerText = 'My chats'; } catch(e){}
-        try { if (typeof loadChats === 'function') loadChats(); } catch(e){}
-      } else {
-        try { if (signInSection) signInSection.style.display = 'block'; } catch(e){}
-        try { if (appSectionEl) appSectionEl.style.display = 'none'; } catch(e){}
+    try {
+      const contactsSnap = await get(dbRef(db, 'contacts/' + currentUser.uid));
+      const contacts = contactsSnap.exists() ? Object.keys(contactsSnap.val()||{}) : [];
+      list.innerHTML = '';
+      // build list of online contacts (from usersCache + presenceSnapshot)
+      for (const uid of contacts) {
+        if (!usersCache[uid]) continue;
+        if (!presenceSnapshot || !presenceSnapshot[uid]) continue; // only online
+        const u = usersCache[uid];
+        const row = document.createElement('div');
+        row.style.display = 'flex';
+        row.style.alignItems = 'center';
+        row.style.gap = '8px';
+        row.style.padding = '8px';
+        row.style.borderRadius = '8px';
+        row.style.cursor = 'pointer';
+        row.style.border = '1px solid rgba(11,96,214,0.04)';
+        row.innerHTML = `<div style="width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#f0f6ff;color:var(--primary);font-weight:700;">${(u.displayName||u.email||'U').charAt(0).toUpperCase()}</div>
+                         <div style="flex:1"><div style="font-weight:700;color:var(--primary)}">${escapeHtml(u.displayName||u.email||u.phoneNumber||'User')}</div>
+                         <div class="small">${u.handle?('@'+u.handle):(u.phoneNumber||'')}</div></div>`;
+        row.dataset.uid = uid;
+        row.addEventListener('click', () => {
+          // mark selected visually
+          list.querySelectorAll('div').forEach(d=>d.style.opacity='1');
+          row.style.opacity = '0.6';
+          selectedInviteTarget = uid;
+        });
+        list.appendChild(row);
       }
-    }, 1000); // 1 second delay + fade timing
-  }
-
-  if (auth) {
-    if (typeof onAuthStateChanged === 'function') {
-      onAuthStateChanged(auth, handleAuthState);
-    } else if (auth.onAuthStateChanged) {
-      auth.onAuthStateChanged(handleAuthState);
-    } else {
-      setTimeout(function(){ handleAuthState(null); }, 1000);
+      if (list.children.length === 0) {
+        list.innerHTML = '<div class="small">No contacts online right now.</div>';
+      }
+    } catch(e){
+      console.error('openGameInvitePicker error', e);
+      list.innerHTML = '<div class="small">Failed to load contacts.</div>';
     }
-  } else {
-    setTimeout(function(){ handleAuthState(null); }, 1000);
-  }
-} catch(e) { console.error('auth listener fade error', e); }
-// --- end improved auth-state listener ---
 
-</script>
+    // prepare send/cancel buttons
+    const cancelBtn = document.getElementById('cancelInviteBtn');
+    const sendBtn = document.getElementById('sendInviteBtn');
+    cancelBtn.onclick = () => { modal.style.display='none'; selectedInviteTarget = null; };
+    sendBtn.onclick = async () => {
+      if (!selectedInviteTarget) return alert('Select an online contact first.');
+      // create invite under target's node
+      try {
+        const invitesRef = dbRef(db, 'gameInvites/' + selectedInviteTarget);
+        const newInvRef = push(invitesRef);
+        const inviteId = newInvRef.key;
+        currentInviteId = inviteId;
+        await set(newInvRef, {
+          id: inviteId,
+          from: currentUser.uid,
+          fromEmail: currentUser.email || '',
+          game: gameId,
+          status: 'pending',
+          timestamp: Date.now()
+        });
+        modal.style.display = 'none';
+        showWaitingForResponse(selectedInviteTarget, inviteId);
+        // listen for response
+        const invPath = dbRef(db, 'gameInvites/' + selectedInviteTarget + '/' + inviteId);
+        if (currentInviterListener) currentInviterListener(); // noop normally
+        currentInviterListener = onValue(invPath, async snap => {
+          if (!snap.exists()) return;
+          const data = snap.val();
+          if (data.status === 'accepted' && data.sessionId) {
+            // open session
+            try { openGameSession(data.sessionId); } catch(e){ console.error(e); }
+          } else if (data.status === 'declined') {
+            alert('Sorry — chosen person does not want to play.');
+          }
+        });
+      } catch(e){
+        console.error('send invite error', e);
+        alert('Failed to send invite.');
+      }
+    };
+  }
+
+  function showWaitingForResponse(targetUid, inviteId){
+    // simple feedback
+    alert('Invite sent — waiting for response.');
+  }
+
+  // Incoming invites listener for current user
+  function initIncomingInvitesListener(){
+    if (!currentUser) return;
+    const myInvRef = dbRef(db, 'gameInvites/' + currentUser.uid);
+    onValue(myInvRef, snap => {
+      if (!snap.exists()) return;
+      // show the latest pending invite (simple behavior)
+      let pending = null;
+      snap.forEach(child => {
+        const val = child.val();
+        if (val && val.status === 'pending') pending = val;
+      });
+      if (pending) {
+        showIncomingInvite(pending);
+      }
+    });
+  }
+
+  let activeIncomingInviteId = null;
+  function showIncomingInvite(inv){
+    if (!inv) return;
+    activeIncomingInviteId = inv.id;
+    const modal = document.getElementById('incomingInviteModal');
+    document.getElementById('incomingFromName').textContent = (usersCache[inv.from] && (usersCache[inv.from].displayName || usersCache[inv.from].email)) || inv.fromEmail || 'Someone';
+    document.getElementById('incomingGameName').textContent = inv.game === 'tictactoe' ? 'Tic‑Tac‑Toe' : (inv.game === 'rps' ? 'Rock Paper Scissors' : inv.game);
+    modal.style.display = 'flex';
+
+    document.getElementById('acceptInviteBtn').onclick = async () => {
+      modal.style.display = 'none';
+      try {
+        // update invite to accepted and create session
+        const invitesRef = dbRef(db, 'gameInvites/' + currentUser.uid + '/' + inv.id);
+        // create session
+        const sessionsRef = dbRef(db, 'gameSessions');
+        const newSessRef = push(sessionsRef);
+        const sid = newSessRef.key;
+        const sessionData = {
+          id: sid,
+          game: inv.game,
+          players: { [inv.from]: true, [currentUser.uid]: true },
+          createdAt: Date.now(),
+          createdBy: currentUser.uid,
+          state: {}
+        };
+        await set(dbRef(db, 'gameSessions/' + sid), sessionData);
+        await update(invitesRef, { status: 'accepted', sessionId: sid });
+        openGameSession(sid);
+      } catch(e){
+        console.error('accept invite error', e);
+        alert('Failed to accept invite.');
+      }
+    };
+    document.getElementById('declineInviteBtn').onclick = async () => {
+      modal.style.display = 'none';
+      try {
+        const invitesRef = dbRef(db, 'gameInvites/' + currentUser.uid + '/' + inv.id);
+        await update(invitesRef, { status: 'declined' });
+      } catch(e){ console.error(e); }
+    };
+  }
+
+  // Open a shared game session (basic sync using gameSessions/{sessionId}/state or moves)
+  async function openGameSession(sessionId){
+    if (!sessionId) return alert('Invalid session.');
+    try {
+      // fetch session
+      const sSnap = await get(dbRef(db, 'gameSessions/' + sessionId));
+      if (!sSnap.exists()) return alert('Session not found.');
+      const session = sSnap.val();
+      const game = session.game;
+      const players = Object.keys(session.players || {});
+      const otherUid = players.find(u=>u !== currentUser.uid);
+      const otherName = (usersCache[otherUid] && (usersCache[otherUid].displayName || usersCache[otherUid].email)) || otherUid;
+      // show game screen
+      document.getElementById('gameScreenTitle').textContent = game === 'tictactoe' ? 'Tic‑Tac‑Toe' : (game === 'rps' ? 'Rock Paper Scissors' : game);
+      document.getElementById('gamePlayersInfo').textContent = 'You vs ' + otherName;
+      document.getElementById('gameContent').innerHTML = '<div class="small">Loading game...</div>';
+      document.getElementById('game-screen').style.display = 'block';
+
+      document.getElementById('closeGameScreen').onclick = () => {
+        document.getElementById('game-screen').style.display = 'none';
+      };
+
+      if (game === 'tictactoe') {
+        startTicTacToe(sessionId, currentUser.uid, players);
+      } else if (game === 'rps') {
+        startRPS(sessionId, currentUser.uid, players);
+      } else {
+        document.getElementById('gameContent').innerHTML = '<div class="small">Unknown game type</div>';
+      }
+    } catch(e){
+      console.error('openGameSession error', e);
+      alert('Failed to open game session.');
+    }
+  }
+
+  // TicTacToe implementation (basic)
+  function startTicTacToe(sessionId, myUid, players){
+    const mySymbol = players[0] === myUid ? 'X' : 'O';
+    const sessRef = dbRef(db, 'gameSessions/' + sessionId + '/state');
+    const content = document.getElementById('gameContent');
+    content.innerHTML = '';
+    const boardEl = document.createElement('div');
+    boardEl.style.display = 'grid';
+    boardEl.style.gridTemplateColumns = 'repeat(3, 1fr)';
+    boardEl.style.gap = '6px';
+    boardEl.style.maxWidth = '360px';
+    boardEl.style.margin = '0 auto';
+    for (let i=0;i<9;i++){
+      const cell = document.createElement('div');
+      cell.dataset.idx = i;
+      cell.style.minHeight = '64px';
+      cell.style.display = 'flex';
+      cell.style.alignItems = 'center';
+      cell.style.justifyContent = 'center';
+      cell.style.fontSize = '26px';
+      cell.style.borderRadius = '8px';
+      cell.style.background = '#fff';
+      cell.style.border = '1px solid rgba(11,96,214,0.04)';
+      cell.style.cursor = 'pointer';
+      boardEl.appendChild(cell);
+      cell.onclick = async () => {
+        // write move if cell empty and it's our turn
+        try {
+          const snap = await get(dbRef(db, 'gameSessions/' + sessionId + '/state/board/' + i));
+          if (snap.exists()) return; // already played
+          // simple turn control: read nextTurn
+          const turnSnap = await get(dbRef(db, 'gameSessions/' + sessionId + '/state/nextTurn'));
+          const nextTurn = turnSnap.exists() ? turnSnap.val() : players[0];
+          if (nextTurn !== myUid) return alert('Wait for your turn.');
+          // set board cell to myUid (server-side symbol rendering)
+          await set(dbRef(db, 'gameSessions/' + sessionId + '/state/board/' + i), myUid);
+          // set nextTurn to the other player
+          const other = players.find(u=>u!==myUid);
+          await set(dbRef(db, 'gameSessions/' + sessionId + '/state/nextTurn'), other);
+          checkTicTacToeWinner(sessionId, players);
+        } catch(e){ console.error(e); }
+      };
+    }
+    content.appendChild(boardEl);
+
+    // Show current turn / status
+    const status = document.createElement('div');
+    status.style.marginTop = '12px';
+    status.className = 'small';
+    content.appendChild(status);
+
+    // Listen for moves
+    onValue(dbRef(db, 'gameSessions/' + sessionId + '/state/board'), snap => {
+      const board = snap.exists() ? snap.val() : {};
+      for (let i=0;i<9;i++){
+        const c = boardEl.children[i];
+        const val = board && board[i];
+        if (val) {
+          // map uid to symbol
+          const sym = (val === players[0]) ? 'X' : 'O';
+          c.textContent = sym;
+        } else c.textContent = '';
+      }
+    });
+    onValue(dbRef(db, 'gameSessions/' + sessionId + '/state/nextTurn'), snap => {
+      const next = snap.exists() ? snap.val() : players[0];
+      status.textContent = (next === myUid) ? 'Your turn' : 'Opponent\'s turn';
+    });
+  }
+
+  async function checkTicTacToeWinner(sessionId, players){
+    try {
+      const boardSnap = await get(dbRef(db, 'gameSessions/' + sessionId + '/state/board'));
+      const board = boardSnap.exists() ? boardSnap.val() : {};
+      const b = Array.from({length:9}).map((_,i)=>board && board[i] ? board[i] : null);
+      const lines = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+      for (const [a,b1,c] of lines){
+        if (b[a] && b[a] === b[b1] && b[a] === b[c]) {
+          // we have a winner
+          await set(dbRef(db, 'gameSessions/' + sessionId + '/state/result'), { winner: b[a], winningLine:[a,b1,c] });
+          return;
+        }
+      }
+      // check draw
+      if (b.every(x=>x !== null)) {
+        await set(dbRef(db, 'gameSessions/' + sessionId + '/state/result'), { draw: true });
+      }
+    } catch(e){ console.error(e); }
+  }
+
+  // RPS implementation (simple)
+  function startRPS(sessionId, myUid, players){
+    const content = document.getElementById('gameContent');
+    content.innerHTML = '';
+    const picks = ['rock','paper','scissors'];
+    const pickArea = document.createElement('div');
+    pickArea.style.display = 'flex';
+    pickArea.style.gap = '8px';
+    pickArea.style.justifyContent = 'center';
+    pickArea.style.marginTop = '12px';
+    picks.forEach(p => {
+      const b = document.createElement('button');
+      b.className = 'btn ghost';
+      b.textContent = p.charAt(0).toUpperCase() + p.slice(1);
+      b.onclick = async () => {
+        try {
+          await set(dbRef(db, 'gameSessions/' + sessionId + '/moves/' + myUid), p);
+          b.disabled = true;
+        } catch(e){ console.error(e); }
+      };
+      pickArea.appendChild(b);
+    });
+    content.appendChild(pickArea);
+
+    const status = document.createElement('div');
+    status.className = 'small';
+    status.style.marginTop = '10px';
+    content.appendChild(status);
+
+    // listener for both moves
+    onValue(dbRef(db, 'gameSessions/' + sessionId + '/moves'), async snap => {
+      const m = snap.exists() ? snap.val() : {};
+      const keys = Object.keys(m || {});
+      if (keys.length < 2) {
+        status.textContent = 'Waiting for both players to pick...';
+        return;
+      }
+      // compute result
+      const u1 = players[0], u2 = players[1];
+      const p1 = m[u1], p2 = m[u2];
+      let resText = '';
+      if (p1 && p2) {
+        if (p1 === p2) resText = 'Draw — both chose ' + p1;
+        else {
+          const beats = { rock: 'scissors', scissors: 'paper', paper: 'rock' };
+          if (beats[p1] === p2) resText = (usersCache[u1] ? (usersCache[u1].displayName||usersCache[u1].email) : u1) + ' wins ('+p1+' beats '+p2+')';
+          else resText = (usersCache[u2] ? (usersCache[u2].displayName||usersCache[u2].email) : u2) + ' wins ('+p2+' beats '+p1+')';
+        }
+        status.textContent = resText;
+      }
+    });
+  }
+
+  // Init hooks
+  // call when user signs in
+  onAuthStateChanged(auth, user => {
+    if (user) {
+      setMyPresenceOnline();
+      initPresenceListener();
+      initIncomingInvitesListener();
+    }
+  });
+
+})(); // end initGamesFeature
+// --- END: Games feature ---
+
+  </script>
 
   <!-- Main + Modal -->
   <div class="main-modal-backdrop" id="mainModalBackdrop" style="display:none;">
