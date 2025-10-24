@@ -393,49 +393,6 @@ button, .btn, a {
   transition: opacity 360ms linear;
 }
 
-
-/* --- Profile contacts layout overrides (requested fixes) --- */
-.profile-contacts .contact-row { align-items:center; }
-.profile-contacts .contact-row .contact-avatar {
-  width:44px;
-  height:44px;
-  border-radius:50%;
-  flex:0 0 44px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  background:linear-gradient(180deg,#dbeeff,#c1ddff);
-  font-weight:700;
-  color:var(--primary);
-  font-size:16px;
-}
-.profile-contacts .contact-row .contact-info { flex:1; min-width:0; padding:0 8px; }
-.profile-contacts .contact-row .contact-name {
-  font-weight:700;
-  color:var(--primary);
-  overflow:hidden;
-  white-space:nowrap;
-  text-overflow:ellipsis;
-}
-/* make delete button a small boxed control fixed on the right */
-.profile-contacts .contact-row .delete-btn {
-  flex:0 0 36px;
-  width:36px;
-  height:36px;
-  border-radius:8px;
-  padding:0;
-  font-weight:700;
-  border:none;
-  cursor:pointer;
-  background:#fff;
-  border:1px solid rgba(11,96,214,0.08);
-  box-shadow:0 6px 12px rgba(0,0,0,0.04);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-}
-.profile-contacts .contact-row .delete-btn:hover { transform:translateY(-1px); }
-
 </style>
 </head>
 <body>
@@ -1607,7 +1564,7 @@ button, .btn, a {
       try {
         const snap = await get(dbRef(db, 'contacts/' + currentUser.uid));
         if (!snap.exists()) {
-          profileContactsList.innerHTML = '<div class="small">No contacts yet.</div>';
+          profileContactsList.innerHTML = '<div class=\"small\">No contacts yet.</div>';
           return;
         }
         const uids = Object.keys(snap.val() || {});
@@ -1618,53 +1575,27 @@ button, .btn, a {
             if (usnap.exists()) u = usnap.val();
           }
           if (!u) continue;
-
           const row = document.createElement('div');
           row.className = 'contact-row';
-
-          // avatar (fixed, round)
-          const avatar = document.createElement('div');
-          avatar.className = 'contact-avatar';
-          avatar.textContent = (u.displayName || u.email || 'U').charAt(0).toUpperCase();
-
-          // info (name + sub)
-          const info = document.createElement('div');
-          info.className = 'contact-info';
-          const nameDiv = document.createElement('div');
-          nameDiv.className = 'contact-name';
-          nameDiv.textContent = u.displayName || u.email || u.phoneNumber || 'User';
-          const subDiv = document.createElement('div');
-          subDiv.className = 'small';
-          subDiv.textContent = u.handle ? ('@' + u.handle) : (u.phoneNumber || '');
-
-          info.appendChild(nameDiv);
-          info.appendChild(subDiv);
-
-          // delete button (small boxed button, fixed place on right)
-          const delBtn = document.createElement('button');
-          delBtn.className = 'delete-btn';
-          delBtn.title = 'Delete contact';
-          delBtn.type = 'button';
-          delBtn.textContent = '×';
-          delBtn.addEventListener('click', async (ev) => {
-            // prevent row click / bubbling
-            ev.stopPropagation();
+          row.innerHTML = `<div style=\"width:44px;height:44px;border-radius:50%;background:linear-gradient(180deg,#dbeeff,#c1ddff);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--primary);\">${(u.displayName||u.email||'U').charAt(0).toUpperCase()}</div>
+                           <div style="flex:1;">
+                             <div class=\"contact-name\">${u.displayName || u.email || u.phoneNumber || 'User'}</div>
+                             <div class="small">${u.handle ? ('@' + u.handle) : (u.phoneNumber || '')}</div>
+                           </div>
+                           <button class=\"delete-btn\">Delete</button>`;
+          const delBtn = row.querySelector('.delete-btn');
+          delBtn.addEventListener('click', async () => {
             const ok = confirm('Delete this contact? This will remove them from your Home list.');
             if (!ok) return;
             try {
               await set(dbRef(db, 'contacts/' + currentUser.uid + '/' + uid), null);
               // reload UI
               await loadProfileContacts();
-              await loadChats();
+              await loadChats(); // <-- ensure removed from Home list immediately
             } catch (e) {
               console.error('delete contact error', e);
             }
           });
-
-          row.appendChild(avatar);
-          row.appendChild(info);
-          row.appendChild(delBtn);
-
           profileContactsList.appendChild(row);
         }
       } catch (e) {
@@ -1672,7 +1603,7 @@ button, .btn, a {
       }
     }
 
-    navYou.removeEventListenernavYou.removeEventListener && navYou.removeEventListener('click', ()=>{});
+    navYou.removeEventListener && navYou.removeEventListener('click', ()=>{});
     /* navYou click handler replaced by profile handler above */
 
     // ensure Home / Groups clear navYou active and update fixed header title
@@ -2163,5 +2094,129 @@ button, .btn, a {
 })();
 </script>
 
+
+<!-- Loader fade-out injection: stops continuous loader after sign-in status detected -->
+<style>
+/* fade-out animation and ensure no infinite spinner remains visible */
+.loader-fade-target {
+  transition: opacity 0.45s ease, visibility 0.45s;
+}
+.loader-fade-target.fade-out {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+@keyframes fadeOutKey {
+  from { opacity: 1; }
+  to { opacity: 0; visibility: hidden; }
+}
+</style>
+
+<script>
+(function(){
+  // Determine loader element(s)
+  var selectorCandidates = [];
+  [".loader", "[class*=\"loader\"]", "#loader", "#loading", ".loader", ".loading", "#loading-screen", ".loading-screen", "#splash", ".splash", "body > .overlay"]
+
+  var loaderEl = null;
+  for (var s of selectorCandidates) {
+    try {
+      var el = document.querySelector(s);
+      if (el) { loaderEl = el; break; }
+    } catch(e) {}
+  }
+  // If still not found, try any element that looks like a full-screen overlay
+  if (!loaderEl) {
+    var possible = document.querySelector('[id*="load"], [class*="load"], [id*="splash"], [class*="splash"]');
+    if (possible) loaderEl = possible;
+  }
+  if (!loaderEl) {
+    // Nothing to do
+    return;
+  }
+
+  // Ensure the element has the helper class for transitions
+  loaderEl.classList.add('loader-fade-target');
+
+  function fadeOutLoader() {
+    if (!loaderEl) return;
+    // add fade-out class
+    loaderEl.classList.add('fade-out');
+    // after transition remove any running animation classes to stop continuous CSS animations
+    setTimeout(function(){
+      // remove spinner children animations by setting animation: none
+      loaderEl.style.animation = 'none';
+      var spinners = loaderEl.querySelectorAll('*');
+      for (var i=0;i<spinners.length;i++){
+        spinners[i].style.animation = 'none';
+        spinners[i].style.webkitAnimation = 'none';
+      }
+    }, 500);
+  }
+
+  // If Firebase Auth is available, use its state observer
+  if (window.firebase && firebase.auth && typeof firebase.auth === 'function') {
+    try {
+      firebase.auth().onAuthStateChanged(function(user){
+        // give a tiny delay so UI updates settle, then fade out
+        setTimeout(fadeOutLoader, 250);
+      });
+      // also call once in case user is already known
+      if (firebase.auth().currentUser) setTimeout(fadeOutLoader, 250);
+      return;
+    } catch(e){}
+  }
+
+  // If app uses modular SDK (getAuth)
+  if (window.getAuth && typeof getAuth === 'function') {
+    try {
+      var auth = getAuth();
+      if (auth && typeof auth.onAuthStateChanged === 'function') {
+        auth.onAuthStateChanged(function(user){
+          setTimeout(fadeOutLoader, 250);
+        });
+        if (auth.currentUser) setTimeout(fadeOutLoader, 250);
+        return;
+      }
+    } catch(e){}
+  }
+
+  // Generic fallbacks:
+  // 1) Poll for common global variables (currentUser) or body classes that indicate sign-in.
+  var checks = [
+    function(){ return !!window.currentUser; },
+    function(){ return !!window.user || !!window.appUser; },
+    function(){ return document.body.classList.contains('signed-in') || document.body.classList.contains('logged-in'); },
+    function(){ return !!localStorage.getItem('currentUser') || !!localStorage.getItem('user'); },
+    function(){ return !!document.querySelector('.user-profile, .profile, .account'); }
+  ];
+
+  var maxAttempts = 40; // ~10 seconds (40 * 250ms)
+  var attempt = 0;
+  var poll = setInterval(function(){
+    attempt++;
+    for (var i=0;i<checks.length;i++){
+      try {
+        if (checks[i]()) {
+          clearInterval(poll);
+          setTimeout(fadeOutLoader, 200);
+          return;
+        }
+      } catch(e){}
+    }
+    // also stop polling and fade out after maxAttempts as a safety (so loader doesn't run forever)
+    if (attempt >= maxAttempts) {
+      clearInterval(poll);
+      // gracefully fade out even if no user detected
+      setTimeout(fadeOutLoader, 200);
+    }
+  }, 250);
+
+  // Also listen for custom events that might be fired by your app after sign-in/up
+  document.addEventListener('signed-in', function(){ setTimeout(fadeOutLoader, 200); });
+  document.addEventListener('auth-ready', function(){ setTimeout(fadeOutLoader, 200); });
+
+})();
+</script>
 </body>
 </html>
