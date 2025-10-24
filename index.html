@@ -1569,10 +1569,9 @@ button, .btn, a {
     }
 
     pencilBtn && pencilBtn.addEventListener('click', () => {
-      renderAvatarGrid(profileAvatar.dataset.selected || '');
-      avatarModal.style.display = 'flex';
-      avatarModal.setAttribute('aria-hidden','false');
-    });
+  // Open the larger link-edit modal (pencilAvatarModal) — only visible when user taps pencil on @You
+  try { showModal(profileAvatar.dataset.selected || ''); } catch(e) { document.getElementById('pencilAvatarModal').style.display = 'flex'; }
+});
     closeAvatarModal && closeAvatarModal.addEventListener('click', () => {
       avatarModal.style.display = 'none';
       avatarModal.setAttribute('aria-hidden','true');
@@ -2175,71 +2174,7 @@ button, .btn, a {
 
 <!-- Fallback: ensure a visible link-only avatar box is present at top of page if no gallery found -->
 <script>
-(function(){
-  if (window.__linkBoxFallbackInstalled) return;
-  window.__linkBoxFallbackInstalled = true;
-
-  function createVisibleBoxElement() {
-    var wrapper = document.createElement('div');
-    wrapper.id = 'globalAvatarLinkBoxWrapper';
-    wrapper.style.width = '100%';
-    wrapper.style.boxSizing = 'border-box';
-    wrapper.style.padding = '14px';
-    wrapper.style.background = '#fff';
-    wrapper.style.borderBottom = '1px solid rgba(0,0,0,0.04)';
-    wrapper.style.display = 'flex';
-    wrapper.style.justifyContent = 'center';
-    wrapper.style.zIndex = 9998;
-
-    var inner = document.createElement('div');
-    inner.style.width = '100%';
-    inner.style.maxWidth = '820px';
-    inner.style.display = 'flex';
-    inner.style.alignItems = 'center';
-    inner.style.gap = '10px';
-
-    var input = document.createElement('input');
-    input.type = 'text';
-    input.id = 'globalAvatarLinkInput';
-    input.placeholder = 'Paste image URL (link only) — jpg, png, webp';
-    input.style.flex = '1';
-    input.style.padding = '10px';
-    input.style.border = '1px solid #e2e6ef';
-    input.style.borderRadius = '8px';
-    input.style.fontSize = '15px';
-
-    var saveBtn = document.createElement('button');
-    saveBtn.id = 'globalAvatarLinkSave';
-    saveBtn.textContent = 'Save';
-    saveBtn.className = 'btn primary';
-    saveBtn.style.padding = '10px 14px';
-    saveBtn.style.borderRadius = '8px';
-
-    var cancelBtn = document.createElement('button');
-    cancelBtn.id = 'globalAvatarLinkCancel';
-    cancelBtn.textContent = 'Cancel';
-    cancelBtn.className = 'btn';
-    cancelBtn.style.padding = '10px 14px';
-    cancelBtn.style.borderRadius = '8px';
-
-    inner.appendChild(input);
-    inner.appendChild(saveBtn);
-    inner.appendChild(cancelBtn);
-    wrapper.appendChild(inner);
-    return wrapper;
-  }
-
-  function ensureBoxPresent() {
-    if (document.getElementById('avatarOnlyLinkBox') || document.getElementById('avatarLinkBox') || document.getElementById('globalAvatarLinkBoxWrapper')) return;
-    var container = document.querySelector('#main, main, .content, .app, .page, #content, #root') || document.body;
-    var box = createVisibleBoxElement();
-    if (container.firstChild) container.insertBefore(box, container.firstChild); else container.appendChild(box);
-
-    document.getElementById('globalAvatarLinkCancel').addEventListener('click', function(){
-      var inp = document.getElementById('globalAvatarLinkInput');
-      if (inp) inp.value = '';
-    });
-    document.getElementById('globalAvatarLinkSave').addEventListener('click', function(){
+document.getElementById('globalAvatarLinkSave').addEventListener('click', function(){
       var inp = document.getElementById('globalAvatarLinkInput');
       var url = inp && inp.value && inp.value.trim();
       if (!url) { alert('Please paste an image link first.'); if (inp) inp.focus(); return; }
