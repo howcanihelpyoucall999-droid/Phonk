@@ -2198,5 +2198,224 @@ button, .btn, a {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
 </script>
+
+<!-- Pencil-triggered Avatar Edit Modal (link-only) -->
+<style>
+#pencilAvatarModal {
+  position:fixed; left:0; top:0; right:0; bottom:0; display:none;
+  align-items:center; justify-content:center; background:rgba(0,0,0,0.55); z-index:100000;
+}
+.pencil-modal-card {
+  background:#fff; border-radius:12px; width:96%; max-width:720px; padding:20px;
+  box-shadow:0 20px 60px rgba(2,6,23,0.16);
+}
+.pencil-modal-row { display:flex; gap:18px; align-items:center; }
+.pencil-preview {
+  width:160px; height:160px; border-radius:50%; background:#f4f7ff; overflow:hidden; flex:0 0 160px;
+  display:flex; align-items:center; justify-content:center;
+}
+.pencil-preview img { width:100%; height:100%; object-fit:cover; display:block; }
+.pencil-controls { flex:1; }
+.pencil-controls input[type="text"]{
+  width:100%; padding:12px 14px; border:1px solid #e6e9f3; border-radius:10px; font-size:15px; box-sizing:border-box;
+}
+.pencil-hint { font-size:13px; color:#5b6470; margin-top:8px; }
+.pencil-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:14px; }
+.btn { padding:10px 14px; border-radius:8px; border:1px solid rgba(0,0,0,0.06); background:#fff; cursor:pointer; }
+.btn.primary { background:#0b60d6; color:#fff; border:none; }
+.btn.ghost { background:transparent; }
+</style>
+
+<div id="pencilAvatarModal" aria-hidden="true">
+  <div class="pencil-modal-card" role="dialog" aria-modal="true" aria-labelledby="pencilModalTitle">
+    <h2 id="pencilModalTitle" style="margin:0 0 10px 0;font-size:20px;">Edit profile picture</h2>
+    <div class="pencil-modal-row">
+      <div class="pencil-preview"><img id="pencilPreviewImg" src="" alt="preview" /></div>
+      <div class="pencil-controls">
+        <input id="pencilAvatarInput" type="text" placeholder="Paste an image URL (link only) — jpg, png, webp" />
+        <div class="pencil-hint">Paste the image URL above. When you press <strong>Confirm</strong> the image will be saved as your profile picture and shown across the app (including the @You contacts).</div>
+        <div class="pencil-actions">
+          <button id="pencilCancelBtn" class="btn">Cancel</button>
+          <button id="pencilConfirmBtn" class="btn primary">Confirm</button>
+        </div>
+      </div>
+    </div>
+    <div id="pencilStatus" style="margin-top:10px;font-size:13px;color:#666"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  if (window.__pencilAvatarInstalled) return;
+  window.__pencilAvatarInstalled = true;
+
+  // selectors for pencil/edit avatar buttons
+  var pencilSelectors = ['.pencil','button.pencil','button.edit-avatar','.avatar-edit','#changeAvatarBtn','[data-action="edit-avatar"]','.profile-pic-edit'];
+  var previewImg = null, inputEl = null, overlay = null, statusEl = null;
+
+  function findPencilButtons(){
+    var found = [];
+    pencilSelectors.forEach(function(s){
+      try { document.querySelectorAll(s).forEach(function(el){ found.push(el); }); } catch(e){}
+    });
+    return Array.from(new Set(found));
+  }
+
+  function showModal(initialUrl){
+    overlay = document.getElementById('pencilAvatarModal');
+    previewImg = document.getElementById('pencilPreviewImg');
+    inputEl = document.getElementById('pencilAvatarInput');
+    statusEl = document.getElementById('pencilStatus');
+    if (!overlay || !previewImg || !inputEl) return;
+    inputEl.value = initialUrl || '';
+    previewImg.src = initialUrl || '';
+    overlay.style.display = 'flex';
+    inputEl.focus();
+    setTimeout(function(){ inputEl.selectionStart = inputEl.selectionEnd = inputEl.value.length; }, 120);
+  }
+
+  function hideModal(){
+    var ov = document.getElementById('pencilAvatarModal');
+    if (ov) ov.style.display = 'none';
+  }
+
+  // update preview when input changes
+  function wireInput(){
+    inputEl = document.getElementById('pencilAvatarInput');
+    previewImg = document.getElementById('pencilPreviewImg');
+    if (!inputEl) return;
+    inputEl.addEventListener('input', function(){ var v = inputEl.value.trim(); previewImg.src = v || ''; });
+    inputEl.addEventListener('paste', function(){ setTimeout(function(){ var v = inputEl.value.trim(); previewImg.src = v || ''; }, 60); });
+  }
+
+  // Apply profile photo across app
+  function applyProfilePhoto(url, cb){
+    // update common avatar selectors
+    try {
+      var selImgs = ['.profile-photo img', '.avatar img', 'img.profile-avatar', '.user-avatar img', '.contact-avatar img'];
+      selImgs.forEach(function(s){
+        document.querySelectorAll(s).forEach(function(el){ try { el.src = url; } catch(e){} });
+      });
+      // also update our custom .contact-avatar elements (they might be divs)
+      document.querySelectorAll('.profile-contacts .contact-row .contact-avatar').forEach(function(div){
+        try {
+          if (div.tagName.toLowerCase() === 'img') div.src = url;
+          else {
+            div.style.backgroundImage = 'url(\"' + url + '\")';
+            div.style.backgroundSize = 'cover';
+            div.textContent = '';
+          }
+        } catch(e){}
+      });
+    } catch(e){}
+
+    // dispatch event and save to localStorage
+    try { localStorage.setItem('profilePhotoURL', url); } catch(e){}
+    try { document.dispatchEvent(new CustomEvent('profilePhotoUpdated', { detail: { photoURL: url } })); } catch(e){}
+
+    // Try Firebase namespaced SDK
+    if (window.firebase && firebase.auth && typeof firebase.auth === 'function') {
+      var user = firebase.auth().currentUser;
+      if (user && typeof user.updateProfile === 'function') {
+        user.updateProfile({ photoURL: url }).then(function(){
+          try { if (firebase.database) firebase.database().ref('users/' + user.uid + '/photoURL').set(url); } catch(e){}
+          return cb && cb(null);
+        }).catch(function(err){
+          try {
+            if (firebase.database && user && user.uid) {
+              firebase.database().ref('users/' + user.uid + '/photoURL').set(url).then(function(){ return cb && cb(null); }).catch(function(e){ return cb && cb(e); });
+              return;
+            }
+          } catch(e){}
+          return cb && cb(err);
+        });
+        return;
+      }
+    }
+
+    // Try modular Firebase
+    try {
+      if (window.getAuth && typeof getAuth === 'function' && typeof updateProfile === 'function') {
+        var auth = getAuth();
+        var u = auth.currentUser;
+        if (u) {
+          updateProfile(u, { photoURL: url }).then(function(){
+            try { if (typeof getDatabase === 'function' && typeof ref === 'function' && typeof set === 'function') set(ref(getDatabase(), 'users/' + u.uid + '/photoURL'), url); } catch(e){}
+            return cb && cb(null);
+          }).catch(function(err){ return cb && cb(err); });
+          return;
+        }
+      }
+    } catch(e){}
+
+    // App-level hooks
+    try { if (typeof setCurrentUserPhoto === 'function') { setCurrentUserPhoto(url); return cb && cb(null); } } catch(e){}
+    try { if (typeof saveProfile === 'function') { saveProfile({ photoURL: url }); return cb && cb(null); } } catch(e){}
+
+    // fallback success
+    return cb && cb(null);
+  }
+
+  // wire pencil buttons to open modal
+  function attachPencils(){
+    var buttons = findPencilButtons();
+    if (buttons.length === 0) {
+      // also try to find an element that looks like a small edit icon inside avatar area
+      var alt = document.querySelector('.profile-photo .edit, .avatar .edit, .profile-pic .edit');
+      if (alt) buttons = [alt];
+    }
+    buttons.forEach(function(btn){
+      try {
+        btn.addEventListener('click', function(ev){
+          ev.preventDefault();
+          ev.stopPropagation();
+          // try to find current avatar url
+          var cur = null;
+          try {
+            var img = document.querySelector('.profile-photo img, .avatar img, img.profile-avatar, .user-avatar img');
+            if (img && img.src) cur = img.src;
+          } catch(e){}
+          showModal(cur);
+          wireInput();
+        });
+      } catch(e){}
+    });
+  }
+
+  // wire modal buttons
+  function wireModalButtons(){
+    document.getElementById('pencilCancelBtn').addEventListener('click', function(){ hideModal(); });
+    document.getElementById('pencilConfirmBtn').addEventListener('click', function(){
+      var url = (document.getElementById('pencilAvatarInput')||{}).value || '';
+      url = url.trim();
+      if (!url) { alert('Please paste an image URL first.'); document.getElementById('pencilAvatarInput').focus(); return; }
+      statusEl = document.getElementById('pencilStatus');
+      statusEl.style.color = '#666';
+      statusEl.textContent = 'Saving...';
+      applyProfilePhoto(url, function(err){
+        if (err) {
+          statusEl.style.color = '#b00020';
+          statusEl.textContent = 'Could not save: ' + (err.message || err);
+        } else {
+          statusEl.style.color = '#0a8a00';
+          statusEl.textContent = 'Profile picture saved.';
+          setTimeout(function(){ hideModal(); }, 700);
+        }
+      });
+    });
+  }
+
+  // Initialize on DOM ready
+  function init(){
+    attachPencils();
+    wireModalButtons();
+    // re-attach if new buttons added later
+    var obs = new MutationObserver(function(){ attachPencils(); });
+    obs.observe(document.body, { childList:true, subtree:true });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+
+})();
+</script>
 </body>
 </html>
