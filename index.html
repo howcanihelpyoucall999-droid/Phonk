@@ -2218,5 +2218,242 @@ button, .btn, a {
 
 })();
 </script>
+
+<!-- App behavior enhancements: min loader time, auto-route on auth, replay on sign-in, nav hooks, profile handle readonly -->
+<script>
+(function(){
+  if (window.__appEnhancementsInstalled) return;
+  window.__appEnhancementsInstalled = true;
+
+  // Find loader element (use same heuristics as previous injection)
+  function findLoader(){
+    var selectors = ["#loader","#loading",".loader",".loading","#loading-screen",".loading-screen","#splash",".splash","body > .overlay"];
+    for (var s of selectors) {
+      try {
+        var el = document.querySelector(s);
+        if (el) return el;
+      } catch(e){}
+    }
+    return document.querySelector('[id*="load"], [class*="load"], [id*="splash"], [class*="splash"]');
+  }
+  var loader = findLoader();
+  // helper to show loader (remove fade-out)
+  function showLoaderImmediate(){
+    if (!loader) return;
+    loader.classList.remove('fade-out');
+    loader.classList.add('loader-fade-target');
+    loader.style.animation = '';
+    var children = loader.querySelectorAll('*');
+    for (var i=0;i<children.length;i++){
+      children[i].style.animation = '';
+      children[i].style.webkitAnimation = '';
+    }
+    loader.style.visibility = 'visible';
+    loader.style.opacity = '1';
+  }
+  function fadeOutLoaderImmediate(){
+    if (!loader) return;
+    loader.classList.add('fade-out');
+    setTimeout(function(){
+      loader.style.animation = 'none';
+      var children = loader.querySelectorAll('*');
+      for (var i=0;i<children.length;i++){
+        children[i].style.animation = 'none';
+        children[i].style.webkitAnimation = 'none';
+      }
+    }, 500);
+  }
+
+  // Minimum loader display time
+  var loaderStart = Date.now();
+  var minDisplay = 1000; // 1 second minimum
+
+  function scheduleLoaderHide(afterCallback){
+    var elapsed = Date.now() - loaderStart;
+    var wait = Math.max(0, minDisplay - elapsed);
+    setTimeout(function(){
+      fadeOutLoaderImmediate();
+      if (typeof afterCallback === 'function') afterCallback();
+    }, wait);
+  }
+
+  // Attempt to navigate to homepage when user is signed-in.
+  function goToHome(){
+    // Try common nav elements or functions
+    var navHome = document.querySelector('[data-nav="home"], #navHome, .nav-home, a[href="#home"], a[href="/#home"], a.home-link');
+    if (navHome) {
+      try { navHome.click(); return; } catch(e){}
+    }
+    // try to call a function showHome / goHome / openHome
+    try { if (typeof showHome === 'function') { showHome(); return; } } catch(e){}
+    try { if (typeof goHome === 'function') { goHome(); return; } } catch(e){}
+    // fallback: set hash
+    try { location.hash = '#home'; } catch(e){}
+  }
+
+  // Auth detection & hookup
+  function onAuthDetected(user){
+    scheduleLoaderHide(function(){
+      if (user) {
+        // if signed in, navigate to home after fade
+        setTimeout(goToHome, 80);
+      }
+    });
+  }
+
+  // If Firebase legacy present
+  if (window.firebase && firebase.auth && typeof firebase.auth === 'function') {
+    try {
+      firebase.auth().onAuthStateChanged(function(user){
+        onAuthDetected(user);
+      });
+      if (firebase.auth().currentUser) onAuthDetected(firebase.auth().currentUser);
+    } catch(e){}
+  } else if (window.getAuth && typeof getAuth === 'function') {
+    try {
+      var auth = getAuth();
+      if (auth && typeof auth.onAuthStateChanged === 'function') {
+        auth.onAuthStateChanged(function(user){
+          onAuthDetected(user);
+        });
+        if (auth.currentUser) onAuthDetected(auth.currentUser);
+      }
+    } catch(e){}
+  } else {
+    // Generic polling fallback (checks for window.currentUser or body classes)
+    var checks = [
+      function(){ return !!window.currentUser; },
+      function(){ return !!window.user || !!window.appUser; },
+      function(){ return document.body.classList.contains('signed-in') || document.body.classList.contains('logged-in'); },
+      function(){ return !!localStorage.getItem('currentUser') || !!localStorage.getItem('user'); },
+      function(){ return !!document.querySelector('.user-profile, .profile, .account'); }
+    ];
+    var attempts = 0;
+    var maxAttempts = 40;
+    var poll = setInterval(function(){
+      attempts++;
+      for (var i=0;i<checks.length;i++){
+        try {
+          if (checks[i]()) {
+            clearInterval(poll);
+            onAuthDetected(true);
+            return;
+          }
+        } catch(e){}
+      }
+      if (attempts >= maxAttempts) {
+        clearInterval(poll);
+        onAuthDetected(false);
+      }
+    }, 250);
+  }
+
+  // Replay loader when sign-in buttons are clicked (common selectors)
+  function attachSignInReplay(){
+    var selectors = ['button.sign-in','button#signInBtn','button[data-action="signin"]','.btn-signin','a.sign-in','a[href*="login"], a[href*="signin"]'];
+    var els = [];
+    selectors.forEach(function(s){
+      try { document.querySelectorAll(s).forEach(function(el){ els.push(el); }); } catch(e){}
+    });
+    // dedupe
+    els = Array.from(new Set(els));
+    els.forEach(function(el){
+      el.addEventListener('click', function(){
+        showLoaderImmediate();
+        loaderStart = Date.now();
+      });
+    });
+  }
+  // run once DOM ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', attachSignInReplay);
+  } else {
+    attachSignInReplay();
+  }
+
+  // Hook navigation so switching sections reloads contacts/groups
+  function attachNavHooks(){
+    var navYou = document.querySelector('[data-nav="you"], #navYou, .nav-you, a[href="#you"]');
+    var navGroups = document.querySelector('[data-nav="groups"], #navGroups, .nav-groups, a[href="#groups"]');
+    var navHome = document.querySelector('[data-nav="home"], #navHome, .nav-home, a[href="#home"]');
+
+    function safeCall(fnName){
+      try {
+        if (typeof window[fnName] === 'function') window[fnName]();
+      } catch(e){}
+    }
+
+    if (navYou) {
+      navYou.addEventListener('click', function(){
+        // try calling loadProfileContacts if available
+        safeCall('loadProfileContacts');
+        safeCall('renderYouSection');
+      });
+    }
+    if (navGroups) {
+      navGroups.addEventListener('click', function(){
+        safeCall('loadGroups');
+        safeCall('renderGroupsSection');
+      });
+    }
+    if (navHome) {
+      navHome.addEventListener('click', function(){
+        safeCall('loadChats');
+        safeCall('renderHome');
+      });
+    }
+    // Also observe hash changes
+    window.addEventListener('hashchange', function(){
+      var h = location.hash.replace('#','');
+      if (h === 'you') safeCall('loadProfileContacts');
+      if (h === 'groups') safeCall('loadGroups');
+      if (h === 'home') safeCall('loadChats');
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', attachNavHooks);
+  } else {
+    attachNavHooks();
+  }
+
+  // Make profile handle field readonly and show '(cannot change)'
+  function markHandleReadOnly(){
+    // try common selectors for profile settings inputs
+    var selectors = ['#profile-handle','input[name="handle"]','.profile-handle-input','input.handle','[data-field="handle"]'];
+    for (var s of selectors) {
+      try {
+        var el = document.querySelector(s);
+        if (el) {
+          try {
+            el.readOnly = true;
+            // if it's an input, set its value to email (if available) and append note
+            var note = document.createElement('div');
+            note.className = 'small';
+            note.textContent = '(cannot change)';
+            if (el.tagName.toLowerCase() === 'input' || el.tagName.toLowerCase() === 'textarea') {
+              // if empty and email available, fill with email
+              var emailVal = '';
+              try { if (window.currentUser && window.currentUser.email) emailVal = window.currentUser.email; } catch(e){}
+              if (!el.value && emailVal) el.value = emailVal;
+              // append note after element
+              el.parentNode && el.parentNode.appendChild(note);
+            } else {
+              // if not input, set text
+              el.textContent = (el.textContent || '') + ' (cannot change)';
+            }
+            return;
+          } catch(e){}
+        }
+      } catch(e){}
+    }
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', markHandleReadOnly);
+  } else {
+    markHandleReadOnly();
+  }
+
+})();
+</script>
 </body>
 </html>
