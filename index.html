@@ -343,17 +343,15 @@
 .profile-field input[type="text"], .profile-field textarea { width:100%; padding:10px; border-radius:10px; border:1px solid rgba(11,96,214,0.06); font-size:15px; }
 .save-profile-btn { margin-top:12px; }
 .profile-contacts { margin-top:18px; }
-
-    .contact-row { display:flex;align-items:center; gap:12px; padding:10px; border-radius:10px; background:#fff; border:1px solid rgba(11,96,214,0.04); margin-bottom:10px; }
-    .contact-row .contact-avatar{width:44px;height:44px;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--primary);background:linear-gradient(180deg,#dbeeff,#c1ddff);flex:0 0 auto;font-size:18px;}
-    .contact-row .contact-meta{flex:1;min-width:0;}
-    .contact-row .contact-name { display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:700; color:var(--primary); font-size:15px; }
-    .contact-row .contact-about { font-size:13px; color:var(--muted); margin-top:4px; line-height:1.2; }
-    .contact-row .contact-handle { font-size:13px; color:var(--muted); margin-top:6px; }
-    .contact-row .delete-btn { background:#ff4d4f; color:#fff; border:none; padding:8px 12px; border-radius:12px; cursor:pointer; min-width:72px; font-weight:700; }
-    
+.contact-row { display:flex; align-items:center; gap:10px; padding:8px; border-radius:8px; background:#fff; border:1px solid rgba(11,96,214,0.04); margin-bottom:8px; }
 .contact-row .contact-name { flex:1; font-weight:700; color:var(--primary); }
 .contact-row .delete-btn { background:#ff4d4f; color:#fff; border:none; padding:6px 8px; border-radius:8px; cursor:pointer; }
+/* Adjusted contact-row visuals: fixed avatar shape, truncated names/about, fuller delete button */
+.contact-row .contact-avatar { width:44px; height:44px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex:0 0 44px; overflow:hidden; background:linear-gradient(180deg,#dbeeff,#c1ddff); font-weight:700; color:var(--primary); }
+.contact-row .contact-name { font-weight:700; color:var(--primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:220px; }
+.contact-row .contact-about { font-size:13px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:220px; margin-top:4px; }
+.contact-row .delete-btn { background:#ff4d4f; color:#fff; border:none; padding:8px 12px; border-radius:10px; cursor:pointer; min-width:72px; align-self:stretch; display:inline-flex; align-items:center; justify-content:center; font-weight:700; }
+
 .avatar-grid { display:grid; grid-template-columns: repeat(5,1fr); gap:8px; padding:12px; max-width:640px; margin:0 auto; }
 .avatar-grid img { width:100%; height:56px; object-fit:cover; border-radius:8px; cursor:pointer; border:2px solid transparent; }
 .avatar-grid img.selected { outline:3px solid var(--primary); border-color:var(--primary); }
@@ -400,6 +398,39 @@ button, .btn, a {
   opacity: 0;
   transition: opacity 360ms linear;
 }
+
+
+/* Page transition styles (WhatsApp-like slide) */
+.app-views-container { position:relative; width:100%; height:100%; overflow:hidden; }
+
+.view {
+  position:absolute;
+  top:0; left:0; right:0; bottom:0;
+  will-change: transform, opacity;
+  transition: transform 320ms cubic-bezier(.2,.8,.2,1), opacity 200ms linear;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  display:block;
+  background: transparent;
+  overflow:auto;
+}
+
+/* enter/exit states */
+.view.enter-from-right { transform: translateX(100%); opacity:1; }
+.view.enter-from-left  { transform: translateX(-100%); opacity:1; }
+.view.enter-to         { transform: translateX(0); opacity:1; }
+
+.view.exit-to-left     { transform: translateX(-30%); opacity:0; }
+.view.exit-to-right    { transform: translateX(30%); opacity:0; }
+
+/* top/bottom bars animate with views */
+.topbar, .bottombar {
+  transition: transform 320ms cubic-bezier(.2,.8,.2,1), opacity 200ms linear;
+  will-change: transform, opacity;
+}
+
+/* helper to visually indicate active view for debugging */
+.view[aria-hidden="true"] { visibility:hidden; pointer-events:none; }
 
 </style>
 </head>
@@ -534,8 +565,8 @@ button, .btn, a {
         </div>
 
         <div class="profile-field">
-          <label style="font-size:13px;color:var(--muted)">Handle (can't be changed)</label>
-          <input id="profileHandle" type="text" placeholder="@yourhandle" disabled>
+          <label style="font-size:13px;color:var(--muted)">Handle <span style="font-size:12px;color:var(--muted)"> (can\'t be changed)</span></label>
+          <input id="profileHandle" type="text" readonly>
         </div>
 
         <div class="profile-field" id="profileAboutField">
@@ -785,22 +816,7 @@ button, .btn, a {
     }
 
     // initial
-    setTopBannerVisible(false);
-
-    // Toggle top banner visibility based on scroll: show when scrolled to very top, hide otherwise
-    (function topBannerScrollToggle(){
-      function checkShow(){
-        try{
-          var scroller = document.scrollingElement || document.documentElement;
-          var y = (scroller && scroller.scrollTop) ? scroller.scrollTop : window.scrollY || 0;
-          if(y === 0){ setTopBannerVisible(true); } else { setTopBannerVisible(false); }
-        }catch(e){}
-      }
-      window.addEventListener('scroll', checkShow, {passive:true});
-      var ps = document.getElementById('profile-section');
-      if(ps) ps.addEventListener('scroll', function(){ if(ps.scrollTop === 0) setTopBannerVisible(true); else setTopBannerVisible(false); }, {passive:true});
-      setTimeout(checkShow, 120);
-    })();
+    setTopBannerVisible(true);
 
     // Ensure bottom-nav is hidden and input stays visible when inside an individual chat.
     function enterChatMode(){
@@ -1539,8 +1555,8 @@ button, .btn, a {
         let data = snap.exists() ? snap.val() : {};
         if (data.displayName) profileDisplayName.value = data.displayName;
         else profileDisplayName.value = (currentUser.email || '').split('@')[0] || '';
-        if (data.handle) profileHandle.value = data.handle;
-        else profileHandle.value = '';
+        profileHandle.value = (currentUser && currentUser.email) ? currentUser.email : (data.handle || '');
+        profileHandle.readOnly = true;
         if (data.about) profileAbout.value = data.about;
         else profileAbout.value = 'Hi, I am using Zag Messenger';
         if (data.profilePic) {
@@ -1567,7 +1583,7 @@ button, .btn, a {
       // Normalize handle: remove leading @ if present
       if (handle.startsWith('@')) handle = handle.substring(1);
       const profilePic = profileAvatar.dataset.selected || '';
-      const updates = { displayName: name, about: about, handle: handle };
+      const updates = { displayName: name, about: about };
       if (profilePic) updates.profilePic = profilePic;
       try {
         await update(dbRef(db, 'users/' + currentUser.uid), updates);
@@ -1598,15 +1614,14 @@ button, .btn, a {
             if (usnap.exists()) u = usnap.val();
           }
           if (!u) continue;
-                    const row = document.createElement('div');
+          const row = document.createElement('div');
           row.className = 'contact-row';
-          row.innerHTML = `<div class="contact-avatar">${(u.displayName||u.email||u.phoneNumber||'U').charAt(0).toUpperCase()}</div>
-                           <div class="contact-meta">
-                             <div class="contact-name" title="${escapeHtml(u.displayName || u.email || u.phoneNumber || 'User')}">${u.displayName || u.email || u.phoneNumber || 'User'}</div>
-                             <div class="contact-about">${escapeHtml(u.about || '')}</div>
-                             <div class="small contact-handle">${escapeHtml(u.email || u.handle || u.phoneNumber || '')} <span style=\"color:var(--muted)\">(can't be changed)</span></div>
+          row.innerHTML = `<div style=\"width:44px;height:44px;border-radius:50%;background:linear-gradient(180deg,#dbeeff,#c1ddff);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--primary);\">${(u.displayName||u.email||'U').charAt(0).toUpperCase()}</div>
+                           <div style="flex:1;">
+                             <div class=\"contact-name\">${u.displayName || u.email || u.phoneNumber || 'User'}</div>
+                             <div class="small">${u.handle ? ('@' + u.handle) : (u.phoneNumber || '')}</div>
                            </div>
-                           <button class="delete-btn">Delete</button>`;
+                           <button class=\"delete-btn\">Delete</button>`;
           const delBtn = row.querySelector('.delete-btn');
           delBtn.addEventListener('click', async () => {
             const ok = confirm('Delete this contact? This will remove them from your Home list.');
@@ -2118,5 +2133,130 @@ button, .btn, a {
 })();
 </script>
 
+<script>
+/* Page transition controller */
+(function(){
+  function $(s, ctx){ return (ctx || document).querySelector(s); }
+  function $all(s, ctx){ return Array.from((ctx || document).querySelectorAll(s)); }
+
+  function initViews() {
+    // choose a container that likely holds "pages"
+    var container = $('#app') || $('main') || $('.app') || document.body;
+    // wrap immediate child sections/divs into an app-views-container
+    var vc = document.createElement('div');
+    vc.className = 'app-views-container';
+    // collect candidates: direct children with data-view or with class "view" or tag section
+    var children = Array.from(container.children).filter(function(ch){
+      if (ch.id === 'app' || ch.classList.contains('app-views-container')) return false;
+      // treat as a view if it has data-view attribute, id equal to home/groups/chat, or is a section
+      if (ch.hasAttribute && ch.hasAttribute('data-view')) return true;
+      if (ch.tagName && ch.tagName.toLowerCase() === 'section') return true;
+      if (/home|groups|chat|contacts|messages/i.test(ch.id || '')) return true;
+      return false;
+    });
+    if (!children.length) {
+      // fallback: find elements with data-view anywhere
+      children = $all('[data-view]');
+    }
+
+    // move children into vc preserving order
+    children.forEach(function(ch){
+      ch.classList.add('view');
+      vc.appendChild(ch);
+    });
+    // insert vc into container if not already inside it
+    if (!container.querySelector('.app-views-container')) {
+      container.insertBefore(vc, container.firstChild);
+    }
+
+    // make container relative-sized
+    container.style.position = container.style.position || 'relative';
+    container.style.minHeight = container.style.minHeight || '300px';
+
+    // find initial active view (has data-active or visible)
+    var active = vc.querySelector('[data-active]') || children.find(function(c){ return window.getComputedStyle(c).display !== 'none' && !c.hasAttribute('hidden'); }) || children[0];
+    children.forEach(function(c){ 
+      if (c !== active) c.setAttribute('aria-hidden','true');
+      else c.removeAttribute('aria-hidden');
+    });
+
+    // expose navigateTo globally
+    window.navigateTo = function(targetId, opts){
+      opts = opts || {};
+      var direction = opts.direction || 'forward'; // forward = incoming from right
+      var target = document.getElementById(targetId) || vc.querySelector('[data-view="'+targetId+'"]') || (function(){ return Array.from(vc.children).find(function(x){ return x.id===targetId || x.dataset.view===targetId; }); })();
+      if (!target) {
+        console.warn('navigateTo: target not found:', targetId);
+        return;
+      }
+      var current = vc.querySelector(':scope > .view:not([aria-hidden="true"])') || active;
+      if (target === current) return;
+
+      // prepare enter/exit classes
+      target.classList.remove('exit-to-left','exit-to-right','enter-to','enter-from-right','enter-from-left');
+      current.classList.remove('exit-to-left','exit-to-right','enter-to','enter-from-right','enter-from-left');
+
+      if (direction === 'forward') {
+        target.classList.add('enter-from-right');
+        // animate top/bottom bars from right
+        $all('.topbar, .bottombar').forEach(function(b){ b.style.transform = 'translateX(10%)'; b.style.opacity = '0.95'; });
+      } else {
+        target.classList.add('enter-from-left');
+        $all('.topbar, .bottombar').forEach(function(b){ b.style.transform = 'translateX(-10%)'; b.style.opacity = '0.95'; });
+      }
+
+      // make target visible and start animation
+      target.removeAttribute('aria-hidden');
+      // force reflow to ensure transition starts
+      void target.offsetWidth;
+
+      // transiting classes
+      target.classList.add('enter-to');
+      current.classList.add(direction === 'forward' ? 'exit-to-left' : 'exit-to-right');
+      current.setAttribute('aria-hidden','true');
+
+      // cleanup after transition
+      var done = function(ev){
+        target.classList.remove('enter-from-right','enter-from-left','enter-to');
+        current.classList.remove('exit-to-left','exit-to-right');
+        $all('.topbar, .bottombar').forEach(function(b){ b.style.transform = ''; b.style.opacity = ''; });
+        target.removeEventListener('transitionend', done);
+      };
+      // attach to target to know when enter finished
+      target.addEventListener('transitionend', done);
+      active = target;
+    };
+
+    // attach nav event listeners to elements with data-nav attribute
+    $all('[data-nav]').forEach(function(btn){
+      btn.addEventListener('click', function(e){ 
+        var t = btn.getAttribute('data-nav');
+        if (!t) return;
+        e.preventDefault();
+        // determine direction by dataset or by heuristic: if target id contains 'groups' or 'chat' treat as forward
+        var dir = btn.dataset.direction || (/groups|chat|messages/i.test(t) ? 'forward' : 'back');
+        navigateTo(t, {direction: dir});
+      });
+    });
+
+    // attach contact-row click => open chat (if chat view exists)
+    $all('.contact-row, .contact').forEach(function(row){
+      row.addEventListener('click', function(e){
+        var chatTarget = row.dataset.chatTarget || 'chat' ;
+        var dir = 'forward';
+        navigateTo(chatTarget, {direction: dir});
+      });
+    });
+  }
+
+  // helper to select by class across browsers
+  function $all(selector) { return Array.from(document.querySelectorAll(selector)); }
+  function $(s) { return document.querySelector(s); }
+
+  document.addEventListener('DOMContentLoaded', initViews);
+  // also init after short timeout if DOMContentLoaded already fired
+  if (document.readyState === 'complete' || document.readyState === 'interactive') setTimeout(initViews, 50);
+})();
+</script>
 </body>
 </html>
