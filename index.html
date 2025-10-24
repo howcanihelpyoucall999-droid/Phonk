@@ -2319,5 +2319,108 @@ button, .btn, a {
 
 })();
 </script>
+
+<!-- Force galleries to show only a single link-only box (removes images) -->
+<script>
+(function(){
+  if (window.__forceOnlyLinkBoxInstalled) return;
+  window.__forceOnlyLinkBoxInstalled = true;
+
+  var gallerySelectors = ['.profile-images', '.avatar-gallery', '#profile-pictures', '.profile-picture-list', '.profile-pics', '.gallery-avatars'];
+
+  function makeBoxHtml() {
+    return '<div id="avatarOnlyLinkBox" style="display:flex;gap:8px;align-items:center;padding:12px;border:1px dashed rgba(0,0,0,0.08);border-radius:10px;background:linear-gradient(180deg,#fff,#fbfbff);">' +
+           '<input id="avatarOnlyLinkInput" type="text" placeholder="Paste image URL (link only) — jpg, png, webp" style="flex:1;padding:10px;border:1px solid #e2e6ef;border-radius:8px;font-size:14px" />' +
+           '<button id="avatarOnlyLinkSave" class="btn primary" style="padding:9px 12px;border-radius:8px;margin-left:6px">Save</button>' +
+           '<button id="avatarOnlyLinkCancel" class="btn" style="padding:9px 12px;border-radius:8px;margin-left:6px">Cancel</button>' +
+           '</div>';
+  }
+
+  function insertSingleBox(container) {
+    try {
+      // remove all child nodes (this deletes images)
+      while (container.firstChild) container.removeChild(container.firstChild);
+      // insert the single box
+      var wrapper = document.createElement('div');
+      wrapper.innerHTML = makeBoxHtml();
+      container.appendChild(wrapper);
+    } catch(e){ console.error('insertSingleBox error', e); }
+  }
+
+  function wireButtons() {
+    document.addEventListener('click', function(ev){
+      var t = ev.target;
+      if (!t) return;
+      if (t.id === 'avatarOnlyLinkCancel') {
+        // Clear input and optionally close - here we clear and keep the box
+        var inp = document.getElementById('avatarOnlyLinkInput');
+        if (inp) inp.value = '';
+      }
+      if (t.id === 'avatarOnlyLinkSave') {
+        var inp = document.getElementById('avatarOnlyLinkInput');
+        var url = inp && inp.value && inp.value.trim();
+        if (!url) { alert('Please paste an image link first.'); if (inp) inp.focus(); return; }
+        // show modal confirmation if available or open our confirm overlay
+        var existingOverlay = document.getElementById('avatarConfirmOverlay') || document.getElementById('confirmAvatarModal');
+        if (existingOverlay) {
+          // reuse existing overlay: set preview url and show
+          var preview = document.getElementById('avatarConfirmPreview') || document.getElementById('confirmImg') || existingOverlay.querySelector('img');
+          var urlText = document.getElementById('avatarConfirmUrl') || existingOverlay.querySelector('.confirm-img-url') || null;
+          if (preview) preview.src = url;
+          if (urlText) urlText.textContent = url;
+          existingOverlay.style.display = 'flex';
+        } else {
+          // create a quick confirmation overlay
+          var ov = document.createElement('div');
+          ov.id = 'confirmAvatarModal';
+          ov.style.position='fixed'; ov.style.left=0; ov.style.top=0; ov.style.right=0; ov.style.bottom=0;
+          ov.style.background='rgba(0,0,0,0.45)'; ov.style.display='flex'; ov.style.alignItems='center'; ov.style.justifyContent='center'; ov.style.zIndex=99999;
+          ov.innerHTML = '<div style="background:#fff;padding:18px;border-radius:12px;max-width:520px;width:92%;text-align:center;">' +
+                         '<h3>Confirm profile picture</h3>' +
+                         '<p style="word-break:break-word;color:#444;font-size:13px;margin:8px 0 12px;">'+url+'</p>' +
+                         '<img src="'+url+'" style="max-width:240px;max-height:240px;border-radius:8px;object-fit:cover;display:block;margin:0 auto 12px" />' +
+                         '<div style="display:flex;gap:8px;justify-content:center;margin-top:12px;">' +
+                         '<button id="quickConfirmCancel" class="btn">Cancel</button>' +
+                         '<button id="quickConfirmBtn" class="btn primary">Confirm</button>' +
+                         '</div></div>';
+          document.body.appendChild(ov);
+          // wire quick buttons
+          document.getElementById('quickConfirmCancel').addEventListener('click', function(){ ov.remove(); });
+          document.getElementById('quickConfirmBtn').addEventListener('click', function(){
+            // apply profile photo (reuse existing applyProfilePhoto if present)
+            if (typeof applyProfilePhoto === 'function') {
+              applyProfilePhoto(url, function(err){ if (!err) { ov.remove(); alert('Profile picture updated'); } else alert('Could not save: ' + (err && err.message)); });
+            } else {
+              // fallback: update common img selectors and localStorage
+              try { document.querySelectorAll('.profile-photo img, .avatar img, img.profile-avatar, .user-avatar img').forEach(function(i){ i.src = url; }); } catch(e){}
+              try { localStorage.setItem('profilePhotoURL', url); } catch(e) {}
+              document.dispatchEvent(new CustomEvent('profilePhotoUpdated', { detail: { photoURL: url } }));
+              ov.remove();
+              alert('Profile picture updated');
+            }
+          });
+        }
+      }
+    });
+  }
+
+  function init(){
+    gallerySelectors.forEach(function(sel){
+      try {
+        document.querySelectorAll(sel).forEach(function(container){
+          insertSingleBox(container);
+        });
+      } catch(e){}
+    });
+    wireButtons();
+    // observe DOM for new galleries
+    var obs = new MutationObserver(function(){ gallerySelectors.forEach(function(sel){ document.querySelectorAll(sel).forEach(function(c){ if (c && c.querySelector('#avatarOnlyLinkBox')===null) insertSingleBox(c); }); }); });
+    obs.observe(document.body, { childList:true, subtree:true });
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+
+})();
+</script>
 </body>
 </html>
