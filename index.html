@@ -352,6 +352,47 @@
 .avatar-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:99999; align-items:center; justify-content:center; }
 .avatar-modal .modal-inner { width:92%; max-width:760px; background:#fff; border-radius:12px; padding:12px; max-height:80vh; overflow:auto; }
 
+
+/* --- Added: Replace blue click highlight with ash color --- */
+* {
+  -webkit-tap-highlight-color: #d3d3d3 !important;
+}
+button:active, button:focus {
+  background-color: #d3d3d3 !important;
+  outline: none !important;
+}
+a:active, a:focus {
+  background-color: #d3d3d3 !important;
+  outline: none !important;
+}
+
+
+/* --- Added: Ash ripple click animation --- */
+/* Ensure clickable elements are positioned for ripple */
+button, .btn, a {
+  position: relative; /* keep layout unchanged but allow absolute ripple */
+  overflow: hidden;   /* contain the ripple inside the element */
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+/* ripple element */
+.ripple-circle {
+  position: absolute;
+  border-radius: 50%;
+  transform: scale(0);
+  pointer-events: none;
+  opacity: 0.18;
+  background: #d3d3d3;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  transition: transform 480ms cubic-bezier(.2,.9,.2,1), opacity 380ms linear;
+  will-change: transform, opacity;
+  z-index: 9999;
+}
+.ripple-circle.fadeout {
+  opacity: 0;
+  transition: opacity 360ms linear;
+}
+
 </style>
 </head>
 <body>
@@ -1995,6 +2036,63 @@
       <button id="openGroupModalBtn" style="display:block;width:100%;padding:12px;margin:10px 0;border:none;border-radius:10px;background:#fff;color:var(--primary);font-weight:700;">Group Chat</button>
     </div>
   </div>
+
+
+<script>
+// Ripple click handler: creates a circle at click point and expands to cover element
+(function(){
+  function createRipple(ev, el) {
+    try {
+      // compute bounds and position
+      var rect = el.getBoundingClientRect();
+      var dX = Math.max(ev.clientX - rect.left, rect.right - ev.clientX);
+      var dY = Math.max(ev.clientY - rect.top, rect.bottom - ev.clientY);
+      var radius = Math.sqrt(dX*dX + dY*dY);
+      var size = Math.ceil(radius * 2);
+      // limit size to element dimensions (not much larger)
+      var maxDim = Math.max(rect.width, rect.height);
+      if (size < maxDim) size = Math.ceil(maxDim * 1.05);
+
+      var circle = document.createElement('div');
+      circle.className = 'ripple-circle';
+      circle.style.width = size + 'px';
+      circle.style.height = size + 'px';
+      // center the circle on pointer, translate so top-left at (x - size/2, y - size/2)
+      var left = ev.clientX - rect.left - size/2;
+      var top = ev.clientY - rect.top - size/2;
+      circle.style.left = left + 'px';
+      circle.style.top = top + 'px';
+      el.appendChild(circle);
+
+      // force reflow then animate
+      requestAnimationFrame(function(){
+        circle.style.transform = 'scale(1)';
+        circle.style.opacity = '0.18';
+      });
+
+      // fade out after a short delay and remove
+      setTimeout(function(){
+        circle.classList.add('fadeout');
+        // remove after fade
+        setTimeout(function(){ try{ el.removeChild(circle); }catch(e){} }, 380);
+      }, 420);
+    } catch(e) {
+      // fail silently
+      console.error('ripple error', e);
+    }
+  }
+
+  // Attach event listener for pointerdown (covers touch and mouse)
+  document.addEventListener('pointerdown', function(e){
+    var target = e.target;
+    var el = target.closest && target.closest('button, .btn, a');
+    if (!el) return;
+    // ignore if element has attribute data-no-ripple="true"
+    if (el.getAttribute && el.getAttribute('data-no-ripple') === 'true') return;
+    createRipple(e, el);
+  }, {passive: true});
+})();
+</script>
 
 </body>
 </html>
