@@ -393,78 +393,6 @@ button, .btn, a {
   transition: opacity 360ms linear;
 }
 
-
-    /* --- START: Added for call UI and small back icon --- */
-    #backToChatListBtn.back-icon{
-      font-size:18px !important;
-      padding:6px 8px !important;
-      min-width:36px !important;
-      height:36px !important;
-      display:inline-flex !important;
-      align-items:center;
-      justify-content:center;
-      border-radius:8px !important;
-    }
-    .chat-center-text .chat-name{
-      font-size:14px; /* made smaller */
-      font-weight:700;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-      max-width: calc(50vw - 40px);
-    }
-    .chat-dots{
-      font-size:14px;
-      color:var(--muted);
-      opacity:0.95;
-      user-select:none;
-    }
-    .chat-action-btn{
-      background:transparent;
-      border:none;
-      font-size:20px;
-      padding:6px 8px;
-      border-radius:8px;
-      cursor:pointer;
-      line-height:1;
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-    }
-    .chat-action-btn:active{ transform:scale(0.96); }
-    /* Small modal for local preview when starting a call */
-    #localCallModal{
-      position:fixed; inset:0; display:none; align-items:center; justify-content:center; z-index:99999;
-      background: rgba(0,0,0,0.45);
-    }
-    #localCallModal .modal-inner{
-      width:92%; max-width:420px; background:#fff; border-radius:12px; padding:12px; box-sizing:border-box;
-      display:flex; flex-direction:column; gap:8px; align-items:center;
-    }
-    #localCallModal video{ width:100%; height:auto; border-radius:8px; background:#000; }
-    #localCallModal .call-controls{ display:flex; gap:8px; width:100%; justify-content:center; }
-    #localCallModal .hangup-btn{ padding:8px 12px; border-radius:8px; border:none; background:#ff4d4f; color:#fff; cursor:pointer; }
-    #localCallModal .close-preview{ padding:8px 12px; border-radius:8px; border:1px solid #ccc; background:#fff; cursor:pointer; }
-    /* --- END: Added for call UI --- */
-
-
-/* Permission overlay to request camera+mic with a user gesture */
-#permissionOverlay{
-  position:fixed; inset:0; display:none; align-items:center; justify-content:center; z-index:100000;
-  background: rgba(0,0,0,0.6);
-}
-#permissionOverlay .overlay-inner{
-  width:92%; max-width:480px; background:#fff; border-radius:12px; padding:18px; box-sizing:border-box;
-  display:flex; flex-direction:column; gap:12px; align-items:center; text-align:center;
-}
-#permissionOverlay h3{ margin:0; font-size:18px; }
-#permissionOverlay p{ margin:0; color:var(--muted); font-size:13px; }
-#enableMediaBtn{
-  margin-top:6px; padding:10px 14px; border-radius:10px; border:none; cursor:pointer;
-  background:var(--primary); color:#fff; font-weight:600;
-}
-#permissionDismiss{ background:transparent; border:none; color:var(--muted); cursor:pointer; font-size:13px; }
-
 </style>
 </head>
 <body>
@@ -632,24 +560,18 @@ button, .btn, a {
     <div class="chat-screen" id="individual-chat-container">
       <div class="chat-header" role="banner" id="chatHeader">
         <div class="chat-header-left">
-          <button id="backToChatListBtn" class="btn ghost back-icon" aria-label="Back to chats">←</button>
+          <button id="backToChatListBtn" class="btn ghost" aria-label="Back to chats">&lt; Back</button>
         </div>
 
         <div class="chat-header-center" role="group" aria-label="Chat identity">
           <div id="current-chat-avatar" class="avatar"></div>
           <div class="chat-center-text">
-            <div style="display:flex;align-items:center;gap:6px;min-width:0;">
-              <div id="current-chat-name" class="chat-name" title=""></div>
-              <div class="chat-dots" aria-hidden="true">...</div>
-            </div>
+            <div id="current-chat-name" class="chat-name" title=""></div>
             <div id="current-chat-sub" class="small"></div>
           </div>
         </div>
 
         <div class="chat-header-right" aria-hidden="false">
-          <!-- Call & video buttons -->
-          <button id="callBtn" class="chat-action-btn" title="Voice call" aria-label="Voice call">📞</button>
-          <button id="videoBtn" class="chat-action-btn" title="Video call" aria-label="Video call">📹</button>
           <!-- Chat menu button with blue styling -->
           <button id="chatMenuBtn" class="chat-menu-btn" aria-label="Chat menu">⋮</button>
         </div>
@@ -2494,264 +2416,213 @@ button, .btn, a {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 
 })();
-
-
-    // --- START: Call & permission helpers (added) ---
-    const callBtn = document.getElementById('callBtn');
-    const videoBtn = document.getElementById('videoBtn');
-    const localCallModal = document.getElementById('localCallModal');
-    const localPreview = document.getElementById('localPreview');
-    const endPreviewBtn = document.getElementById('endPreviewBtn');
-    const closePreviewBtn = document.getElementById('closePreviewBtn');
-
-    // Remember permission status in localStorage to avoid re-prompting
-    const PERM_KEY = 'zag_media_permission_granted_v1';
-
-    async function askForMediaPermissions() {
-      // If previously granted, skip asking
-      try {
-        const already = localStorage.getItem(PERM_KEY);
-        if (already === 'granted') return true;
-      } catch(e){}
-
-      // Try to get both audio+video by default to cover video calls
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
-        // if succeeded, stop tracks immediately and mark granted
-        stream.getTracks().forEach(t => t.stop());
-        try { localStorage.setItem(PERM_KEY, 'granted'); } catch(e){}
-        return true;
-      } catch (err) {
-        // If user denies or not available, mark as denied so we don't continuously prompt
-        try { localStorage.setItem(PERM_KEY, 'denied'); } catch(e){}
-        console.warn('Media permission denied or unavailable:', err);
-        return false;
-      }
-    }
-
-    // On first page load (after auth state check), prompt once for permissions
-    // Utility: show local preview modal and attach stream
-    let currentLocalStream = null;
-    async function startLocalPreview({ audio = true, video = false } = {}) {
-      // Obtain permission for required tracks (will prompt if not previously granted)
-      try {
-        const constraints = { audio: !!audio, video: !!video };
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
-        currentLocalStream = stream;
-        localPreview.srcObject = stream;
-        localCallModal.style.display = 'flex';
-        localCallModal.setAttribute('aria-hidden','false');
-      } catch (err) {
-        alert('Could not access camera/microphone. Please check browser permissions.');
-        console.error(err);
-      }
-    }
-
-    function stopLocalPreview() {
-      if (currentLocalStream) {
-        currentLocalStream.getTracks().forEach(t => t.stop());
-        currentLocalStream = null;
-      }
-      localPreview.srcObject = null;
-      localCallModal.style.display = 'none';
-      localCallModal.setAttribute('aria-hidden','true');
-    }
-
-    // Attach handlers
-    if (callBtn) {
-      callBtn.addEventListener('click', async () => {
-        // For voice call, open preview with audio only (muted video)
-        await startLocalPreview({ audio: true, video: false });
-      });
-    }
-    if (videoBtn) {
-      videoBtn.addEventListener('click', async () => {
-        // For video call, open preview with both audio+video
-        await startLocalPreview({ audio: true, video: true });
-      });
-    }
-    endPreviewBtn && endPreviewBtn.addEventListener('click', () => {
-      stopLocalPreview();
-    });
-    closePreviewBtn && closePreviewBtn.addEventListener('click', () => {
-      stopLocalPreview();
-    });
-    // Also stop preview if user navigates back to chat list
-    backToChatListBtn && backToChatListBtn.addEventListener('click', () => {
-      stopLocalPreview();
-    });
-    // --- END: Call & permission helpers ---
-
-
-
-// --- Permission overlay logic (user-gesture required) ---
-(function(){
-  const PERM_KEY = 'zag_media_permission_granted_v1';
-  const permissionOverlay = document.getElementById('permissionOverlay');
-  const enableBtn = document.getElementById('enableMediaBtn');
-  const dismissBtn = document.getElementById('permissionDismiss');
-  const callBtn = document.getElementById('callBtn');
-  const videoBtn = document.getElementById('videoBtn');
-
-  async function checkPermissionStatus(){
-    try {
-      const stored = localStorage.getItem(PERM_KEY);
-      if (stored === 'granted') return 'granted';
-      if (stored === 'denied') return 'denied';
-      // Try Permissions API if available (may be 'prompt'/'granted'/'denied')
-      if (navigator.permissions && navigator.permissions.query) {
-        try {
-          const p = await navigator.permissions.query({name:'camera'});
-          // camera permission doesn't necessarily reflect microphone; check microphone too
-          const p2 = await navigator.permissions.query({name:'microphone'});
-          if (p.state === 'granted' && p2.state === 'granted') {
-            localStorage.setItem(PERM_KEY,'granted');
-            return 'granted';
-          }
-          if (p.state === 'denied' || p2.state === 'denied') {
-            localStorage.setItem(PERM_KEY,'denied');
-            return 'denied';
-          }
-        } catch(e){ /* ignore */ }
-      }
-      return 'prompt';
-    } catch(e){ return 'prompt'; }
-  }
-
-  async function showOverlayIfNeeded(){
-    const status = await checkPermissionStatus();
-    if (status === 'granted') {
-      // no overlay needed
-      return;
-    }
-    // Show overlay to request a user gesture to prompt getUserMedia
-    permissionOverlay.style.display = 'flex';
-    permissionOverlay.setAttribute('aria-hidden','false');
-  }
-
-  async function requestMediaAndStore(video=true, audio=true){
-    try {
-      const constraints = { audio: !!audio, video: !!video };
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      // stop tracks immediately, we just need permission
-      stream.getTracks().forEach(t => t.stop());
-      localStorage.setItem(PERM_KEY,'granted');
-      permissionOverlay.style.display = 'none';
-      permissionOverlay.setAttribute('aria-hidden','true');
-      return true;
-    } catch (err) {
-      localStorage.setItem(PERM_KEY,'denied');
-      alert('Permission denied or not available. Please enable camera/microphone in your browser settings if you want to make calls.');
-      permissionOverlay.style.display = 'none';
-      permissionOverlay.setAttribute('aria-hidden','true');
-      console.warn('getUserMedia failed:', err);
-      return false;
-    }
-  }
-
-  // On page load, show overlay if needed
-  document.addEventListener('DOMContentLoaded', function(){ showOverlayIfNeeded(); });
-
-  // When user clicks enable button, request both audio+video (so video calls work later without another prompt)
-  enableBtn && enableBtn.addEventListener('click', async function(){
-    await requestMediaAndStore(true, true);
-  });
-
-  // Dismiss overlay (user can still trigger permissions later by tapping call/video buttons)
-  dismissBtn && dismissBtn.addEventListener('click', function(){
-    permissionOverlay.style.display = 'none';
-    permissionOverlay.setAttribute('aria-hidden','true');
-    try { localStorage.setItem(PERM_KEY,'denied'); } catch(e){}
-  });
-
-  // If user clicks call/video buttons and permission isn't granted, open the overlay again to prompt
-  function ensureThenPreview(kind){
-    (async ()=>{
-      const st = await checkPermissionStatus();
-      if (st === 'granted') {
-        // already granted: trigger preview as before by simulating click to open preview modal
-        if (kind === 'audio') {
-          // start audio-only preview by triggering existing handler if exists
-          callBtn && callBtn.click && callBtn.click();
-        } else {
-          videoBtn && videoBtn.click && videoBtn.click();
-        }
-      } else {
-        // show overlay to let them grant
-        permissionOverlay.style.display = 'flex';
-        permissionOverlay.setAttribute('aria-hidden','false');
-      }
-    })();
-  }
-
-  // Wrap original buttons to ensure permission is present first
-  if (callBtn){
-    callBtn.removeEventListener && callBtn.removeEventListener('click', ()=>{}); // best-effort
-    callBtn.addEventListener('click', function(e){
-      // intercept: ensure permission first; if already granted, proceed (existing handler will run)
-      // but to avoid double-calling startLocalPreview, if granted we will proceed normally; if not, preventDefault and show overlay
-      (async ()=>{
-        const st = await checkPermissionStatus();
-        if (st === 'granted') {
-          // allow existing handler to run (do nothing special)
-          return;
-        } else {
-          e.stopImmediatePropagation && e.stopImmediatePropagation();
-          e.preventDefault && e.preventDefault();
-          permissionOverlay.style.display = 'flex';
-          permissionOverlay.setAttribute('aria-hidden','false');
-        }
-      })();
-    }, true);
-  }
-  if (videoBtn){
-    videoBtn.removeEventListener && videoBtn.removeEventListener('click', ()=>{});
-    videoBtn.addEventListener('click', function(e){
-      (async ()=>{
-        const st = await checkPermissionStatus();
-        if (st === 'granted') {
-          return;
-        } else {
-          e.stopImmediatePropagation && e.stopImmediatePropagation();
-          e.preventDefault && e.preventDefault();
-          permissionOverlay.style.display = 'flex';
-          permissionOverlay.setAttribute('aria-hidden','false');
-        }
-      })();
-    }, true);
-  }
-
-})(); // end permission overlay IIFE
-// --- End permission overlay logic ---
-
 </script>
 
-  
-<!-- Permission overlay that asks user to click to enable camera & microphone (user gesture) -->
-<div id="permissionOverlay" aria-hidden="true">
-  <div class="overlay-inner" role="dialog" aria-modal="true" aria-label="Enable camera and microphone">
-    <h3>Enable camera & microphone</h3>
-    <p>To make voice and video calls, please allow access to your camera and microphone. This will only be asked once.</p>
-    <div style="display:flex;gap:8px;align-items:center;">
-      <button id="enableMediaBtn">Allow camera & microphone</button>
-      <button id="permissionDismiss">Maybe later</button>
-    </div>
-    <div style="font-size:12px;color:var(--muted);">If you denied earlier you may need to change permissions in your browser/site settings.</div>
-  </div>
-</div>
+<!-- START: PROFILE-PICTURE BEHAVIOR FIXES (added by assistant) -->
+<script>
+  // Prevent the global avatar link box from being created or remove it if present.
+  try {
+    window.__linkBoxFallbackInstalled = true;
+    if (typeof ensureBoxPresent === 'function') {
+      // noop out the global ensureBoxPresent to avoid later runs
+      try { window.ensureBoxPresent = function(){}; } catch(e){}
+    }
+    const gbox = document.getElementById('globalAvatarLinkBoxWrapper');
+    if (gbox && gbox.parentNode) gbox.parentNode.removeChild(gbox);
+  } catch(e){ console.error('disable global avatar link box error', e); }
 
-<!-- Local call preview modal (used for requesting permissions and preview) -->
-  <div id="localCallModal" aria-hidden="true">
-    <div class="modal-inner" role="dialog" aria-modal="true" aria-label="Call preview">
-      <h4 style="margin:0;color:var(--primary)">Call preview</h4>
-      <div style="font-size:13px;color:var(--muted);">Local preview — permissions and quick test</div>
-      <video id="localPreview" autoplay muted playsinline></video>
-      <div class="call-controls">
-        <button id="endPreviewBtn" class="hangup-btn">End</button>
-        <button id="closePreviewBtn" class="close-preview">Close</button>
-      </div>
-    </div>
-  </div>
+  // Helper: update avatar elements across the UI based on usersCache entries.
+  function refreshAvatarsFromCache() {
+    try {
+      document.querySelectorAll('.chat-item').forEach(item => {
+        try {
+          const uid = item.dataset.uid;
+          if (!uid) return;
+          const u = (typeof usersCache !== 'undefined' && usersCache[uid]) ? usersCache[uid] : null;
+          const av = item.querySelector('.avatar');
+          if (u && u.profilePic && av) {
+            av.style.backgroundImage = 'url("' + u.profilePic + '")';
+            av.style.backgroundSize = 'cover';
+            av.textContent = '';
+          }
+        } catch(e){}
+      });
+      // profile contacts and chat header
+      try {
+        if (typeof currentUser !== 'undefined' && currentUser && currentUser.uid) {
+          // if current user has profile pic in usersCache, apply to profileAvatar
+          const me = usersCache && usersCache[currentUser.uid];
+          if (me && me.profilePic) {
+            const pa = document.getElementById('profileAvatar');
+            if (pa) { pa.style.backgroundImage = 'url("' + me.profilePic + '")'; pa.textContent = ''; pa.dataset.selected = me.profilePic; }
+          }
+        }
+      } catch(e){}
+      // Update any generic avatar placeholders (class="avatar") that have data-uid attribute
+      document.querySelectorAll('.avatar[data-uid]').forEach(av => {
+        const uid = av.dataset.uid;
+        const u = usersCache && usersCache[uid];
+        if (u && u.profilePic) {
+          av.style.backgroundImage = 'url("' + u.profilePic + '")';
+          av.style.backgroundSize = 'cover';
+          av.textContent = '';
+        }
+      });
+    } catch(e){ console.error('refreshAvatarsFromCache error', e); }
+  }
+
+  // applyProfilePhoto: central function that updates UI and writes to Realtime DB
+  async function applyProfilePhoto(url, cb) {
+    try {
+      if (!url) throw new Error('No URL provided');
+      // set local preview
+      try {
+        const pa = document.getElementById('profileAvatar');
+        if (pa) { pa.style.backgroundImage = 'url("' + url + '")'; pa.textContent = ''; pa.dataset.selected = url; }
+      } catch(e){}
+      // update places that can be immediately updated
+      try {
+        document.querySelectorAll('.profile-photo img, .avatar img, img.profile-avatar, .user-avatar img').forEach(function(i){ try { i.src = url; } catch(e){} });
+        document.querySelectorAll('.avatar').forEach(function(el){
+          try {
+            // don't overwrite current-chat-avatar here (it will be handled where appropriate)
+            if (el.id && el.id === 'current-chat-avatar') return;
+            el.style.backgroundImage = 'url(\"' + url + '\")';
+            el.style.backgroundSize = 'cover';
+            el.textContent = '';
+          } catch(e){}
+        });
+      } catch(e){}
+      // Save to Firebase Realtime Database if available
+      try {
+        if (typeof db !== 'undefined' && typeof dbRef === 'function' && typeof set === 'function' && currentUser && currentUser.uid) {
+          await set(dbRef(db, 'users/' + currentUser.uid + '/profilePic'), url);
+        }
+      } catch(e){
+        console.warn('Could not save profilePic to RTDB:', e);
+      }
+      // Also update local usersCache if present
+      try {
+        if (typeof usersCache !== 'undefined' && currentUser && usersCache[currentUser.uid]) {
+          usersCache[currentUser.uid].profilePic = url;
+        }
+      } catch(e){}
+      // refresh avatars in lists
+      try { refreshAvatarsFromCache(); } catch(e){}
+      // dispatch event so other parts of the app can react
+      try { document.dispatchEvent(new CustomEvent('profilePhotoUpdated', { detail: { photoURL: url } })); } catch(e){}
+      if (cb) cb(null);
+      return;
+    } catch(err) {
+      if (cb) cb(err);
+      else console.error(err);
+    }
+  }
+
+  // Wire the existing avatar modal Save button to persist the chosen avatar URL
+  (function wireAvatarModalSave(){
+    try {
+      const saveBtn = document.getElementById('saveAvatarModal');
+      if (!saveBtn) return;
+      saveBtn.addEventListener('click', function(ev){
+        try {
+          const pa = document.getElementById('profileAvatar');
+          const sel = pa && pa.dataset && pa.dataset.selected ? pa.dataset.selected : null;
+          if (sel) {
+            applyProfilePhoto(sel, function(err){
+              if (!err) {
+                // close modal
+                try { document.getElementById('avatarModal').style.display = 'none'; document.getElementById('avatarModal').setAttribute('aria-hidden','true'); } catch(e){}
+                alert('Profile picture saved.');
+              } else {
+                alert('Could not save profile picture: ' + (err && err.message));
+              }
+            });
+          } else {
+            alert('Please select an image first.');
+          }
+        } catch(e){ console.error(e); alert('Error saving avatar'); }
+      });
+    } catch(e){}
+  })();
+
+  // Wire the pencil modal Confirm button (link-only modal)
+  (function wirePencilConfirm(){
+    try {
+      const pConfirm = document.getElementById('pencilConfirmBtn');
+      const pInput = document.getElementById('pencilAvatarInput');
+      const pPreview = document.getElementById('pencilPreviewImg');
+      if (pInput) {
+        pInput.addEventListener('input', function(){ try { if (pPreview) pPreview.src = pInput.value || ''; } catch(e){} });
+      }
+      if (!pConfirm) return;
+      pConfirm.addEventListener('click', function(){
+        try {
+          const url = (pInput && pInput.value && pInput.value.trim()) ? pInput.value.trim() : null;
+          if (!url) return alert('Paste an image link first.');
+          // preview exists; call central applyProfilePhoto
+          applyProfilePhoto(url, function(err){
+            if (!err) {
+              try {
+                // close pencil modal
+                const ov = document.getElementById('pencilAvatarModal');
+                if (ov) { ov.style.display = 'none'; ov.setAttribute('aria-hidden','true'); }
+              } catch(e){}
+              alert('Profile picture saved.');
+            } else {
+              alert('Could not save: ' + (err && err.message));
+            }
+          });
+        } catch(e){ console.error(e); alert('Error'); }
+      });
+      // cancel button: close overlay
+      const pCancel = document.getElementById('pencilCancelBtn');
+      if (pCancel) pCancel.addEventListener('click', function(){ try { const ov = document.getElementById('pencilAvatarModal'); if (ov) { ov.style.display='none'; ov.setAttribute('aria-hidden','true'); } } catch(e){} });
+    } catch(e){}
+  })();
+
+  // When usersCache updates via onValue, the app calls loadUsersCache which updates usersCache variable.
+  // Listen to a brief polling interval to refresh avatars once usersCache becomes populated (helps after first load).
+  (function pollForUsersCache(){ let attempts=0; const t = setInterval(function(){
+    attempts++;
+    try { if (typeof usersCache !== 'undefined' && Object.keys(usersCache).length>0) { refreshAvatarsFromCache(); clearInterval(t); } }
+    catch(e){}
+    if (attempts>20) clearInterval(t);
+  }, 300); })();
+
+  // Also run on profilePhotoUpdated events.
+  document.addEventListener('profilePhotoUpdated', function(){ try { refreshAvatarsFromCache(); } catch(e){} });
+
+  // Enhance openPrivateChatWith and openGroupChat existing flows: when a chat opens, if the correspondent has profilePic, show it in header.
+  (function patchOpenChatHeader(){
+    try {
+      const origOpenPrivate = window.openPrivateChatWith;
+      if (typeof origOpenPrivate === 'function') {
+        window.openPrivateChatWith = function(userObj){
+          origOpenPrivate(userObj);
+          try {
+            const el = document.getElementById('current-chat-avatar');
+            if (!el) return;
+            if (userObj && userObj.profilePic) {
+              el.style.backgroundImage = 'url("' + userObj.profilePic + '")';
+              el.style.backgroundSize = 'cover';
+              el.textContent = '';
+            } else if (userObj && usersCache && usersCache[userObj.uid] && usersCache[userObj.uid].profilePic) {
+              el.style.backgroundImage = 'url(\"' + usersCache[userObj.uid].profilePic + '\")';
+              el.style.backgroundSize = 'cover';
+              el.textContent = '';
+            } else {
+              el.style.backgroundImage = '';
+              el.textContent = (userObj.email||'U').charAt(0).toUpperCase();
+            }
+          } catch(e){}
+        };
+      }
+    } catch(e){}
+  })();
+
+</script>
+<!-- END: PROFILE-PICTURE BEHAVIOR FIXES -->
 
 </body>
 </html>
