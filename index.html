@@ -344,8 +344,14 @@
 .save-profile-btn { margin-top:12px; }
 .profile-contacts { margin-top:18px; }
 .contact-row { display:flex; align-items:center; gap:10px; padding:8px; border-radius:8px; background:#fff; border:1px solid rgba(11,96,214,0.04); margin-bottom:8px; }
-.contact-row .contact-name { flex:1; font-weight:700; font-size:14px; color:var(--primary); }
+.contact-row .contact-name { flex:1; font-weight:700; color:var(--primary); }
 .contact-row .delete-btn { background:#ff4d4f; color:#fff; border:none; padding:6px 8px; border-radius:8px; cursor:pointer; }
+/* Adjusted contact-row visuals: fixed avatar shape, truncated names/about, fuller delete button */
+.contact-row .contact-avatar { width:44px; height:44px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex:0 0 44px; overflow:hidden; background:linear-gradient(180deg,#dbeeff,#c1ddff); font-weight:700; color:var(--primary); }
+.contact-row .contact-name { font-weight:700; color:var(--primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:220px; }
+.contact-row .contact-about { font-size:13px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:220px; margin-top:4px; }
+.contact-row .delete-btn { background:#ff4d4f; color:#fff; border:none; padding:8px 12px; border-radius:10px; cursor:pointer; min-width:72px; align-self:stretch; display:inline-flex; align-items:center; justify-content:center; font-weight:700; }
+
 .avatar-grid { display:grid; grid-template-columns: repeat(5,1fr); gap:8px; padding:12px; max-width:640px; margin:0 auto; }
 .avatar-grid img { width:100%; height:56px; object-fit:cover; border-radius:8px; cursor:pointer; border:2px solid transparent; }
 .avatar-grid img.selected { outline:3px solid var(--primary); border-color:var(--primary); }
@@ -393,49 +399,9 @@ button, .btn, a {
   transition: opacity 360ms linear;
 }
 
-
-/* Row menu: small boxed three-dots button and popup menu */
-.row-menu-wrapper { position: relative; display:flex; align-items:center; }
-.menu-btn { background:#f0f0f0; border:1px solid #ddd; padding:6px 8px; border-radius:8px; min-width:36px; height:36px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; font-weight:700; }
-.row-menu { position:absolute; right:0; top:44px; min-width:120px; background:#fff; border:1px solid #ddd; box-shadow:0 6px 18px rgba(0,0,0,0.08); border-radius:8px; padding:6px; display:flex; flex-direction:column; z-index:50; }
-.row-menu.hidden { display:none; }
-.row-remove { background:transparent; border:none; width:36px; height:36px; align-self:flex-start; cursor:pointer; font-size:18px; }
-.row-menu-spacer { flex:1 1 auto; }
-.row-logout { background:#ff4d4f; color:#fff; border:none; padding:8px 10px; border-radius:8px; cursor:pointer; margin-top:8px; font-weight:700; }
-
-
-/* Global logout button styling and menu visibility tied to #main.open */
-.global-logout { background:#ff4d4f; color:#fff; border:none; padding:8px 12px; border-radius:8px; cursor:pointer; font-weight:700; display:block; width:100%; box-sizing:border-box; }
-.global-menu { display:none; }
-#main.open .global-menu { display:block; }
-
-
-/* helper: show the site menu panel by translating it into view */
-#siteMenuPanel.open { transform: translateX(0%); }
-#siteMenuPanel[aria-hidden="true"] { visibility: visible; }
-
 </style>
 </head>
 <body>
-
-<!-- Persistent menu button (top-right) -->
-<button id="persistentMenuBtn" aria-label="Open menu" style="position:fixed;right:12px;top:12px;z-index:120;padding:8px 10px;border-radius:10px;border:1px solid #ddd;background:#fff;box-shadow:0 6px 18px rgba(0,0,0,0.08);cursor:pointer;font-weight:700;">Menu</button>
-
-<!-- Site menu panel (acts like an in-site page) -->
-<div id="siteMenuPanel" aria-hidden="true" style="position:fixed;right:0;top:0;height:100vh;width:320px;background:#fff;box-shadow:-6px 0 24px rgba(0,0,0,0.12);z-index:110;transform:translateX(100%);transition:transform .28s ease;border-left:1px solid #eee;display:flex;flex-direction:column;">
-  <div style="padding:16px 16px 8px 16px;border-bottom:1px solid #f2f2f2;display:flex;align-items:center;justify-content:space-between;">
-    <div style="font-weight:800;font-size:18px;">Menu</div>
-    <button id="closeSiteMenuBtn" aria-label="Close menu" style="border:none;background:transparent;font-size:20px;cursor:pointer;">✕</button>
-  </div>
-  <div id="siteMenuContent" style="padding:12px;flex:1;overflow:auto;">
-    <!-- You can add menu items here. Kept minimal as requested. -->
-  </div>
-  <div style="padding:12px;border-top:1px solid #f2f2f2;">
-    <button id="panelLogoutBtn" style="width:100%;padding:10px;border-radius:8px;border:none;background:#ff4d4f;color:#fff;font-weight:800;cursor:pointer;">Logout</button>
-  </div>
-</div>
-
-
   <!-- Startup loader (visible immediately, will be hidden after 1s) -->
   <div id="startup-loader" aria-hidden="false">
     <div class="loader" role="progressbar" aria-label="Loading"></div>
@@ -446,10 +412,7 @@ button, .btn, a {
       <div class="logo"><img src="logo.png" alt="Zag Messenger Logo"></div>
       <div class="title">Zag Messenger</div>
       <!-- Added ID for easier targeting in JS for menu click -->
-      <div class="menu" id="topHeaderMenu">☰
-<div style="height:6px"></div>
-<button id="globalLogout" class="global-logout">Logout</button>
-</div>
+      <div class="menu" id="topHeaderMenu">☰</div>
     </div>
 
     <div class="wave-top" aria-hidden="true" id="waveTop">
@@ -569,8 +532,8 @@ button, .btn, a {
         </div>
 
         <div class="profile-field">
-           <label style="font-size:13px;color:var(--muted)">Handle <span style="font-size:12px;color:var(--muted)">(can't be changed)</span></label>
-          <input id="profileHandle" type="text" placeholder="@yourhandle" readonly readonly>
+          <label style="font-size:13px;color:var(--muted)">Handle <span style="font-size:12px;color:var(--muted)"> (can\'t be changed)</span></label>
+          <input id="profileHandle" type="text" readonly>
         </div>
 
         <div class="profile-field" id="profileAboutField">
@@ -1559,8 +1522,8 @@ button, .btn, a {
         let data = snap.exists() ? snap.val() : {};
         if (data.displayName) profileDisplayName.value = data.displayName;
         else profileDisplayName.value = (currentUser.email || '').split('@')[0] || '';
-        if (data.handle) profileHandle.value = data.handle;
-        else profileHandle.value = '';
+        profileHandle.value = (currentUser && currentUser.email) ? currentUser.email : (data.handle || '');
+        profileHandle.readOnly = true;
         if (data.about) profileAbout.value = data.about;
         else profileAbout.value = 'Hi, I am using Zag Messenger';
         if (data.profilePic) {
@@ -1587,7 +1550,7 @@ button, .btn, a {
       // Normalize handle: remove leading @ if present
       if (handle.startsWith('@')) handle = handle.substring(1);
       const profilePic = profileAvatar.dataset.selected || '';
-      const updates = { displayName: name, about: about, handle: handle };
+      const updates = { displayName: name, about: about };
       if (profilePic) updates.profilePic = profilePic;
       try {
         await update(dbRef(db, 'users/' + currentUser.uid), updates);
@@ -2137,89 +2100,5 @@ button, .btn, a {
 })();
 </script>
 
-<script>
-
-// Row menu toggle behavior
-document.addEventListener('click', function(e){
-  // toggle when clicking a menu-btn
-  if (e.target.closest && e.target.closest('.menu-btn')){
-    const wrapper = e.target.closest('.row-menu-wrapper');
-    const menu = wrapper.querySelector('.row-menu');
-    // Only show if main is open (if there is an element with id "main" and it has class "open")
-    const mainEl = document.getElementById && document.getElementById('main');
-    if (mainEl && !mainEl.classList.contains('open')) {
-      // do not open menus when main is not open
-      return;
-    }
-    menu.classList.toggle('hidden');
-    // close other menus
-    document.querySelectorAll('.row-menu').forEach(m => { if(m !== menu) m.classList.add('hidden'); });
-    return;
-  }
-  // handle remove action
-  if (e.target.closest && e.target.closest('.row-remove')){
-    const row = e.target.closest('.contact-row');
-    if (!row) return;
-    const uid = row.dataset.uid;
-    if (!confirm('Remove this contact?')) return;
-    if (typeof removeContact === 'function') { removeContact(uid); }
-    row.remove();
-    return;
-  }
-  // handle logout in menu
-  if (e.target.closest && e.target.closest('.row-logout')){
-    if (typeof signOut === 'function') { signOut(); }
-    else { alert('Logging out...'); location.reload(); }
-    return;
-  }
-  // close menus when clicking outside
-  if (!e.target.closest || !e.target.closest('.row-menu-wrapper')) {
-    document.querySelectorAll('.row-menu').forEach(m => m.classList.add('hidden'));
-  }
-});
-
-</script>
-<script>
-
-(function(){ 
-  function applyHandle(){
-    var h = document.getElementById('profileHandle');
-    if(!h) return;
-    if(window.currentUser && currentUser.email){
-      h.value = currentUser.email;
-    }
-    h.readOnly = true;
-    // update any label that mentions Handle (safety fallback)
-    document.querySelectorAll('label').forEach(function(l){
-      if(l.textContent && l.textContent.trim().startsWith('Handle')){
-        l.innerHTML = 'Handle <span style="font-size:12px;color:var(--muted)">(can\'t be changed)</span>';
-      }
-    });
-  }
-  document.addEventListener('DOMContentLoaded', applyHandle);
-  setTimeout(applyHandle, 800);
-  setTimeout(applyHandle, 2000);
-  // also try to run when a user object appears on window
-  try { Object.defineProperty(window,'currentUser',{ set:function(v){ setTimeout(applyHandle,100); }, configurable:true }); } catch(e) {}
-})();
-
-</script>
-<script>
-
-document.addEventListener('click', function(e){
-  if(e.target && e.target.id === 'globalLogout'){
-    if(typeof signOut === 'function'){
-      signOut();
-    } else if (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().signOut) {
-      firebase.auth().signOut();
-    } else {
-      // fallback: reload or navigate to a signout URL if your app provides one
-      alert('Logging out...');
-      location.reload();
-    }
-  }
-});
-
-</script>
 </body>
 </html>
