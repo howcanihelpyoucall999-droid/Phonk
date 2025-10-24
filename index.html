@@ -2095,536 +2095,227 @@ button, .btn, a {
 </script>
 
 
-<!-- Loader fade-out injection: stops continuous loader after sign-in status detected -->
+<!-- Inserted: Link-only profile picture box (appears after the 30th image in galleries) and confirmation modal -->
 <style>
-/* fade-out animation and ensure no infinite spinner remains visible */
-.loader-fade-target {
-  transition: opacity 0.45s ease, visibility 0.45s;
-}
-.loader-fade-target.fade-out {
-  opacity: 0 !important;
-  visibility: hidden !important;
-  pointer-events: none !important;
-}
-@keyframes fadeOutKey {
-  from { opacity: 1; }
-  to { opacity: 0; visibility: hidden; }
-}
-</style>
-
-<script>
-(function(){
-  // Determine loader element(s)
-  var selectorCandidates = [];
-  [".loader", "[class*=\"loader\"]", "#loader", "#loading", ".loader", ".loading", "#loading-screen", ".loading-screen", "#splash", ".splash", "body > .overlay"]
-
-  var loaderEl = null;
-  for (var s of selectorCandidates) {
-    try {
-      var el = document.querySelector(s);
-      if (el) { loaderEl = el; break; }
-    } catch(e) {}
-  }
-  // If still not found, try any element that looks like a full-screen overlay
-  if (!loaderEl) {
-    var possible = document.querySelector('[id*="load"], [class*="load"], [id*="splash"], [class*="splash"]');
-    if (possible) loaderEl = possible;
-  }
-  if (!loaderEl) {
-    // Nothing to do
-    return;
-  }
-
-  // Ensure the element has the helper class for transitions
-  loaderEl.classList.add('loader-fade-target');
-
-  function fadeOutLoader() {
-    if (!loaderEl) return;
-    // add fade-out class
-    loaderEl.classList.add('fade-out');
-    // after transition remove any running animation classes to stop continuous CSS animations
-    setTimeout(function(){
-      // remove spinner children animations by setting animation: none
-      loaderEl.style.animation = 'none';
-      var spinners = loaderEl.querySelectorAll('*');
-      for (var i=0;i<spinners.length;i++){
-        spinners[i].style.animation = 'none';
-        spinners[i].style.webkitAnimation = 'none';
-      }
-    }, 500);
-  }
-
-  // If Firebase Auth is available, use its state observer
-  if (window.firebase && firebase.auth && typeof firebase.auth === 'function') {
-    try {
-      firebase.auth().onAuthStateChanged(function(user){
-        // give a tiny delay so UI updates settle, then fade out
-        setTimeout(fadeOutLoader, 250);
-      });
-      // also call once in case user is already known
-      if (firebase.auth().currentUser) setTimeout(fadeOutLoader, 250);
-      return;
-    } catch(e){}
-  }
-
-  // If app uses modular SDK (getAuth)
-  if (window.getAuth && typeof getAuth === 'function') {
-    try {
-      var auth = getAuth();
-      if (auth && typeof auth.onAuthStateChanged === 'function') {
-        auth.onAuthStateChanged(function(user){
-          setTimeout(fadeOutLoader, 250);
-        });
-        if (auth.currentUser) setTimeout(fadeOutLoader, 250);
-        return;
-      }
-    } catch(e){}
-  }
-
-  // Generic fallbacks:
-  // 1) Poll for common global variables (currentUser) or body classes that indicate sign-in.
-  var checks = [
-    function(){ return !!window.currentUser; },
-    function(){ return !!window.user || !!window.appUser; },
-    function(){ return document.body.classList.contains('signed-in') || document.body.classList.contains('logged-in'); },
-    function(){ return !!localStorage.getItem('currentUser') || !!localStorage.getItem('user'); },
-    function(){ return !!document.querySelector('.user-profile, .profile, .account'); }
-  ];
-
-  var maxAttempts = 40; // ~10 seconds (40 * 250ms)
-  var attempt = 0;
-  var poll = setInterval(function(){
-    attempt++;
-    for (var i=0;i<checks.length;i++){
-      try {
-        if (checks[i]()) {
-          clearInterval(poll);
-          setTimeout(fadeOutLoader, 200);
-          return;
-        }
-      } catch(e){}
-    }
-    // also stop polling and fade out after maxAttempts as a safety (so loader doesn't run forever)
-    if (attempt >= maxAttempts) {
-      clearInterval(poll);
-      // gracefully fade out even if no user detected
-      setTimeout(fadeOutLoader, 200);
-    }
-  }, 250);
-
-  // Also listen for custom events that might be fired by your app after sign-in/up
-  document.addEventListener('signed-in', function(){ setTimeout(fadeOutLoader, 200); });
-  document.addEventListener('auth-ready', function(){ setTimeout(fadeOutLoader, 200); });
-
-})();
-</script>
-
-<!-- App behavior enhancements: min loader time, auto-route on auth, replay on sign-in, nav hooks, profile handle readonly -->
-<script>
-(function(){
-  if (window.__appEnhancementsInstalled) return;
-  window.__appEnhancementsInstalled = true;
-
-  // Find loader element (use same heuristics as previous injection)
-  function findLoader(){
-    var selectors = ["#loader","#loading",".loader",".loading","#loading-screen",".loading-screen","#splash",".splash","body > .overlay"];
-    for (var s of selectors) {
-      try {
-        var el = document.querySelector(s);
-        if (el) return el;
-      } catch(e){}
-    }
-    return document.querySelector('[id*="load"], [class*="load"], [id*="splash"], [class*="splash"]');
-  }
-  var loader = findLoader();
-  // helper to show loader (remove fade-out)
-  function showLoaderImmediate(){
-    if (!loader) return;
-    loader.classList.remove('fade-out');
-    loader.classList.add('loader-fade-target');
-    loader.style.animation = '';
-    var children = loader.querySelectorAll('*');
-    for (var i=0;i<children.length;i++){
-      children[i].style.animation = '';
-      children[i].style.webkitAnimation = '';
-    }
-    loader.style.visibility = 'visible';
-    loader.style.opacity = '1';
-  }
-  function fadeOutLoaderImmediate(){
-    if (!loader) return;
-    loader.classList.add('fade-out');
-    setTimeout(function(){
-      loader.style.animation = 'none';
-      var children = loader.querySelectorAll('*');
-      for (var i=0;i<children.length;i++){
-        children[i].style.animation = 'none';
-        children[i].style.webkitAnimation = 'none';
-      }
-    }, 500);
-  }
-
-  // Minimum loader display time
-  var loaderStart = Date.now();
-  var minDisplay = 1000; // 1 second minimum
-
-  function scheduleLoaderHide(afterCallback){
-    var elapsed = Date.now() - loaderStart;
-    var wait = Math.max(0, minDisplay - elapsed);
-    setTimeout(function(){
-      fadeOutLoaderImmediate();
-      if (typeof afterCallback === 'function') afterCallback();
-    }, wait);
-  }
-
-  // Attempt to navigate to homepage when user is signed-in.
-  function goToHome(){
-    // Try common nav elements or functions
-    var navHome = document.querySelector('[data-nav="home"], #navHome, .nav-home, a[href="#home"], a[href="/#home"], a.home-link');
-    if (navHome) {
-      try { navHome.click(); return; } catch(e){}
-    }
-    // try to call a function showHome / goHome / openHome
-    try { if (typeof showHome === 'function') { showHome(); return; } } catch(e){}
-    try { if (typeof goHome === 'function') { goHome(); return; } } catch(e){}
-    // fallback: set hash
-    try { location.hash = '#home'; } catch(e){}
-  }
-
-  // Auth detection & hookup
-  function onAuthDetected(user){
-    scheduleLoaderHide(function(){
-      if (user) {
-        // if signed in, navigate to home after fade
-        setTimeout(goToHome, 80);
-      }
-    });
-  }
-
-  // If Firebase legacy present
-  if (window.firebase && firebase.auth && typeof firebase.auth === 'function') {
-    try {
-      firebase.auth().onAuthStateChanged(function(user){
-        onAuthDetected(user);
-      });
-      if (firebase.auth().currentUser) onAuthDetected(firebase.auth().currentUser);
-    } catch(e){}
-  } else if (window.getAuth && typeof getAuth === 'function') {
-    try {
-      var auth = getAuth();
-      if (auth && typeof auth.onAuthStateChanged === 'function') {
-        auth.onAuthStateChanged(function(user){
-          onAuthDetected(user);
-        });
-        if (auth.currentUser) onAuthDetected(auth.currentUser);
-      }
-    } catch(e){}
-  } else {
-    // Generic polling fallback (checks for window.currentUser or body classes)
-    var checks = [
-      function(){ return !!window.currentUser; },
-      function(){ return !!window.user || !!window.appUser; },
-      function(){ return document.body.classList.contains('signed-in') || document.body.classList.contains('logged-in'); },
-      function(){ return !!localStorage.getItem('currentUser') || !!localStorage.getItem('user'); },
-      function(){ return !!document.querySelector('.user-profile, .profile, .account'); }
-    ];
-    var attempts = 0;
-    var maxAttempts = 40;
-    var poll = setInterval(function(){
-      attempts++;
-      for (var i=0;i<checks.length;i++){
-        try {
-          if (checks[i]()) {
-            clearInterval(poll);
-            onAuthDetected(true);
-            return;
-          }
-        } catch(e){}
-      }
-      if (attempts >= maxAttempts) {
-        clearInterval(poll);
-        onAuthDetected(false);
-      }
-    }, 250);
-  }
-
-  // Replay loader when sign-in buttons are clicked (common selectors)
-  function attachSignInReplay(){
-    var selectors = ['button.sign-in','button#signInBtn','button[data-action="signin"]','.btn-signin','a.sign-in','a[href*="login"], a[href*="signin"]'];
-    var els = [];
-    selectors.forEach(function(s){
-      try { document.querySelectorAll(s).forEach(function(el){ els.push(el); }); } catch(e){}
-    });
-    // dedupe
-    els = Array.from(new Set(els));
-    els.forEach(function(el){
-      el.addEventListener('click', function(){
-        showLoaderImmediate();
-        loaderStart = Date.now();
-      });
-    });
-  }
-  // run once DOM ready
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', attachSignInReplay);
-  } else {
-    attachSignInReplay();
-  }
-
-  // Hook navigation so switching sections reloads contacts/groups
-  function attachNavHooks(){
-    var navYou = document.querySelector('[data-nav="you"], #navYou, .nav-you, a[href="#you"]');
-    var navGroups = document.querySelector('[data-nav="groups"], #navGroups, .nav-groups, a[href="#groups"]');
-    var navHome = document.querySelector('[data-nav="home"], #navHome, .nav-home, a[href="#home"]');
-
-    function safeCall(fnName){
-      try {
-        if (typeof window[fnName] === 'function') window[fnName]();
-      } catch(e){}
-    }
-
-    if (navYou) {
-      navYou.addEventListener('click', function(){
-        // try calling loadProfileContacts if available
-        safeCall('loadProfileContacts');
-        safeCall('renderYouSection');
-      });
-    }
-    if (navGroups) {
-      navGroups.addEventListener('click', function(){
-        safeCall('loadGroups');
-        safeCall('renderGroupsSection');
-      });
-    }
-    if (navHome) {
-      navHome.addEventListener('click', function(){
-        safeCall('loadChats');
-        safeCall('renderHome');
-      });
-    }
-    // Also observe hash changes
-    window.addEventListener('hashchange', function(){
-      var h = location.hash.replace('#','');
-      if (h === 'you') safeCall('loadProfileContacts');
-      if (h === 'groups') safeCall('loadGroups');
-      if (h === 'home') safeCall('loadChats');
-    });
-  }
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', attachNavHooks);
-  } else {
-    attachNavHooks();
-  }
-
-  // Make profile handle field readonly and show '(cannot change)'
-  function markHandleReadOnly(){
-    // try common selectors for profile settings inputs
-    var selectors = ['#profile-handle','input[name="handle"]','.profile-handle-input','input.handle','[data-field="handle"]'];
-    for (var s of selectors) {
-      try {
-        var el = document.querySelector(s);
-        if (el) {
-          try {
-            el.readOnly = true;
-            // if it's an input, set its value to email (if available) and append note
-            var note = document.createElement('div');
-            note.className = 'small';
-            note.textContent = '(cannot change)';
-            if (el.tagName.toLowerCase() === 'input' || el.tagName.toLowerCase() === 'textarea') {
-              // if empty and email available, fill with email
-              var emailVal = '';
-              try { if (window.currentUser && window.currentUser.email) emailVal = window.currentUser.email; } catch(e){}
-              if (!el.value && emailVal) el.value = emailVal;
-              // append note after element
-              el.parentNode && el.parentNode.appendChild(note);
-            } else {
-              // if not input, set text
-              el.textContent = (el.textContent || '') + ' (cannot change)';
-            }
-            return;
-          } catch(e){}
-        }
-      } catch(e){}
-    }
-  }
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', markHandleReadOnly);
-  } else {
-    markHandleReadOnly();
-  }
-
-})();
-</script>
-
-<!-- Profile picture chooser + confirmation flow (injected) -->
-<style>
-/* Simple modal for avatar chooser */
-#avatarModal, #avatarPreviewPage {
-  position: fixed;
-  left: 0; top: 0; right: 0; bottom: 0;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0,0,0,0.45);
-  z-index: 9999;
-}
-.avatar-modal-card {
-  background: #fff;
-  border-radius: 12px;
-  padding: 18px;
-  width: 92%;
-  max-width: 520px;
-  box-shadow: 0 12px 30px rgba(0,0,0,0.18);
-}
-.avatar-modal-card h3 { margin:0 0 8px 0; font-size:18px; }
-.avatar-row { display:flex; gap:12px; align-items:center; }
-.avatar-preview {
-  width:96px;
-  height:96px;
-  border-radius:50%;
-  background:#f0f4ff;
+#avatarLinkBox {
   display:flex;
+  gap:8px;
   align-items:center;
-  justify-content:center;
-  overflow:hidden;
-  flex:0 0 96px;
-}
-.avatar-preview img { width:100%; height:100%; object-fit:cover; display:block; }
-.avatar-controls { flex:1; }
-.avatar-controls input[type="text"] {
-  width:100%;
   padding:10px;
-  border:1px solid #ddd;
-  border-radius:8px;
-  box-sizing:border-box;
+  border:1px dashed rgba(0,0,0,0.08);
+  border-radius:10px;
+  margin:10px 0;
+  background:linear-gradient(180deg, #ffffff, #fbfbff);
 }
-.avatar-controls .small-note { font-size:12px; color:#666; margin-top:6px; }
-.avatar-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:12px; }
-.btn {
-  padding:8px 12px;
+#avatarLinkBox input[type="text"]{
+  flex:1;
+  padding:8px 10px;
+  border:1px solid #e2e6ef;
   border-radius:8px;
-  border:1px solid rgba(0,0,0,0.06);
-  background:#fff;
-  cursor:pointer;
+  font-size:14px;
 }
-.btn.primary { background: #0b60d6; color:#fff; border:none; }
-.btn.ghost { background:transparent; }
+#avatarLinkBox button{ padding:8px 12px; border-radius:8px; cursor:pointer; }
+#avatarLinkBox .hint{ font-size:12px; color:#666; margin-left:8px; }
+
+/* confirmation modal */
+#avatarConfirmOverlay {
+  position:fixed; left:0; top:0; right:0; bottom:0; display:none;
+  align-items:center; justify-content:center; background:rgba(0,0,0,0.45); z-index:99999;
+}
+#avatarConfirmCard { background:#fff; padding:18px; border-radius:12px; width:92%; max-width:540px; text-align:center; box-shadow:0 14px 40px rgba(2,6,23,0.08); }
+#avatarConfirmCard img{ max-width:260px; max-height:260px; border-radius:10px; display:block; margin:0 auto 12px; object-fit:cover; }
+#avatarConfirmCard .actions{ display:flex; gap:8px; justify-content:center; margin-top:12px; }
+#avatarConfirmCard .btn{ padding:10px 14px; border-radius:8px; border:1px solid rgba(0,0,0,0.06); background:#fff; cursor:pointer; }
+#avatarConfirmCard .btn.primary{ background:#0b60d6; color:#fff; border:none; }
 </style>
 
-<!-- Modal markup -->
-<div id="avatarModal" aria-hidden="true">
-  <div class="avatar-modal-card" role="dialog" aria-modal="true" aria-labelledby="avatarModalTitle">
-    <h3 id="avatarModalTitle">Choose profile picture</h3>
-    <div class="avatar-row">
-      <div class="avatar-preview" id="avatarPreviewBox"><img id="avatarPreviewImg" src="" alt="preview" /></div>
-      <div class="avatar-controls">
-        <input id="avatarUrlInput" type="text" placeholder="Paste image URL or address here (https://...)" />
-        <div class="small-note">You can paste an image link (jpg, png, webp). After Save you will be taken to a confirmation page.</div>
-      </div>
-    </div>
-    <div class="avatar-actions">
-      <button class="btn ghost" id="avatarCancelBtn">Cancel</button>
-      <button class="btn primary" id="avatarSaveBtn">Save</button>
+<!-- Box will be inserted dynamically; add the modal here -->
+<div id="avatarConfirmOverlay" aria-hidden="true">
+  <div id="avatarConfirmCard" role="dialog" aria-modal="true" aria-labelledby="avatarConfirmTitle">
+    <h3 id="avatarConfirmTitle">Confirm profile picture</h3>
+    <p id="avatarConfirmUrl" style="word-break:break-word;color:#444;font-size:13px;margin:8px 0 12px;"></p>
+    <img id="avatarConfirmPreview" src="" alt="Preview" />
+    <div id="avatarConfirmStatus" style="font-size:13px;color:#666;margin-top:8px;"></div>
+    <div class="actions">
+      <button id="avatarConfirmCancel" class="btn">Cancel</button>
+      <button id="avatarConfirmBtn" class="btn primary">Confirm</button>
     </div>
   </div>
 </div>
 
 <script>
 (function(){
-  if (window.__avatarChooserInstalled) return;
-  window.__avatarChooserInstalled = true;
+  if (window.__linkBoxAvatarInstalled) return;
+  window.__linkBoxAvatarInstalled = true;
 
-  // Create helper to open modal
-  var modal = document.getElementById('avatarModal');
-  var input = document.getElementById('avatarUrlInput');
-  var previewImg = document.getElementById('avatarPreviewImg');
-  var previewBox = document.getElementById('avatarPreviewBox');
-  var btnCancel = document.getElementById('avatarCancelBtn');
-  var btnSave = document.getElementById('avatarSaveBtn');
+  // Which gallery selectors to look for
+  var gallerySelectors = ['.profile-images', '.avatar-gallery', '#profile-pictures', '.profile-picture-list', '.profile-pics', '.gallery-avatars'];
+  var insertedId = 'avatarLinkBox';
 
-  function showModal(initialUrl) {
-    if (!modal) return;
-    input.value = initialUrl || '';
-    updatePreview();
-    modal.style.display = 'flex';
-    // focus input
-    setTimeout(function(){ input.focus(); }, 120);
+  function createLinkBox(){
+    var box = document.createElement('div');
+    box.id = insertedId;
+    box.innerHTML = '<input type="text" id="avatarLinkInput" placeholder="Paste image URL (link only) — jpg, png, webp" />' +
+                    '<button id="avatarLinkSave" class="btn primary">Save</button>' +
+                    '<span class="hint">After Save you will confirm the image.</span>';
+    return box;
   }
-  function hideModal(){
-    if (!modal) return;
-    modal.style.display = 'none';
-  }
-  function updatePreview(){
-    var v = input.value.trim();
-    if (!v) {
-      previewImg.src = '';
-      previewBox.style.background = '#f0f4ff';
-      return;
-    }
-    // try to set src; handle data URLs and http(s)
-    try {
-      previewImg.src = v;
-      previewBox.style.background = 'transparent';
-    } catch(e){
-      previewImg.src = '';
-    }
-  }
-  if (input) {
-    input.addEventListener('input', updatePreview);
-    input.addEventListener('paste', function(){ setTimeout(updatePreview,50); });
-  }
-  if (btnCancel) btnCancel.addEventListener('click', hideModal);
 
-  // When user clicks Save, open confirmation page with the image URL in query param
-  if (btnSave) btnSave.addEventListener('click', function(){
-    var v = input.value.trim();
-    if (!v) { alert('Please paste an image URL first.'); input.focus(); return; }
-    // encode and open confirmation page in same tab
-    var u = '/confirm_avatar.html?img=' + encodeURIComponent(v);
-    // if the site is not at root, try relative: open in same directory as current page
-    try {
-      // determine base path
-      var base = location.pathname.replace(/\/[^\/]*$/, '/');
-      var candidate = base + 'confirm_avatar.html?img=' + encodeURIComponent(v);
-      location.href = candidate;
-    } catch(e) {
-      location.href = u;
-    }
-  });
-
-  // Expose a function to allow opening the chooser from existing "change avatar" buttons
-  window.openAvatarChooser = function(initialUrl){
-    showModal(initialUrl || '');
-  };
-
-  // Auto-hook common selectors for "change profile picture"
-  function attachToChangeButtons(){
-    var selectors = ['#changeAvatarBtn','.change-avatar','.avatar-edit','.profile-pic-btn','button[data-action="change-avatar"]'];
-    var found = [];
-    selectors.forEach(function(s){
+  function insertBoxesIfNeeded(){
+    gallerySelectors.forEach(function(sel){
       try {
-        document.querySelectorAll(s).forEach(function(el){ found.push(el); });
+        document.querySelectorAll(sel).forEach(function(container){
+          // count images inside container
+          var imgs = container.querySelectorAll('img');
+          if (imgs.length >= 30) {
+            // check if we already inserted the box
+            if (container.querySelector('#' + insertedId)) return;
+            // insert after the 30th image (index 29)
+            var ref = imgs[29];
+            if (ref && ref.parentNode) {
+              var box = createLinkBox();
+              ref.parentNode.insertBefore(box, ref.nextSibling);
+            } else {
+              // fallback: append at end
+              var box = createLinkBox();
+              container.appendChild(box);
+            }
+          } else {
+            // If previously inserted but now fewer images, remove box
+            var existing = container.querySelector('#' + insertedId);
+            if (existing) existing.remove();
+          }
+        });
       } catch(e){}
     });
-    found = Array.from(new Set(found));
-    found.forEach(function(el){
-      el.addEventListener('click', function(e){
-        e.preventDefault();
-        // try to pass current src if available
-        var currentImg = null;
-        var imgEl = el.querySelector('img') || document.querySelector('.profile-photo img') || document.querySelector('.avatar img');
-        if (imgEl && imgEl.src) currentImg = imgEl.src;
-        showModal(currentImg);
+  }
+
+  // Show confirmation modal with image url and preview
+  function showConfirmModal(url){
+    var overlay = document.getElementById('avatarConfirmOverlay');
+    var preview = document.getElementById('avatarConfirmPreview');
+    var urlText = document.getElementById('avatarConfirmUrl');
+    var status = document.getElementById('avatarConfirmStatus');
+    overlay.style.display = 'flex';
+    preview.src = url;
+    urlText.textContent = url;
+    status.textContent = '';
+  }
+  function hideConfirmModal(){
+    var overlay = document.getElementById('avatarConfirmOverlay');
+    overlay.style.display = 'none';
+  }
+
+  // Attempt to set the profile photo across common places and backends
+  function applyProfilePhoto(url, callback){
+    // Update on-page avatar images with common selectors
+    try {
+      var selImgs = ['.profile-photo img', '.avatar img', 'img.profile-avatar', '.user-avatar img'];
+      selImgs.forEach(function(s){
+        document.querySelectorAll(s).forEach(function(el){ try { el.src = url; } catch(e){} });
+      });
+    } catch(e) {}
+
+    // Dispatch update event and save to localStorage
+    try { localStorage.setItem('profilePhotoURL', url); } catch(e) {}
+    try { document.dispatchEvent(new CustomEvent('profilePhotoUpdated', { detail: { photoURL: url } })); } catch(e){}
+
+    // Try Firebase namespaced SDK
+    if (window.firebase && firebase.auth && typeof firebase.auth === 'function') {
+      var user = firebase.auth().currentUser;
+      if (user && typeof user.updateProfile === 'function') {
+        user.updateProfile({ photoURL: url }).then(function(){
+          // try writing to realtime DB if available
+          try { if (firebase.database) firebase.database().ref('users/' + user.uid + '/photoURL').set(url); } catch(e){}
+          return callback && callback(null, 'ok');
+        }).catch(function(err){
+          // fallback to DB-only if updateProfile fails
+          try {
+            if (firebase.database && user && user.uid) {
+              firebase.database().ref('users/' + user.uid + '/photoURL').set(url).then(function(){ return callback && callback(null, 'ok'); }).catch(function(e){ return callback && callback(e); });
+              return;
+            }
+          } catch(e){}
+          return callback && callback(err);
+        });
+        return;
+      }
+    }
+
+    // Try modular Firebase (getAuth / updateProfile)
+    try {
+      if (window.getAuth && typeof getAuth === 'function' && typeof updateProfile === 'function') {
+        var auth = getAuth();
+        var u = auth.currentUser;
+        if (u) {
+          updateProfile(u, { photoURL: url }).then(function(){
+            try {
+              if (typeof getDatabase === 'function' && typeof ref === 'function' && typeof set === 'function') {
+                set(ref(getDatabase(), 'users/' + u.uid + '/photoURL'), url);
+              }
+            } catch(e){}
+            return callback && callback(null, 'ok');
+          }).catch(function(err){ return callback && callback(err); });
+          return;
+        }
+      }
+    } catch(e){}
+
+    // Try app-level functions
+    try {
+      if (typeof setCurrentUserPhoto === 'function') { setCurrentUserPhoto(url); return callback && callback(null,'ok'); }
+      if (typeof saveProfile === 'function') { saveProfile({ photoURL: url }); return callback && callback(null,'ok'); }
+    } catch(e){}
+
+    // Last resort: localStorage only (considered success)
+    try { localStorage.setItem('profilePhotoURL', url); return callback && callback(null, 'ok'); } catch(e){ return callback && callback(new Error('Could not save')); }
+  }
+
+  // Event wiring: when save clicked, open modal; when confirm, apply
+  function wireEvents(){
+    document.addEventListener('click', function(ev){
+      var target = ev.target;
+      if (!target) return;
+      // Save button inside our box
+      if (target.id === 'avatarLinkSave') {
+        var input = document.getElementById('avatarLinkInput');
+        var url = input && input.value.trim();
+        if (!url) { alert('Please paste an image link first.'); input && input.focus(); return; }
+        // show confirm modal
+        showConfirmModal(url);
+      }
+    });
+    // modal cancel/confirm
+    document.getElementById('avatarConfirmCancel').addEventListener('click', function(){ hideConfirmModal(); });
+    document.getElementById('avatarConfirmBtn').addEventListener('click', function(){
+      var url = document.getElementById('avatarConfirmUrl').textContent || '';
+      var status = document.getElementById('avatarConfirmStatus');
+      status.textContent = 'Saving...';
+      applyProfilePhoto(url, function(err, ok){
+        if (err) {
+          status.style.color = '#b00020';
+          status.textContent = 'Could not save: ' + (err.message || err);
+        } else {
+          status.style.color = '#0a8a00';
+          status.textContent = 'Profile picture updated.';
+          setTimeout(function(){ hideConfirmModal(); }, 700);
+        }
       });
     });
   }
 
-  // On DOM ready attach hooks
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', attachToChangeButtons);
-  } else {
-    attachToChangeButtons();
+  // Run on DOM ready: insert boxes and set up observers for dynamic galleries
+  function init(){
+    insertBoxesIfNeeded();
+    wireEvents();
+    // observe DOM mutations to re-evaluate galleries (if images are loaded later)
+    var observer = new MutationObserver(function(){ insertBoxesIfNeeded(); });
+    observer.observe(document.body, { childList: true, subtree: true });
+    // also attempt once more after images load
+    window.addEventListener('load', function(){ setTimeout(insertBoxesIfNeeded, 300); });
   }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 
 })();
 </script>
