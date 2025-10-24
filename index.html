@@ -346,12 +346,6 @@
 .contact-row { display:flex; align-items:center; gap:10px; padding:8px; border-radius:8px; background:#fff; border:1px solid rgba(11,96,214,0.04); margin-bottom:8px; }
 .contact-row .contact-name { flex:1; font-weight:700; color:var(--primary); }
 .contact-row .delete-btn { background:#ff4d4f; color:#fff; border:none; padding:6px 8px; border-radius:8px; cursor:pointer; }
-/* Adjusted contact-row visuals: fixed avatar shape, truncated names/about, fuller delete button */
-.contact-row .contact-avatar { width:44px; height:44px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex:0 0 44px; overflow:hidden; background:linear-gradient(180deg,#dbeeff,#c1ddff); font-weight:700; color:var(--primary); }
-.contact-row .contact-name { font-weight:700; color:var(--primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:220px; }
-.contact-row .contact-about { font-size:13px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:220px; margin-top:4px; }
-.contact-row .delete-btn { background:#ff4d4f; color:#fff; border:none; padding:8px 12px; border-radius:10px; cursor:pointer; min-width:72px; align-self:stretch; display:inline-flex; align-items:center; justify-content:center; font-weight:700; }
-
 .avatar-grid { display:grid; grid-template-columns: repeat(5,1fr); gap:8px; padding:12px; max-width:640px; margin:0 auto; }
 .avatar-grid img { width:100%; height:56px; object-fit:cover; border-radius:8px; cursor:pointer; border:2px solid transparent; }
 .avatar-grid img.selected { outline:3px solid var(--primary); border-color:var(--primary); }
@@ -399,9 +393,72 @@ button, .btn, a {
   transition: opacity 360ms linear;
 }
 
+
+/* === contact / avatar / more-button / dropdown styles (added by assistant) === */
+.contact-row { display:flex; align-items:center; gap:8px; padding:8px 12px; }
+.contact-row .contact-avatar {
+  width:44px; height:44px; border-radius:50%; overflow:hidden;
+  display:flex; align-items:center; justify-content:center;
+  flex:0 0 44px; margin-right:12px;
+  background:linear-gradient(180deg,#dbeeff,#c1ddff);
+  font-weight:700; color:var(--primary);
+}
+.contact-row .contact-name {
+  font-weight:700; color:var(--primary);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  max-width:160px; font-size:14px;
+}
+.contact-row .contact-about {
+  font-size:13px; color:var(--muted);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  max-width:160px; margin-top:4px;
+}
+.more-btn {
+  background:#f6f7f8; border:1px solid #e2e2e2; padding:6px 8px;
+  border-radius:8px; font-weight:700; cursor:pointer;
+  min-width:36px; height:36px; display:inline-flex;
+  align-items:center; justify-content:center;
+}
+.actions-dropdown { position:relative; }
+.actions-dropdown .dropdown-menu {
+  position:absolute; right:0; top:44px; background:#fff;
+  border:1px solid #e6e6e6; box-shadow:0 6px 16px rgba(0,0,0,0.08);
+  border-radius:8px; padding:6px; display:none; min-width:44px;
+}
+.actions-dropdown .dropdown-menu.show { display:block; }
+.actions-dropdown .dropdown-menu button {
+  border:none; background:transparent; width:36px; height:36px;
+  display:flex; align-items:center; justify-content:center; cursor:pointer;
+  border-radius:6px;
+}
+.actions-dropdown .dropdown-menu button:hover { background:#f5f5f5; }
+/* top-right icon-only menu (visible only when #main has .open) */
+#topMenu { position:fixed; top:8px; right:8px; width:120px; display:none; flex-direction:column; z-index:1200; }
+#topMenu .menu-items, #topMenu .menu-bottom {
+  background:rgba(255,255,255,0.98); border:1px solid #e6e6e6;
+  border-radius:10px; box-shadow:0 6px 16px rgba(0,0,0,0.08);
+}
+#topMenu .menu-items { padding:8px; display:flex; flex-direction:column; gap:8px; align-items:flex-end; }
+#topMenu .menu-bottom { margin-top:8px; padding:8px; }
+#topMenu .menu-items button { width:40px; height:40px; border-radius:8px; border:1px solid #e6e6e6; background:#fff; cursor:pointer; }
+#logoutBtn { width:100%; padding:10px; border-radius:8px; border:1px solid #e6e6e6; background:#fff; cursor:pointer; }
+/* show topMenu only when main has .open */
+#main.open ~ #topMenu, #main.open + #topMenu { display:flex; }
+
 </style>
 </head>
 <body>
+<!-- Top-right icon-only menu (visible only when #main has class "open") -->
+<div id="topMenu" aria-hidden="true">
+  <div class="menu-items">
+    <button class="menu-remove" title="Remove">🗑</button>
+  </div>
+  <div style="flex:1"></div>
+  <div class="menu-bottom">
+    <button id="logoutBtn">Logout</button>
+  </div>
+</div>
+
   <!-- Startup loader (visible immediately, will be hidden after 1s) -->
   <div id="startup-loader" aria-hidden="false">
     <div class="loader" role="progressbar" aria-label="Loading"></div>
@@ -532,8 +589,8 @@ button, .btn, a {
         </div>
 
         <div class="profile-field">
-          <label style="font-size:13px;color:var(--muted)">Handle <span style="font-size:12px;color:var(--muted)"> (can\'t be changed)</span></label>
-          <input id="profileHandle" type="text" readonly>
+          <label style="font-size:13px;color:var(--muted)">Handle (public)</label>
+          <input id="profileHandle" type="text" placeholder="@yourhandle">
         </div>
 
         <div class="profile-field" id="profileAboutField">
@@ -1522,8 +1579,8 @@ button, .btn, a {
         let data = snap.exists() ? snap.val() : {};
         if (data.displayName) profileDisplayName.value = data.displayName;
         else profileDisplayName.value = (currentUser.email || '').split('@')[0] || '';
-        profileHandle.value = (currentUser && currentUser.email) ? currentUser.email : (data.handle || '');
-        profileHandle.readOnly = true;
+        if (data.handle) profileHandle.value = data.handle;
+        else profileHandle.value = '';
         if (data.about) profileAbout.value = data.about;
         else profileAbout.value = 'Hi, I am using Zag Messenger';
         if (data.profilePic) {
@@ -1550,7 +1607,7 @@ button, .btn, a {
       // Normalize handle: remove leading @ if present
       if (handle.startsWith('@')) handle = handle.substring(1);
       const profilePic = profileAvatar.dataset.selected || '';
-      const updates = { displayName: name, about: about };
+      const updates = { displayName: name, about: about, handle: handle };
       if (profilePic) updates.profilePic = profilePic;
       try {
         await update(dbRef(db, 'users/' + currentUser.uid), updates);
@@ -1583,12 +1640,20 @@ button, .btn, a {
           if (!u) continue;
           const row = document.createElement('div');
           row.className = 'contact-row';
-          row.innerHTML = `<div style=\"width:44px;height:44px;border-radius:50%;background:linear-gradient(180deg,#dbeeff,#c1ddff);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--primary);\">${(u.displayName||u.email||'U').charAt(0).toUpperCase()}</div>
-                           <div style="flex:1;">
-                             <div class=\"contact-name\">${u.displayName || u.email || u.phoneNumber || 'User'}</div>
-                             <div class="small">${u.handle ? ('@' + u.handle) : (u.phoneNumber || '')}</div>
-                           </div>
-                           <button class=\"delete-btn\">Delete</button>`;
+          row.innerHTML = `
+  <div class="contact-row" data-uid="${u.uid}">
+    <div class="contact-avatar">${(u.displayName||u.email||'U').charAt(0).toUpperCase()}</div>
+    <div style="flex:1;min-width:0;">
+      <div class="contact-name" title="${escapeHtml(u.displayName||u.email||u.phoneNumber||'User')}">${escapeHtml(u.displayName||u.email||u.phoneNumber||'User')}</div>
+      <div class="contact-about">${escapeHtml(u.about || (u.email||u.phoneNumber||''))}</div>
+    </div>
+    <div class="actions-dropdown">
+      <button class="more-btn" title="More">•••</button>
+      <div class="dropdown-menu" aria-hidden="true">
+        <button class="remove-action" title="Remove">🗑</button>
+      </div>
+    </div>
+  </div>`;
           const delBtn = row.querySelector('.delete-btn');
           delBtn.addEventListener('click', async () => {
             const ok = confirm('Delete this contact? This will remove them from your Home list.');
@@ -2098,6 +2163,52 @@ button, .btn, a {
     createRipple(e, el);
   }, {passive: true});
 })();
+</script>
+
+
+<script>
+document.addEventListener('click', function(e){
+  // close dropdowns when clicking outside
+  if(!e.target.closest('.actions-dropdown')){
+    document.querySelectorAll('.actions-dropdown .dropdown-menu').forEach(d => d.classList.remove('show'));
+  }
+  // toggle more-btn dropdown (only when #main has class 'open')
+  const btn = e.target.closest('.more-btn');
+  if(btn){
+    const main = document.getElementById('main');
+    if(main && !main.classList.contains('open')) return;
+    const dropdown = btn.closest('.actions-dropdown').querySelector('.dropdown-menu');
+    dropdown.classList.toggle('show');
+    e.stopPropagation();
+  }
+  // remove action
+  const rm = e.target.closest('.remove-action');
+  if(rm){
+    const row = rm.closest('.contact-row');
+    if(row && confirm('Remove this contact?')) {
+      // call your remove logic here (e.g., remove from DB). For now, remove DOM row.
+      row.remove();
+    }
+  }
+  // logout
+  if(e.target && e.target.id === 'logoutBtn'){
+    // Replace with your app logout logic
+    alert('Logging out...');
+    // e.g., firebase.auth().signOut();
+  }
+});
+
+// show/hide topMenu depending on #main.open
+function updateTopMenuVisibility(){
+  const main = document.getElementById('main');
+  const menu = document.getElementById('topMenu');
+  if(!menu || !main) return;
+  if(main.classList.contains('open')) menu.style.display = 'flex';
+  else menu.style.display = 'none';
+}
+document.addEventListener('DOMContentLoaded', updateTopMenuVisibility);
+const target = document.getElementById('main') || document.body;
+new MutationObserver(updateTopMenuVisibility).observe(target, { attributes:true, attributeFilter:['class'] });
 </script>
 
 </body>
