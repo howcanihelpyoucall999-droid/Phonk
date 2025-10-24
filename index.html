@@ -447,6 +447,24 @@ button, .btn, a {
     #localCallModal .close-preview{ padding:8px 12px; border-radius:8px; border:1px solid #ccc; background:#fff; cursor:pointer; }
     /* --- END: Added for call UI --- */
 
+
+/* Permission overlay to request camera+mic with a user gesture */
+#permissionOverlay{
+  position:fixed; inset:0; display:none; align-items:center; justify-content:center; z-index:100000;
+  background: rgba(0,0,0,0.6);
+}
+#permissionOverlay .overlay-inner{
+  width:92%; max-width:480px; background:#fff; border-radius:12px; padding:18px; box-sizing:border-box;
+  display:flex; flex-direction:column; gap:12px; align-items:center; text-align:center;
+}
+#permissionOverlay h3{ margin:0; font-size:18px; }
+#permissionOverlay p{ margin:0; color:var(--muted); font-size:13px; }
+#enableMediaBtn{
+  margin-top:6px; padding:10px 14px; border-radius:10px; border:none; cursor:pointer;
+  background:var(--primary); color:#fff; font-weight:600;
+}
+#permissionDismiss{ background:transparent; border:none; color:var(--muted); cursor:pointer; font-size:13px; }
+
 </style>
 </head>
 <body>
@@ -2512,14 +2530,6 @@ button, .btn, a {
     }
 
     // On first page load (after auth state check), prompt once for permissions
-    (async function initialMediaPrompt(){
-      // only run for interactive contexts
-      try {
-        // if in iframe or insecure context, this may fail. We still attempt.
-        await askForMediaPermissions();
-      } catch(e){}
-    })();
-
     // Utility: show local preview modal and attach stream
     let currentLocalStream = null;
     async function startLocalPreview({ audio = true, video = false } = {}) {
@@ -2572,9 +2582,165 @@ button, .btn, a {
     });
     // --- END: Call & permission helpers ---
 
+
+
+// --- Permission overlay logic (user-gesture required) ---
+(function(){
+  const PERM_KEY = 'zag_media_permission_granted_v1';
+  const permissionOverlay = document.getElementById('permissionOverlay');
+  const enableBtn = document.getElementById('enableMediaBtn');
+  const dismissBtn = document.getElementById('permissionDismiss');
+  const callBtn = document.getElementById('callBtn');
+  const videoBtn = document.getElementById('videoBtn');
+
+  async function checkPermissionStatus(){
+    try {
+      const stored = localStorage.getItem(PERM_KEY);
+      if (stored === 'granted') return 'granted';
+      if (stored === 'denied') return 'denied';
+      // Try Permissions API if available (may be 'prompt'/'granted'/'denied')
+      if (navigator.permissions && navigator.permissions.query) {
+        try {
+          const p = await navigator.permissions.query({name:'camera'});
+          // camera permission doesn't necessarily reflect microphone; check microphone too
+          const p2 = await navigator.permissions.query({name:'microphone'});
+          if (p.state === 'granted' && p2.state === 'granted') {
+            localStorage.setItem(PERM_KEY,'granted');
+            return 'granted';
+          }
+          if (p.state === 'denied' || p2.state === 'denied') {
+            localStorage.setItem(PERM_KEY,'denied');
+            return 'denied';
+          }
+        } catch(e){ /* ignore */ }
+      }
+      return 'prompt';
+    } catch(e){ return 'prompt'; }
+  }
+
+  async function showOverlayIfNeeded(){
+    const status = await checkPermissionStatus();
+    if (status === 'granted') {
+      // no overlay needed
+      return;
+    }
+    // Show overlay to request a user gesture to prompt getUserMedia
+    permissionOverlay.style.display = 'flex';
+    permissionOverlay.setAttribute('aria-hidden','false');
+  }
+
+  async function requestMediaAndStore(video=true, audio=true){
+    try {
+      const constraints = { audio: !!audio, video: !!video };
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      // stop tracks immediately, we just need permission
+      stream.getTracks().forEach(t => t.stop());
+      localStorage.setItem(PERM_KEY,'granted');
+      permissionOverlay.style.display = 'none';
+      permissionOverlay.setAttribute('aria-hidden','true');
+      return true;
+    } catch (err) {
+      localStorage.setItem(PERM_KEY,'denied');
+      alert('Permission denied or not available. Please enable camera/microphone in your browser settings if you want to make calls.');
+      permissionOverlay.style.display = 'none';
+      permissionOverlay.setAttribute('aria-hidden','true');
+      console.warn('getUserMedia failed:', err);
+      return false;
+    }
+  }
+
+  // On page load, show overlay if needed
+  document.addEventListener('DOMContentLoaded', function(){ showOverlayIfNeeded(); });
+
+  // When user clicks enable button, request both audio+video (so video calls work later without another prompt)
+  enableBtn && enableBtn.addEventListener('click', async function(){
+    await requestMediaAndStore(true, true);
+  });
+
+  // Dismiss overlay (user can still trigger permissions later by tapping call/video buttons)
+  dismissBtn && dismissBtn.addEventListener('click', function(){
+    permissionOverlay.style.display = 'none';
+    permissionOverlay.setAttribute('aria-hidden','true');
+    try { localStorage.setItem(PERM_KEY,'denied'); } catch(e){}
+  });
+
+  // If user clicks call/video buttons and permission isn't granted, open the overlay again to prompt
+  function ensureThenPreview(kind){
+    (async ()=>{
+      const st = await checkPermissionStatus();
+      if (st === 'granted') {
+        // already granted: trigger preview as before by simulating click to open preview modal
+        if (kind === 'audio') {
+          // start audio-only preview by triggering existing handler if exists
+          callBtn && callBtn.click && callBtn.click();
+        } else {
+          videoBtn && videoBtn.click && videoBtn.click();
+        }
+      } else {
+        // show overlay to let them grant
+        permissionOverlay.style.display = 'flex';
+        permissionOverlay.setAttribute('aria-hidden','false');
+      }
+    })();
+  }
+
+  // Wrap original buttons to ensure permission is present first
+  if (callBtn){
+    callBtn.removeEventListener && callBtn.removeEventListener('click', ()=>{}); // best-effort
+    callBtn.addEventListener('click', function(e){
+      // intercept: ensure permission first; if already granted, proceed (existing handler will run)
+      // but to avoid double-calling startLocalPreview, if granted we will proceed normally; if not, preventDefault and show overlay
+      (async ()=>{
+        const st = await checkPermissionStatus();
+        if (st === 'granted') {
+          // allow existing handler to run (do nothing special)
+          return;
+        } else {
+          e.stopImmediatePropagation && e.stopImmediatePropagation();
+          e.preventDefault && e.preventDefault();
+          permissionOverlay.style.display = 'flex';
+          permissionOverlay.setAttribute('aria-hidden','false');
+        }
+      })();
+    }, true);
+  }
+  if (videoBtn){
+    videoBtn.removeEventListener && videoBtn.removeEventListener('click', ()=>{});
+    videoBtn.addEventListener('click', function(e){
+      (async ()=>{
+        const st = await checkPermissionStatus();
+        if (st === 'granted') {
+          return;
+        } else {
+          e.stopImmediatePropagation && e.stopImmediatePropagation();
+          e.preventDefault && e.preventDefault();
+          permissionOverlay.style.display = 'flex';
+          permissionOverlay.setAttribute('aria-hidden','false');
+        }
+      })();
+    }, true);
+  }
+
+})(); // end permission overlay IIFE
+// --- End permission overlay logic ---
+
 </script>
 
-  <!-- Local call preview modal (used for requesting permissions and preview) -->
+  
+<!-- Permission overlay that asks user to click to enable camera & microphone (user gesture) -->
+<div id="permissionOverlay" aria-hidden="true">
+  <div class="overlay-inner" role="dialog" aria-modal="true" aria-label="Enable camera and microphone">
+    <h3>Enable camera & microphone</h3>
+    <p>To make voice and video calls, please allow access to your camera and microphone. This will only be asked once.</p>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button id="enableMediaBtn">Allow camera & microphone</button>
+      <button id="permissionDismiss">Maybe later</button>
+    </div>
+    <div style="font-size:12px;color:var(--muted);">If you denied earlier you may need to change permissions in your browser/site settings.</div>
+  </div>
+</div>
+
+<!-- Local call preview modal (used for requesting permissions and preview) -->
   <div id="localCallModal" aria-hidden="true">
     <div class="modal-inner" role="dialog" aria-modal="true" aria-label="Call preview">
       <h4 style="margin:0;color:var(--primary)">Call preview</h4>
