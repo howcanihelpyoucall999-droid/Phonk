@@ -1193,7 +1193,8 @@
       updateFloatingVisibility();
     });
 
-    navGroups.addEventListener('click', () => { closeProfile(); navGroups.classList.add('active');
+    navGroups.addEventListener('click', () => {       try{ document.getElementById('games-section') && (document.getElementById('games-section').style.display = 'none'); }catch(e){}
+      closeProfile(); navGroups.classList.add('active');
       navHome.classList.remove('active');
       try{ navYou.classList.remove('active'); }catch(e){}
       listTitle.innerText = 'Groups';
@@ -1202,7 +1203,8 @@
       updateFloatingVisibility();
       loadGroups();
     });
-    navHome.addEventListener('click', () => { closeProfile(); navHome.classList.add('active');
+    navHome.addEventListener('click', () => {       try{ document.getElementById('games-section') && (document.getElementById('games-section').style.display = 'none'); }catch(e){}
+      closeProfile(); navHome.classList.add('active');
       navGroups.classList.remove('active');
       try{ navYou.classList.remove('active'); }catch(e){}
       listTitle.innerText = 'My chats';
@@ -1405,6 +1407,7 @@
     }
 
     function openProfile() {
+            try{ document.getElementById('games-section') && (document.getElementById('games-section').style.display = 'none'); }catch(e){}
       if (!currentUser) return alert('Not signed in');
       authSection.style.display = 'none';
       appSection.style.display = 'none';
@@ -1419,6 +1422,7 @@
     }
 
     function closeProfile() {
+            try{ document.getElementById('games-section') && (document.getElementById('games-section').style.display = 'none'); }catch(e){}
       try{ navYou.classList.remove('active'); }catch(e){}
       profileSection.style.display = 'none';
       appSection.style.display = 'block';
