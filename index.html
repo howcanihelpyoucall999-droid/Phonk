@@ -343,7 +343,15 @@
 .profile-field input[type="text"], .profile-field textarea { width:100%; padding:10px; border-radius:10px; border:1px solid rgba(11,96,214,0.06); font-size:15px; }
 .save-profile-btn { margin-top:12px; }
 .profile-contacts { margin-top:18px; }
-.contact-row { display:flex; align-items:center; gap:10px; padding:8px; border-radius:8px; background:#fff; border:1px solid rgba(11,96,214,0.04); margin-bottom:8px; }
+
+    .contact-row { display:flex;align-items:center; gap:12px; padding:10px; border-radius:10px; background:#fff; border:1px solid rgba(11,96,214,0.04); margin-bottom:10px; }
+    .contact-row .contact-avatar{width:44px;height:44px;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--primary);background:linear-gradient(180deg,#dbeeff,#c1ddff);flex:0 0 auto;font-size:18px;}
+    .contact-row .contact-meta{flex:1;min-width:0;}
+    .contact-row .contact-name { display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:700; color:var(--primary); font-size:15px; }
+    .contact-row .contact-about { font-size:13px; color:var(--muted); margin-top:4px; line-height:1.2; }
+    .contact-row .contact-handle { font-size:13px; color:var(--muted); margin-top:6px; }
+    .contact-row .delete-btn { background:#ff4d4f; color:#fff; border:none; padding:8px 12px; border-radius:12px; cursor:pointer; min-width:72px; font-weight:700; }
+    
 .contact-row .contact-name { flex:1; font-weight:700; color:var(--primary); }
 .contact-row .delete-btn { background:#ff4d4f; color:#fff; border:none; padding:6px 8px; border-radius:8px; cursor:pointer; }
 .avatar-grid { display:grid; grid-template-columns: repeat(5,1fr); gap:8px; padding:12px; max-width:640px; margin:0 auto; }
@@ -526,8 +534,8 @@ button, .btn, a {
         </div>
 
         <div class="profile-field">
-          <label style="font-size:13px;color:var(--muted)">Handle (public)</label>
-          <input id="profileHandle" type="text" placeholder="@yourhandle">
+          <label style="font-size:13px;color:var(--muted)">Handle (can't be changed)</label>
+          <input id="profileHandle" type="text" placeholder="@yourhandle" disabled>
         </div>
 
         <div class="profile-field" id="profileAboutField">
@@ -777,7 +785,22 @@ button, .btn, a {
     }
 
     // initial
-    setTopBannerVisible(true);
+    setTopBannerVisible(false);
+
+    // Toggle top banner visibility based on scroll: show when scrolled to very top, hide otherwise
+    (function topBannerScrollToggle(){
+      function checkShow(){
+        try{
+          var scroller = document.scrollingElement || document.documentElement;
+          var y = (scroller && scroller.scrollTop) ? scroller.scrollTop : window.scrollY || 0;
+          if(y === 0){ setTopBannerVisible(true); } else { setTopBannerVisible(false); }
+        }catch(e){}
+      }
+      window.addEventListener('scroll', checkShow, {passive:true});
+      var ps = document.getElementById('profile-section');
+      if(ps) ps.addEventListener('scroll', function(){ if(ps.scrollTop === 0) setTopBannerVisible(true); else setTopBannerVisible(false); }, {passive:true});
+      setTimeout(checkShow, 120);
+    })();
 
     // Ensure bottom-nav is hidden and input stays visible when inside an individual chat.
     function enterChatMode(){
@@ -1575,14 +1598,15 @@ button, .btn, a {
             if (usnap.exists()) u = usnap.val();
           }
           if (!u) continue;
-          const row = document.createElement('div');
+                    const row = document.createElement('div');
           row.className = 'contact-row';
-          row.innerHTML = `<div style=\"width:44px;height:44px;border-radius:50%;background:linear-gradient(180deg,#dbeeff,#c1ddff);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--primary);\">${(u.displayName||u.email||'U').charAt(0).toUpperCase()}</div>
-                           <div style="flex:1;">
-                             <div class=\"contact-name\">${u.displayName || u.email || u.phoneNumber || 'User'}</div>
-                             <div class="small">${u.handle ? ('@' + u.handle) : (u.phoneNumber || '')}</div>
+          row.innerHTML = `<div class="contact-avatar">${(u.displayName||u.email||u.phoneNumber||'U').charAt(0).toUpperCase()}</div>
+                           <div class="contact-meta">
+                             <div class="contact-name" title="${escapeHtml(u.displayName || u.email || u.phoneNumber || 'User')}">${u.displayName || u.email || u.phoneNumber || 'User'}</div>
+                             <div class="contact-about">${escapeHtml(u.about || '')}</div>
+                             <div class="small contact-handle">${escapeHtml(u.email || u.handle || u.phoneNumber || '')} <span style=\"color:var(--muted)\">(can't be changed)</span></div>
                            </div>
-                           <button class=\"delete-btn\">Delete</button>`;
+                           <button class="delete-btn">Delete</button>`;
           const delBtn = row.querySelector('.delete-btn');
           delBtn.addEventListener('click', async () => {
             const ok = confirm('Delete this contact? This will remove them from your Home list.');
