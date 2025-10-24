@@ -1193,8 +1193,7 @@
       updateFloatingVisibility();
     });
 
-    navGroups.addEventListener('click', () => {
-      navGroups.classList.add('active');
+    navGroups.addEventListener('click', () => { closeProfile(); navGroups.classList.add('active');
       navHome.classList.remove('active');
       try{ navYou.classList.remove('active'); }catch(e){}
       listTitle.innerText = 'Groups';
@@ -1203,8 +1202,7 @@
       updateFloatingVisibility();
       loadGroups();
     });
-    navHome.addEventListener('click', () => {
-      navHome.classList.add('active');
+    navHome.addEventListener('click', () => { closeProfile(); navHome.classList.add('active');
       navGroups.classList.remove('active');
       try{ navYou.classList.remove('active'); }catch(e){}
       listTitle.innerText = 'My chats';
@@ -1421,6 +1419,7 @@
     }
 
     function closeProfile() {
+      try{ navYou.classList.remove('active'); }catch(e){}
       profileSection.style.display = 'none';
       appSection.style.display = 'block';
       setTopBannerVisible(true);
@@ -1645,7 +1644,7 @@
 
   try {
     if (typeof navGames !== 'undefined' && navGames) {
-      navGames.addEventListener('click', () => {
+      navGames.addEventListener('click', () => { closeProfile(); navGames.classList.add('active'); navHome.classList.remove('active'); try{ navYou.classList.remove('active'); }catch(e){} listTitle.innerText = 'Games'; chatList.style.display = 'none'; groupList.style.display = 'none'; document.getElementById('games-section').style.display = 'block'; updateFloatingVisibility();
         setBottomActive(navGames);
         try { profileSection.style.display = 'none'; } catch(e){}
         chatList.style.display = 'none';
