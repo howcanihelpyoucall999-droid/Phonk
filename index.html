@@ -403,6 +403,12 @@ button, .btn, a {
 .row-menu-spacer { flex:1 1 auto; }
 .row-logout { background:#ff4d4f; color:#fff; border:none; padding:8px 10px; border-radius:8px; cursor:pointer; margin-top:8px; font-weight:700; }
 
+
+/* Global logout button styling and menu visibility tied to #main.open */
+.global-logout { background:#ff4d4f; color:#fff; border:none; padding:8px 12px; border-radius:8px; cursor:pointer; font-weight:700; display:block; width:100%; box-sizing:border-box; }
+.global-menu { display:none; }
+#main.open .global-menu { display:block; }
+
 </style>
 </head>
 <body>
@@ -416,7 +422,10 @@ button, .btn, a {
       <div class="logo"><img src="logo.png" alt="Zag Messenger Logo"></div>
       <div class="title">Zag Messenger</div>
       <!-- Added ID for easier targeting in JS for menu click -->
-      <div class="menu" id="topHeaderMenu">☰</div>
+      <div class="menu" id="topHeaderMenu">☰
+<div style="height:6px"></div>
+<button id="globalLogout" class="global-logout">Logout</button>
+</div>
     </div>
 
     <div class="wave-top" aria-hidden="true" id="waveTop">
@@ -536,8 +545,8 @@ button, .btn, a {
         </div>
 
         <div class="profile-field">
-          <label style="font-size:13px;color:var(--muted)">Handle (public)</label>
-          <input id="profileHandle" type="text" placeholder="@yourhandle">
+           <label style="font-size:13px;color:var(--muted)">Handle <span style="font-size:12px;color:var(--muted)">(can't be changed)</span></label>
+          <input id="profileHandle" type="text" placeholder="@yourhandle" readonly>
         </div>
 
         <div class="profile-field" id="profileAboutField">
@@ -2142,6 +2151,48 @@ document.addEventListener('click', function(e){
   // close menus when clicking outside
   if (!e.target.closest || !e.target.closest('.row-menu-wrapper')) {
     document.querySelectorAll('.row-menu').forEach(m => m.classList.add('hidden'));
+  }
+});
+
+</script>
+<script>
+
+(function(){ 
+  function applyHandle(){
+    var h = document.getElementById('profileHandle');
+    if(!h) return;
+    if(window.currentUser && currentUser.email){
+      h.value = currentUser.email;
+    }
+    h.readOnly = true;
+    // update any label that mentions Handle (safety fallback)
+    document.querySelectorAll('label').forEach(function(l){
+      if(l.textContent && l.textContent.trim().startsWith('Handle')){
+        l.innerHTML = 'Handle <span style="font-size:12px;color:var(--muted)">(can\'t be changed)</span>';
+      }
+    });
+  }
+  document.addEventListener('DOMContentLoaded', applyHandle);
+  setTimeout(applyHandle, 800);
+  setTimeout(applyHandle, 2000);
+  // also try to run when a user object appears on window
+  try { Object.defineProperty(window,'currentUser',{ set:function(v){ setTimeout(applyHandle,100); }, configurable:true }); } catch(e) {}
+})();
+
+</script>
+<script>
+
+document.addEventListener('click', function(e){
+  if(e.target && e.target.id === 'globalLogout'){
+    if(typeof signOut === 'function'){
+      signOut();
+    } else if (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().signOut) {
+      firebase.auth().signOut();
+    } else {
+      // fallback: reload or navigate to a signout URL if your app provides one
+      alert('Logging out...');
+      location.reload();
+    }
   }
 });
 
