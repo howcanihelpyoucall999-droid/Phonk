@@ -393,6 +393,60 @@ button, .btn, a {
   transition: opacity 360ms linear;
 }
 
+
+    /* --- START: Added for call UI and small back icon --- */
+    #backToChatListBtn.back-icon{
+      font-size:18px !important;
+      padding:6px 8px !important;
+      min-width:36px !important;
+      height:36px !important;
+      display:inline-flex !important;
+      align-items:center;
+      justify-content:center;
+      border-radius:8px !important;
+    }
+    .chat-center-text .chat-name{
+      font-size:14px; /* made smaller */
+      font-weight:700;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      max-width: calc(50vw - 40px);
+    }
+    .chat-dots{
+      font-size:14px;
+      color:var(--muted);
+      opacity:0.95;
+      user-select:none;
+    }
+    .chat-action-btn{
+      background:transparent;
+      border:none;
+      font-size:20px;
+      padding:6px 8px;
+      border-radius:8px;
+      cursor:pointer;
+      line-height:1;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .chat-action-btn:active{ transform:scale(0.96); }
+    /* Small modal for local preview when starting a call */
+    #localCallModal{
+      position:fixed; inset:0; display:none; align-items:center; justify-content:center; z-index:99999;
+      background: rgba(0,0,0,0.45);
+    }
+    #localCallModal .modal-inner{
+      width:92%; max-width:420px; background:#fff; border-radius:12px; padding:12px; box-sizing:border-box;
+      display:flex; flex-direction:column; gap:8px; align-items:center;
+    }
+    #localCallModal video{ width:100%; height:auto; border-radius:8px; background:#000; }
+    #localCallModal .call-controls{ display:flex; gap:8px; width:100%; justify-content:center; }
+    #localCallModal .hangup-btn{ padding:8px 12px; border-radius:8px; border:none; background:#ff4d4f; color:#fff; cursor:pointer; }
+    #localCallModal .close-preview{ padding:8px 12px; border-radius:8px; border:1px solid #ccc; background:#fff; cursor:pointer; }
+    /* --- END: Added for call UI --- */
+
 </style>
 </head>
 <body>
@@ -560,18 +614,24 @@ button, .btn, a {
     <div class="chat-screen" id="individual-chat-container">
       <div class="chat-header" role="banner" id="chatHeader">
         <div class="chat-header-left">
-          <button id="backToChatListBtn" class="btn ghost" aria-label="Back to chats">&lt; Back</button>
+          <button id="backToChatListBtn" class="btn ghost back-icon" aria-label="Back to chats">←</button>
         </div>
 
         <div class="chat-header-center" role="group" aria-label="Chat identity">
           <div id="current-chat-avatar" class="avatar"></div>
           <div class="chat-center-text">
-            <div id="current-chat-name" class="chat-name" title=""></div>
+            <div style="display:flex;align-items:center;gap:6px;min-width:0;">
+              <div id="current-chat-name" class="chat-name" title=""></div>
+              <div class="chat-dots" aria-hidden="true">...</div>
+            </div>
             <div id="current-chat-sub" class="small"></div>
           </div>
         </div>
 
         <div class="chat-header-right" aria-hidden="false">
+          <!-- Call & video buttons -->
+          <button id="callBtn" class="chat-action-btn" title="Voice call" aria-label="Voice call">📞</button>
+          <button id="videoBtn" class="chat-action-btn" title="Video call" aria-label="Video call">📹</button>
           <!-- Chat menu button with blue styling -->
           <button id="chatMenuBtn" class="chat-menu-btn" aria-label="Chat menu">⋮</button>
         </div>
@@ -2416,6 +2476,116 @@ button, .btn, a {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 
 })();
+
+
+    // --- START: Call & permission helpers (added) ---
+    const callBtn = document.getElementById('callBtn');
+    const videoBtn = document.getElementById('videoBtn');
+    const localCallModal = document.getElementById('localCallModal');
+    const localPreview = document.getElementById('localPreview');
+    const endPreviewBtn = document.getElementById('endPreviewBtn');
+    const closePreviewBtn = document.getElementById('closePreviewBtn');
+
+    // Remember permission status in localStorage to avoid re-prompting
+    const PERM_KEY = 'zag_media_permission_granted_v1';
+
+    async function askForMediaPermissions() {
+      // If previously granted, skip asking
+      try {
+        const already = localStorage.getItem(PERM_KEY);
+        if (already === 'granted') return true;
+      } catch(e){}
+
+      // Try to get both audio+video by default to cover video calls
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+        // if succeeded, stop tracks immediately and mark granted
+        stream.getTracks().forEach(t => t.stop());
+        try { localStorage.setItem(PERM_KEY, 'granted'); } catch(e){}
+        return true;
+      } catch (err) {
+        // If user denies or not available, mark as denied so we don't continuously prompt
+        try { localStorage.setItem(PERM_KEY, 'denied'); } catch(e){}
+        console.warn('Media permission denied or unavailable:', err);
+        return false;
+      }
+    }
+
+    // On first page load (after auth state check), prompt once for permissions
+    (async function initialMediaPrompt(){
+      // only run for interactive contexts
+      try {
+        // if in iframe or insecure context, this may fail. We still attempt.
+        await askForMediaPermissions();
+      } catch(e){}
+    })();
+
+    // Utility: show local preview modal and attach stream
+    let currentLocalStream = null;
+    async function startLocalPreview({ audio = true, video = false } = {}) {
+      // Obtain permission for required tracks (will prompt if not previously granted)
+      try {
+        const constraints = { audio: !!audio, video: !!video };
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        currentLocalStream = stream;
+        localPreview.srcObject = stream;
+        localCallModal.style.display = 'flex';
+        localCallModal.setAttribute('aria-hidden','false');
+      } catch (err) {
+        alert('Could not access camera/microphone. Please check browser permissions.');
+        console.error(err);
+      }
+    }
+
+    function stopLocalPreview() {
+      if (currentLocalStream) {
+        currentLocalStream.getTracks().forEach(t => t.stop());
+        currentLocalStream = null;
+      }
+      localPreview.srcObject = null;
+      localCallModal.style.display = 'none';
+      localCallModal.setAttribute('aria-hidden','true');
+    }
+
+    // Attach handlers
+    if (callBtn) {
+      callBtn.addEventListener('click', async () => {
+        // For voice call, open preview with audio only (muted video)
+        await startLocalPreview({ audio: true, video: false });
+      });
+    }
+    if (videoBtn) {
+      videoBtn.addEventListener('click', async () => {
+        // For video call, open preview with both audio+video
+        await startLocalPreview({ audio: true, video: true });
+      });
+    }
+    endPreviewBtn && endPreviewBtn.addEventListener('click', () => {
+      stopLocalPreview();
+    });
+    closePreviewBtn && closePreviewBtn.addEventListener('click', () => {
+      stopLocalPreview();
+    });
+    // Also stop preview if user navigates back to chat list
+    backToChatListBtn && backToChatListBtn.addEventListener('click', () => {
+      stopLocalPreview();
+    });
+    // --- END: Call & permission helpers ---
+
 </script>
+
+  <!-- Local call preview modal (used for requesting permissions and preview) -->
+  <div id="localCallModal" aria-hidden="true">
+    <div class="modal-inner" role="dialog" aria-modal="true" aria-label="Call preview">
+      <h4 style="margin:0;color:var(--primary)">Call preview</h4>
+      <div style="font-size:13px;color:var(--muted);">Local preview — permissions and quick test</div>
+      <video id="localPreview" autoplay muted playsinline></video>
+      <div class="call-controls">
+        <button id="endPreviewBtn" class="hangup-btn">End</button>
+        <button id="closePreviewBtn" class="close-preview">Close</button>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>
