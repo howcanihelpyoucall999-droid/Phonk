@@ -2455,5 +2455,178 @@ button, .btn, a {
 
 })();
 </script>
+
+<!-- Profile picture chooser + confirmation flow (injected) -->
+<style>
+/* Simple modal for avatar chooser */
+#avatarModal, #avatarPreviewPage {
+  position: fixed;
+  left: 0; top: 0; right: 0; bottom: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.45);
+  z-index: 9999;
+}
+.avatar-modal-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 18px;
+  width: 92%;
+  max-width: 520px;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.18);
+}
+.avatar-modal-card h3 { margin:0 0 8px 0; font-size:18px; }
+.avatar-row { display:flex; gap:12px; align-items:center; }
+.avatar-preview {
+  width:96px;
+  height:96px;
+  border-radius:50%;
+  background:#f0f4ff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+  flex:0 0 96px;
+}
+.avatar-preview img { width:100%; height:100%; object-fit:cover; display:block; }
+.avatar-controls { flex:1; }
+.avatar-controls input[type="text"] {
+  width:100%;
+  padding:10px;
+  border:1px solid #ddd;
+  border-radius:8px;
+  box-sizing:border-box;
+}
+.avatar-controls .small-note { font-size:12px; color:#666; margin-top:6px; }
+.avatar-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:12px; }
+.btn {
+  padding:8px 12px;
+  border-radius:8px;
+  border:1px solid rgba(0,0,0,0.06);
+  background:#fff;
+  cursor:pointer;
+}
+.btn.primary { background: #0b60d6; color:#fff; border:none; }
+.btn.ghost { background:transparent; }
+</style>
+
+<!-- Modal markup -->
+<div id="avatarModal" aria-hidden="true">
+  <div class="avatar-modal-card" role="dialog" aria-modal="true" aria-labelledby="avatarModalTitle">
+    <h3 id="avatarModalTitle">Choose profile picture</h3>
+    <div class="avatar-row">
+      <div class="avatar-preview" id="avatarPreviewBox"><img id="avatarPreviewImg" src="" alt="preview" /></div>
+      <div class="avatar-controls">
+        <input id="avatarUrlInput" type="text" placeholder="Paste image URL or address here (https://...)" />
+        <div class="small-note">You can paste an image link (jpg, png, webp). After Save you will be taken to a confirmation page.</div>
+      </div>
+    </div>
+    <div class="avatar-actions">
+      <button class="btn ghost" id="avatarCancelBtn">Cancel</button>
+      <button class="btn primary" id="avatarSaveBtn">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  if (window.__avatarChooserInstalled) return;
+  window.__avatarChooserInstalled = true;
+
+  // Create helper to open modal
+  var modal = document.getElementById('avatarModal');
+  var input = document.getElementById('avatarUrlInput');
+  var previewImg = document.getElementById('avatarPreviewImg');
+  var previewBox = document.getElementById('avatarPreviewBox');
+  var btnCancel = document.getElementById('avatarCancelBtn');
+  var btnSave = document.getElementById('avatarSaveBtn');
+
+  function showModal(initialUrl) {
+    if (!modal) return;
+    input.value = initialUrl || '';
+    updatePreview();
+    modal.style.display = 'flex';
+    // focus input
+    setTimeout(function(){ input.focus(); }, 120);
+  }
+  function hideModal(){
+    if (!modal) return;
+    modal.style.display = 'none';
+  }
+  function updatePreview(){
+    var v = input.value.trim();
+    if (!v) {
+      previewImg.src = '';
+      previewBox.style.background = '#f0f4ff';
+      return;
+    }
+    // try to set src; handle data URLs and http(s)
+    try {
+      previewImg.src = v;
+      previewBox.style.background = 'transparent';
+    } catch(e){
+      previewImg.src = '';
+    }
+  }
+  if (input) {
+    input.addEventListener('input', updatePreview);
+    input.addEventListener('paste', function(){ setTimeout(updatePreview,50); });
+  }
+  if (btnCancel) btnCancel.addEventListener('click', hideModal);
+
+  // When user clicks Save, open confirmation page with the image URL in query param
+  if (btnSave) btnSave.addEventListener('click', function(){
+    var v = input.value.trim();
+    if (!v) { alert('Please paste an image URL first.'); input.focus(); return; }
+    // encode and open confirmation page in same tab
+    var u = '/confirm_avatar.html?img=' + encodeURIComponent(v);
+    // if the site is not at root, try relative: open in same directory as current page
+    try {
+      // determine base path
+      var base = location.pathname.replace(/\/[^\/]*$/, '/');
+      var candidate = base + 'confirm_avatar.html?img=' + encodeURIComponent(v);
+      location.href = candidate;
+    } catch(e) {
+      location.href = u;
+    }
+  });
+
+  // Expose a function to allow opening the chooser from existing "change avatar" buttons
+  window.openAvatarChooser = function(initialUrl){
+    showModal(initialUrl || '');
+  };
+
+  // Auto-hook common selectors for "change profile picture"
+  function attachToChangeButtons(){
+    var selectors = ['#changeAvatarBtn','.change-avatar','.avatar-edit','.profile-pic-btn','button[data-action="change-avatar"]'];
+    var found = [];
+    selectors.forEach(function(s){
+      try {
+        document.querySelectorAll(s).forEach(function(el){ found.push(el); });
+      } catch(e){}
+    });
+    found = Array.from(new Set(found));
+    found.forEach(function(el){
+      el.addEventListener('click', function(e){
+        e.preventDefault();
+        // try to pass current src if available
+        var currentImg = null;
+        var imgEl = el.querySelector('img') || document.querySelector('.profile-photo img') || document.querySelector('.avatar img');
+        if (imgEl && imgEl.src) currentImg = imgEl.src;
+        showModal(currentImg);
+      });
+    });
+  }
+
+  // On DOM ready attach hooks
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', attachToChangeButtons);
+  } else {
+    attachToChangeButtons();
+  }
+
+})();
+</script>
 </body>
 </html>

@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Confirm profile picture</title>
+<style>
+body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; background:#f6f8fb; color:#111; display:flex; align-items:center; justify-content:center; min-height:100vh;}
+.card { background:#fff; padding:18px; border-radius:12px; box-shadow:0 14px 40px rgba(2,6,23,0.08); width:92%; max-width:640px; text-align:center;}
+.card img { max-width:240px; max-height:240px; border-radius:8px; object-fit:cover; display:block; margin:0 auto 14px; }
+.card h2 { margin:0 0 6px; font-size:20px; }
+.card p { margin:0 0 14px; color:#555; }
+.actions { display:flex; gap:10px; justify-content:center; margin-top:12px; }
+.btn { padding:10px 14px; border-radius:8px; border:1px solid rgba(0,0,0,0.06); background:#fff; cursor:pointer; }
+.btn.primary { background:#0b60d6; color:#fff; border:none; }
+</style>
+</head>
+<body>
+  <div class="card" role="main">
+    <h2>Confirm profile picture</h2>
+    <p id="imgUrlText"></p>
+    <img id="confirmImg" src="" alt="To confirm" />
+    <div class="actions">
+      <button id="confirmCancel" class="btn">Cancel</button>
+      <button id="confirmBtn" class="btn primary">Confirm</button>
+    </div>
+    <div id="status" style="margin-top:12px;font-size:13px;color:#666"></div>
+  </div>
+
+<script>
+(function(){
+  // read image url from query param "img"
+  function qp(name){
+    var params = new URLSearchParams(location.search);
+    return params.get(name);
+  }
+  var img = qp('img') || '';
+  var imgEl = document.getElementById('confirmImg');
+  var urlText = document.getElementById('imgUrlText');
+  var status = document.getElementById('status');
+  var btnConfirm = document.getElementById('confirmBtn');
+  var btnCancel = document.getElementById('confirmCancel');
+
+  function showStatus(t, isError){
+    status.textContent = t || '';
+    status.style.color = isError ? '#b00020' : '#666';
+  }
+
+  if (!img) {
+    showStatus('No image provided.', true);
+    imgEl.style.display = 'none';
+    btnConfirm.disabled = true;
+  } else {
+    imgEl.src = img;
+    urlText.textContent = img;
+  }
+
+  btnCancel.addEventListener('click', function(){
+    // go back to previous page
+    history.back();
+  });
+
+  btnConfirm.addEventListener('click', function(){
+    showStatus('Saving...');
+
+    // Attempt to save as profile picture:
+    // 1) If Firebase Auth (modular or namespaced) is available, set photoURL for current user
+    // 2) Also attempt to write to realtime DB at users/<uid>/photoURL or localStorage fallback
+    function finish(success, msg){
+      if (success) {
+        showStatus('Profile picture updated.');
+        setTimeout(function(){ location.href = '/'; }, 700);
+      } else {
+        showStatus('Could not update profile picture: ' + (msg||''), true);
+      }
+    }
+
+    // Helper to update UI in-case page supports it via events
+    function dispatchProfileUpdate(uPhoto){
+      try {
+        localStorage.setItem('profilePhotoURL', uPhoto);
+      } catch(e){}
+      var ev = new CustomEvent('profilePhotoUpdated', { detail: { photoURL: uPhoto }});
+      document.dispatchEvent(ev);
+    }
+
+    // Try legacy firebase namespaced SDK
+    if (window.firebase && firebase.auth && typeof firebase.auth === 'function') {
+      var user = firebase.auth().currentUser;
+      if (user) {
+        user.updateProfile({ photoURL: img }).then(function(){
+          // also try to write to DB if available
+          try {
+            if (firebase.database) {
+              firebase.database().ref('users/' + user.uid + '/photoURL').set(img);
+            }
+          } catch(e){}
+          dispatchProfileUpdate(img);
+          finish(true);
+        }).catch(function(err){
+          // fallback: try writing to DB (may require rules)
+          try {
+            if (firebase.database && user && user.uid) {
+              firebase.database().ref('users/' + user.uid + '/photoURL').set(img).then(function(){ dispatchProfileUpdate(img); finish(true); }).catch(function(e){ finish(false, e && e.message); });
+              return;
+            }
+          } catch(e){}
+          finish(false, err && err.message);
+        });
+        return;
+      }
+    }
+
+    // Try modular getAuth / updateProfile
+    if (window.getAuth && typeof getAuth === 'function') {
+      try {
+        var auth = getAuth();
+        var u = auth.currentUser;
+        if (u && typeof updateProfile === 'function') {
+          // updateProfile from firebase/auth modular
+          updateProfile(u, { photoURL: img }).then(function(){
+            // If database present, attempt to write
+            try { 
+              if (typeof getDatabase === 'function' && typeof ref === 'function' && typeof set === 'function') {
+                set(ref(getDatabase(), 'users/' + u.uid + '/photoURL'), img);
+              }
+            } catch(e){}
+            dispatchProfileUpdate(img);
+            finish(true);
+          }).catch(function(e){ finish(false, e && e.message); });
+          return;
+        }
+      } catch(e){}
+    }
+
+    // Fallback: if current page exposes a setCurrentUserPhoto or saveProfile function, try to call it
+    try {
+      if (typeof setCurrentUserPhoto === 'function') {
+        setCurrentUserPhoto(img);
+        dispatchProfileUpdate(img);
+        finish(true);
+        return;
+      }
+      if (typeof saveProfile === 'function') {
+        saveProfile({ photoURL: img });
+        dispatchProfileUpdate(img);
+        finish(true);
+        return;
+      }
+    } catch(e){}
+
+    // Last resort: store in localStorage and signal update
+    try {
+      localStorage.setItem('profilePhotoURL', img);
+      dispatchProfileUpdate(img);
+      finish(true);
+      return;
+    } catch(e){
+      finish(false, e && e.message);
+    }
+
+  });
+
+})();
+</script>
+</body>
+</html>
