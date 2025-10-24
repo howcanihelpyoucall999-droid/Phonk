@@ -2095,331 +2095,107 @@ button, .btn, a {
 </script>
 
 
-<!-- Inserted: Link-only profile picture box (appears after the 30th image in galleries) and confirmation modal -->
-<style>
-#avatarLinkBox {
-  display:flex;
-  gap:8px;
-  align-items:center;
-  padding:10px;
-  border:1px dashed rgba(0,0,0,0.08);
-  border-radius:10px;
-  margin:10px 0;
-  background:linear-gradient(180deg, #ffffff, #fbfbff);
-}
-#avatarLinkBox input[type="text"]{
-  flex:1;
-  padding:8px 10px;
-  border:1px solid #e2e6ef;
-  border-radius:8px;
-  font-size:14px;
-}
-#avatarLinkBox button{ padding:8px 12px; border-radius:8px; cursor:pointer; }
-#avatarLinkBox .hint{ font-size:12px; color:#666; margin-left:8px; }
-
-/* confirmation modal */
-#avatarConfirmOverlay {
-  position:fixed; left:0; top:0; right:0; bottom:0; display:none;
-  align-items:center; justify-content:center; background:rgba(0,0,0,0.45); z-index:99999;
-}
-#avatarConfirmCard { background:#fff; padding:18px; border-radius:12px; width:92%; max-width:540px; text-align:center; box-shadow:0 14px 40px rgba(2,6,23,0.08); }
-#avatarConfirmCard img{ max-width:260px; max-height:260px; border-radius:10px; display:block; margin:0 auto 12px; object-fit:cover; }
-#avatarConfirmCard .actions{ display:flex; gap:8px; justify-content:center; margin-top:12px; }
-#avatarConfirmCard .btn{ padding:10px 14px; border-radius:8px; border:1px solid rgba(0,0,0,0.06); background:#fff; cursor:pointer; }
-#avatarConfirmCard .btn.primary{ background:#0b60d6; color:#fff; border:none; }
-</style>
-
-<!-- Box will be inserted dynamically; add the modal here -->
-<div id="avatarConfirmOverlay" aria-hidden="true">
-  <div id="avatarConfirmCard" role="dialog" aria-modal="true" aria-labelledby="avatarConfirmTitle">
-    <h3 id="avatarConfirmTitle">Confirm profile picture</h3>
-    <p id="avatarConfirmUrl" style="word-break:break-word;color:#444;font-size:13px;margin:8px 0 12px;"></p>
-    <img id="avatarConfirmPreview" src="" alt="Preview" />
-    <div id="avatarConfirmStatus" style="font-size:13px;color:#666;margin-top:8px;"></div>
-    <div class="actions">
-      <button id="avatarConfirmCancel" class="btn">Cancel</button>
-      <button id="avatarConfirmBtn" class="btn primary">Confirm</button>
-    </div>
-  </div>
-</div>
-
+<!-- Fallback: ensure a visible link-only avatar box is present at top of page if no gallery found -->
 <script>
 (function(){
-  if (window.__linkBoxAvatarInstalled) return;
-  window.__linkBoxAvatarInstalled = true;
+  if (window.__linkBoxFallbackInstalled) return;
+  window.__linkBoxFallbackInstalled = true;
 
-  // Which gallery selectors to look for
-  var gallerySelectors = ['.profile-images', '.avatar-gallery', '#profile-pictures', '.profile-picture-list', '.profile-pics', '.gallery-avatars'];
-  var insertedId = 'avatarLinkBox';
+  function createVisibleBoxElement() {
+    var wrapper = document.createElement('div');
+    wrapper.id = 'globalAvatarLinkBoxWrapper';
+    wrapper.style.width = '100%';
+    wrapper.style.boxSizing = 'border-box';
+    wrapper.style.padding = '14px';
+    wrapper.style.background = '#fff';
+    wrapper.style.borderBottom = '1px solid rgba(0,0,0,0.04)';
+    wrapper.style.display = 'flex';
+    wrapper.style.justifyContent = 'center';
+    wrapper.style.zIndex = 9998;
 
-  function createLinkBox(){
-    var box = document.createElement('div');
-    box.id = insertedId;
-    box.innerHTML = '<input type="text" id="avatarLinkInput" placeholder="Paste image URL (link only) — jpg, png, webp" />' +
-                    '<button id="avatarLinkSave" class="btn primary">Save</button>' +
-                    '<span class="hint">After Save you will confirm the image.</span>';
-    return box;
+    var inner = document.createElement('div');
+    inner.style.width = '100%';
+    inner.style.maxWidth = '820px';
+    inner.style.display = 'flex';
+    inner.style.alignItems = 'center';
+    inner.style.gap = '10px';
+
+    var input = document.createElement('input');
+    input.type = 'text';
+    input.id = 'globalAvatarLinkInput';
+    input.placeholder = 'Paste image URL (link only) — jpg, png, webp';
+    input.style.flex = '1';
+    input.style.padding = '10px';
+    input.style.border = '1px solid #e2e6ef';
+    input.style.borderRadius = '8px';
+    input.style.fontSize = '15px';
+
+    var saveBtn = document.createElement('button');
+    saveBtn.id = 'globalAvatarLinkSave';
+    saveBtn.textContent = 'Save';
+    saveBtn.className = 'btn primary';
+    saveBtn.style.padding = '10px 14px';
+    saveBtn.style.borderRadius = '8px';
+
+    var cancelBtn = document.createElement('button');
+    cancelBtn.id = 'globalAvatarLinkCancel';
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.className = 'btn';
+    cancelBtn.style.padding = '10px 14px';
+    cancelBtn.style.borderRadius = '8px';
+
+    inner.appendChild(input);
+    inner.appendChild(saveBtn);
+    inner.appendChild(cancelBtn);
+    wrapper.appendChild(inner);
+    return wrapper;
   }
 
-  function insertBoxesIfNeeded(){
-    gallerySelectors.forEach(function(sel){
-      try {
-        document.querySelectorAll(sel).forEach(function(container){
-          // count images inside container
-          var imgs = container.querySelectorAll('img');
-          if (imgs.length >= 30) {
-            // check if we already inserted the box
-            if (container.querySelector('#' + insertedId)) return;
-            // insert after the 30th image (index 29)
-            var ref = imgs[29];
-            if (ref && ref.parentNode) {
-              var box = createLinkBox();
-              ref.parentNode.insertBefore(box, ref.nextSibling);
-            } else {
-              // fallback: append at end
-              var box = createLinkBox();
-              container.appendChild(box);
-            }
-          } else {
-            // If previously inserted but now fewer images, remove box
-            var existing = container.querySelector('#' + insertedId);
-            if (existing) existing.remove();
-          }
-        });
-      } catch(e){}
+  function ensureBoxPresent() {
+    if (document.getElementById('avatarOnlyLinkBox') || document.getElementById('avatarLinkBox') || document.getElementById('globalAvatarLinkBoxWrapper')) return;
+    var container = document.querySelector('#main, main, .content, .app, .page, #content, #root') || document.body;
+    var box = createVisibleBoxElement();
+    if (container.firstChild) container.insertBefore(box, container.firstChild); else container.appendChild(box);
+
+    document.getElementById('globalAvatarLinkCancel').addEventListener('click', function(){
+      var inp = document.getElementById('globalAvatarLinkInput');
+      if (inp) inp.value = '';
     });
-  }
-
-  // Show confirmation modal with image url and preview
-  function showConfirmModal(url){
-    var overlay = document.getElementById('avatarConfirmOverlay');
-    var preview = document.getElementById('avatarConfirmPreview');
-    var urlText = document.getElementById('avatarConfirmUrl');
-    var status = document.getElementById('avatarConfirmStatus');
-    overlay.style.display = 'flex';
-    preview.src = url;
-    urlText.textContent = url;
-    status.textContent = '';
-  }
-  function hideConfirmModal(){
-    var overlay = document.getElementById('avatarConfirmOverlay');
-    overlay.style.display = 'none';
-  }
-
-  // Attempt to set the profile photo across common places and backends
-  function applyProfilePhoto(url, callback){
-    // Update on-page avatar images with common selectors
-    try {
-      var selImgs = ['.profile-photo img', '.avatar img', 'img.profile-avatar', '.user-avatar img'];
-      selImgs.forEach(function(s){
-        document.querySelectorAll(s).forEach(function(el){ try { el.src = url; } catch(e){} });
-      });
-    } catch(e) {}
-
-    // Dispatch update event and save to localStorage
-    try { localStorage.setItem('profilePhotoURL', url); } catch(e) {}
-    try { document.dispatchEvent(new CustomEvent('profilePhotoUpdated', { detail: { photoURL: url } })); } catch(e){}
-
-    // Try Firebase namespaced SDK
-    if (window.firebase && firebase.auth && typeof firebase.auth === 'function') {
-      var user = firebase.auth().currentUser;
-      if (user && typeof user.updateProfile === 'function') {
-        user.updateProfile({ photoURL: url }).then(function(){
-          // try writing to realtime DB if available
-          try { if (firebase.database) firebase.database().ref('users/' + user.uid + '/photoURL').set(url); } catch(e){}
-          return callback && callback(null, 'ok');
-        }).catch(function(err){
-          // fallback to DB-only if updateProfile fails
-          try {
-            if (firebase.database && user && user.uid) {
-              firebase.database().ref('users/' + user.uid + '/photoURL').set(url).then(function(){ return callback && callback(null, 'ok'); }).catch(function(e){ return callback && callback(e); });
-              return;
-            }
-          } catch(e){}
-          return callback && callback(err);
-        });
+    document.getElementById('globalAvatarLinkSave').addEventListener('click', function(){
+      var inp = document.getElementById('globalAvatarLinkInput');
+      var url = inp && inp.value && inp.value.trim();
+      if (!url) { alert('Please paste an image link first.'); if (inp) inp.focus(); return; }
+      var existingOverlay = document.getElementById('avatarConfirmOverlay') || document.getElementById('confirmAvatarModal') || document.getElementById('avatarConfirmCard');
+      if (existingOverlay) {
+        var preview = document.getElementById('avatarConfirmPreview') || existingOverlay.querySelector('img');
+        var urlText = document.getElementById('avatarConfirmUrl') || existingOverlay.querySelector('.confirm-img-url');
+        if (preview) preview.src = url;
+        if (urlText) urlText.textContent = url;
+        existingOverlay.style.display = 'flex';
         return;
       }
-    }
-
-    // Try modular Firebase (getAuth / updateProfile)
-    try {
-      if (window.getAuth && typeof getAuth === 'function' && typeof updateProfile === 'function') {
-        var auth = getAuth();
-        var u = auth.currentUser;
-        if (u) {
-          updateProfile(u, { photoURL: url }).then(function(){
-            try {
-              if (typeof getDatabase === 'function' && typeof ref === 'function' && typeof set === 'function') {
-                set(ref(getDatabase(), 'users/' + u.uid + '/photoURL'), url);
-              }
-            } catch(e){}
-            return callback && callback(null, 'ok');
-          }).catch(function(err){ return callback && callback(err); });
-          return;
-        }
-      }
-    } catch(e){}
-
-    // Try app-level functions
-    try {
-      if (typeof setCurrentUserPhoto === 'function') { setCurrentUserPhoto(url); return callback && callback(null,'ok'); }
-      if (typeof saveProfile === 'function') { saveProfile({ photoURL: url }); return callback && callback(null,'ok'); }
-    } catch(e){}
-
-    // Last resort: localStorage only (considered success)
-    try { localStorage.setItem('profilePhotoURL', url); return callback && callback(null, 'ok'); } catch(e){ return callback && callback(new Error('Could not save')); }
-  }
-
-  // Event wiring: when save clicked, open modal; when confirm, apply
-  function wireEvents(){
-    document.addEventListener('click', function(ev){
-      var target = ev.target;
-      if (!target) return;
-      // Save button inside our box
-      if (target.id === 'avatarLinkSave') {
-        var input = document.getElementById('avatarLinkInput');
-        var url = input && input.value.trim();
-        if (!url) { alert('Please paste an image link first.'); input && input.focus(); return; }
-        // show confirm modal
-        showConfirmModal(url);
-      }
-    });
-    // modal cancel/confirm
-    document.getElementById('avatarConfirmCancel').addEventListener('click', function(){ hideConfirmModal(); });
-    document.getElementById('avatarConfirmBtn').addEventListener('click', function(){
-      var url = document.getElementById('avatarConfirmUrl').textContent || '';
-      var status = document.getElementById('avatarConfirmStatus');
-      status.textContent = 'Saving...';
-      applyProfilePhoto(url, function(err, ok){
-        if (err) {
-          status.style.color = '#b00020';
-          status.textContent = 'Could not save: ' + (err.message || err);
+      var ov = document.createElement('div');
+      ov.style.position='fixed'; ov.style.left=0; ov.style.top=0; ov.style.right=0; ov.style.bottom=0;
+      ov.style.background='rgba(0,0,0,0.45)'; ov.style.display='flex'; ov.style.alignItems='center'; ov.style.justifyContent='center'; ov.style.zIndex=99999;
+      ov.innerHTML = '<div style="background:#fff;padding:18px;border-radius:12px;max-width:520px;width:92%;text-align:center;">' + '<h3>Confirm profile picture</h3>' + '<p style="word-break:break-word;color:#444;font-size:13px;margin:8px 0 12px;">'+url+'</p>' + '<img src="'+url+'" style="max-width:240px;max-height:240px;border-radius:8px;object-fit:cover;display:block;margin:0 auto 12px" />' + '<div style="display:flex;gap:8px;justify-content:center;margin-top:12px;">' + '<button id="quickConfirmCancel" class="btn">Cancel</button>' + '<button id="quickConfirmBtn" class="btn primary">Confirm</button>' + '</div></div>';
+      document.body.appendChild(ov);
+      document.getElementById('quickConfirmCancel').addEventListener('click', function(){ ov.remove(); });
+      document.getElementById('quickConfirmBtn').addEventListener('click', function(){
+        if (typeof applyProfilePhoto === 'function') {
+          applyProfilePhoto(url, function(err){ if (!err) { ov.remove(); alert('Profile picture updated'); } else alert('Could not save: ' + (err && err.message)); });
         } else {
-          status.style.color = '#0a8a00';
-          status.textContent = 'Profile picture updated.';
-          setTimeout(function(){ hideConfirmModal(); }, 700);
+          try { document.querySelectorAll('.profile-photo img, .avatar img, img.profile-avatar, .user-avatar img').forEach(function(i){ i.src = url; }); } catch(e){}
+          try { localStorage.setItem('profilePhotoURL', url); } catch(e) {}
+          document.dispatchEvent(new CustomEvent('profilePhotoUpdated', { detail: { photoURL: url } }));
+          ov.remove();
+          alert('Profile picture updated');
         }
       });
     });
   }
 
-  // Run on DOM ready: insert boxes and set up observers for dynamic galleries
-  function init(){
-    insertBoxesIfNeeded();
-    wireEvents();
-    // observe DOM mutations to re-evaluate galleries (if images are loaded later)
-    var observer = new MutationObserver(function(){ insertBoxesIfNeeded(); });
-    observer.observe(document.body, { childList: true, subtree: true });
-    // also attempt once more after images load
-    window.addEventListener('load', function(){ setTimeout(insertBoxesIfNeeded, 300); });
-  }
-
+  function init() { ensureBoxPresent(); var obs = new MutationObserver(function(){ ensureBoxPresent(); }); obs.observe(document.body, { childList:true, subtree:true }); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
-
-})();
-</script>
-
-<!-- Force galleries to show only a single link-only box (removes images) -->
-<script>
-(function(){
-  if (window.__forceOnlyLinkBoxInstalled) return;
-  window.__forceOnlyLinkBoxInstalled = true;
-
-  var gallerySelectors = ['.profile-images', '.avatar-gallery', '#profile-pictures', '.profile-picture-list', '.profile-pics', '.gallery-avatars'];
-
-  function makeBoxHtml() {
-    return '<div id="avatarOnlyLinkBox" style="display:flex;gap:8px;align-items:center;padding:12px;border:1px dashed rgba(0,0,0,0.08);border-radius:10px;background:linear-gradient(180deg,#fff,#fbfbff);">' +
-           '<input id="avatarOnlyLinkInput" type="text" placeholder="Paste image URL (link only) — jpg, png, webp" style="flex:1;padding:10px;border:1px solid #e2e6ef;border-radius:8px;font-size:14px" />' +
-           '<button id="avatarOnlyLinkSave" class="btn primary" style="padding:9px 12px;border-radius:8px;margin-left:6px">Save</button>' +
-           '<button id="avatarOnlyLinkCancel" class="btn" style="padding:9px 12px;border-radius:8px;margin-left:6px">Cancel</button>' +
-           '</div>';
-  }
-
-  function insertSingleBox(container) {
-    try {
-      // remove all child nodes (this deletes images)
-      while (container.firstChild) container.removeChild(container.firstChild);
-      // insert the single box
-      var wrapper = document.createElement('div');
-      wrapper.innerHTML = makeBoxHtml();
-      container.appendChild(wrapper);
-    } catch(e){ console.error('insertSingleBox error', e); }
-  }
-
-  function wireButtons() {
-    document.addEventListener('click', function(ev){
-      var t = ev.target;
-      if (!t) return;
-      if (t.id === 'avatarOnlyLinkCancel') {
-        // Clear input and optionally close - here we clear and keep the box
-        var inp = document.getElementById('avatarOnlyLinkInput');
-        if (inp) inp.value = '';
-      }
-      if (t.id === 'avatarOnlyLinkSave') {
-        var inp = document.getElementById('avatarOnlyLinkInput');
-        var url = inp && inp.value && inp.value.trim();
-        if (!url) { alert('Please paste an image link first.'); if (inp) inp.focus(); return; }
-        // show modal confirmation if available or open our confirm overlay
-        var existingOverlay = document.getElementById('avatarConfirmOverlay') || document.getElementById('confirmAvatarModal');
-        if (existingOverlay) {
-          // reuse existing overlay: set preview url and show
-          var preview = document.getElementById('avatarConfirmPreview') || document.getElementById('confirmImg') || existingOverlay.querySelector('img');
-          var urlText = document.getElementById('avatarConfirmUrl') || existingOverlay.querySelector('.confirm-img-url') || null;
-          if (preview) preview.src = url;
-          if (urlText) urlText.textContent = url;
-          existingOverlay.style.display = 'flex';
-        } else {
-          // create a quick confirmation overlay
-          var ov = document.createElement('div');
-          ov.id = 'confirmAvatarModal';
-          ov.style.position='fixed'; ov.style.left=0; ov.style.top=0; ov.style.right=0; ov.style.bottom=0;
-          ov.style.background='rgba(0,0,0,0.45)'; ov.style.display='flex'; ov.style.alignItems='center'; ov.style.justifyContent='center'; ov.style.zIndex=99999;
-          ov.innerHTML = '<div style="background:#fff;padding:18px;border-radius:12px;max-width:520px;width:92%;text-align:center;">' +
-                         '<h3>Confirm profile picture</h3>' +
-                         '<p style="word-break:break-word;color:#444;font-size:13px;margin:8px 0 12px;">'+url+'</p>' +
-                         '<img src="'+url+'" style="max-width:240px;max-height:240px;border-radius:8px;object-fit:cover;display:block;margin:0 auto 12px" />' +
-                         '<div style="display:flex;gap:8px;justify-content:center;margin-top:12px;">' +
-                         '<button id="quickConfirmCancel" class="btn">Cancel</button>' +
-                         '<button id="quickConfirmBtn" class="btn primary">Confirm</button>' +
-                         '</div></div>';
-          document.body.appendChild(ov);
-          // wire quick buttons
-          document.getElementById('quickConfirmCancel').addEventListener('click', function(){ ov.remove(); });
-          document.getElementById('quickConfirmBtn').addEventListener('click', function(){
-            // apply profile photo (reuse existing applyProfilePhoto if present)
-            if (typeof applyProfilePhoto === 'function') {
-              applyProfilePhoto(url, function(err){ if (!err) { ov.remove(); alert('Profile picture updated'); } else alert('Could not save: ' + (err && err.message)); });
-            } else {
-              // fallback: update common img selectors and localStorage
-              try { document.querySelectorAll('.profile-photo img, .avatar img, img.profile-avatar, .user-avatar img').forEach(function(i){ i.src = url; }); } catch(e){}
-              try { localStorage.setItem('profilePhotoURL', url); } catch(e) {}
-              document.dispatchEvent(new CustomEvent('profilePhotoUpdated', { detail: { photoURL: url } }));
-              ov.remove();
-              alert('Profile picture updated');
-            }
-          });
-        }
-      }
-    });
-  }
-
-  function init(){
-    gallerySelectors.forEach(function(sel){
-      try {
-        document.querySelectorAll(sel).forEach(function(container){
-          insertSingleBox(container);
-        });
-      } catch(e){}
-    });
-    wireButtons();
-    // observe DOM for new galleries
-    var obs = new MutationObserver(function(){ gallerySelectors.forEach(function(sel){ document.querySelectorAll(sel).forEach(function(c){ if (c && c.querySelector('#avatarOnlyLinkBox')===null) insertSingleBox(c); }); }); });
-    obs.observe(document.body, { childList:true, subtree:true });
-  }
-
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
-
 })();
 </script>
 </body>
