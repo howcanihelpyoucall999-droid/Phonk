@@ -346,12 +346,6 @@
 .contact-row { display:flex; align-items:center; gap:10px; padding:8px; border-radius:8px; background:#fff; border:1px solid rgba(11,96,214,0.04); margin-bottom:8px; }
 .contact-row .contact-name { flex:1; font-weight:700; color:var(--primary); }
 .contact-row .delete-btn { background:#ff4d4f; color:#fff; border:none; padding:6px 8px; border-radius:8px; cursor:pointer; }
-/* Adjusted contact-row visuals: fixed avatar shape, truncated names/about, fuller delete button */
-.contact-row .contact-avatar { width:44px; height:44px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex:0 0 44px; overflow:hidden; background:linear-gradient(180deg,#dbeeff,#c1ddff); font-weight:700; color:var(--primary); }
-.contact-row .contact-name { font-weight:700; color:var(--primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:220px; }
-.contact-row .contact-about { font-size:13px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:220px; margin-top:4px; }
-.contact-row .delete-btn { background:#ff4d4f; color:#fff; border:none; padding:8px 12px; border-radius:10px; cursor:pointer; min-width:72px; align-self:stretch; display:inline-flex; align-items:center; justify-content:center; font-weight:700; }
-
 .avatar-grid { display:grid; grid-template-columns: repeat(5,1fr); gap:8px; padding:12px; max-width:640px; margin:0 auto; }
 .avatar-grid img { width:100%; height:56px; object-fit:cover; border-radius:8px; cursor:pointer; border:2px solid transparent; }
 .avatar-grid img.selected { outline:3px solid var(--primary); border-color:var(--primary); }
@@ -398,6 +392,49 @@ button, .btn, a {
   opacity: 0;
   transition: opacity 360ms linear;
 }
+
+
+/* --- Profile contacts layout overrides (requested fixes) --- */
+.profile-contacts .contact-row { align-items:center; }
+.profile-contacts .contact-row .contact-avatar {
+  width:44px;
+  height:44px;
+  border-radius:50%;
+  flex:0 0 44px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:linear-gradient(180deg,#dbeeff,#c1ddff);
+  font-weight:700;
+  color:var(--primary);
+  font-size:16px;
+}
+.profile-contacts .contact-row .contact-info { flex:1; min-width:0; padding:0 8px; }
+.profile-contacts .contact-row .contact-name {
+  font-weight:700;
+  color:var(--primary);
+  overflow:hidden;
+  white-space:nowrap;
+  text-overflow:ellipsis;
+}
+/* make delete button a small boxed control fixed on the right */
+.profile-contacts .contact-row .delete-btn {
+  flex:0 0 36px;
+  width:36px;
+  height:36px;
+  border-radius:8px;
+  padding:0;
+  font-weight:700;
+  border:none;
+  cursor:pointer;
+  background:#fff;
+  border:1px solid rgba(11,96,214,0.08);
+  box-shadow:0 6px 12px rgba(0,0,0,0.04);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.profile-contacts .contact-row .delete-btn:hover { transform:translateY(-1px); }
 
 </style>
 </head>
@@ -532,8 +569,8 @@ button, .btn, a {
         </div>
 
         <div class="profile-field">
-          <label style="font-size:13px;color:var(--muted)">Handle <span style="font-size:12px;color:var(--muted)"> (can\'t be changed)</span></label>
-          <input id="profileHandle" type="text" readonly>
+          <label style="font-size:13px;color:var(--muted)">Handle (public)</label>
+          <input id="profileHandle" type="text" placeholder="@yourhandle">
         </div>
 
         <div class="profile-field" id="profileAboutField">
@@ -1522,8 +1559,8 @@ button, .btn, a {
         let data = snap.exists() ? snap.val() : {};
         if (data.displayName) profileDisplayName.value = data.displayName;
         else profileDisplayName.value = (currentUser.email || '').split('@')[0] || '';
-        profileHandle.value = (currentUser && currentUser.email) ? currentUser.email : (data.handle || '');
-        profileHandle.readOnly = true;
+        if (data.handle) profileHandle.value = data.handle;
+        else profileHandle.value = '';
         if (data.about) profileAbout.value = data.about;
         else profileAbout.value = 'Hi, I am using Zag Messenger';
         if (data.profilePic) {
@@ -1550,7 +1587,7 @@ button, .btn, a {
       // Normalize handle: remove leading @ if present
       if (handle.startsWith('@')) handle = handle.substring(1);
       const profilePic = profileAvatar.dataset.selected || '';
-      const updates = { displayName: name, about: about };
+      const updates = { displayName: name, about: about, handle: handle };
       if (profilePic) updates.profilePic = profilePic;
       try {
         await update(dbRef(db, 'users/' + currentUser.uid), updates);
@@ -1570,7 +1607,7 @@ button, .btn, a {
       try {
         const snap = await get(dbRef(db, 'contacts/' + currentUser.uid));
         if (!snap.exists()) {
-          profileContactsList.innerHTML = '<div class=\"small\">No contacts yet.</div>';
+          profileContactsList.innerHTML = '<div class="small">No contacts yet.</div>';
           return;
         }
         const uids = Object.keys(snap.val() || {});
@@ -1581,27 +1618,53 @@ button, .btn, a {
             if (usnap.exists()) u = usnap.val();
           }
           if (!u) continue;
+
           const row = document.createElement('div');
           row.className = 'contact-row';
-          row.innerHTML = `<div style=\"width:44px;height:44px;border-radius:50%;background:linear-gradient(180deg,#dbeeff,#c1ddff);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--primary);\">${(u.displayName||u.email||'U').charAt(0).toUpperCase()}</div>
-                           <div style="flex:1;">
-                             <div class=\"contact-name\">${u.displayName || u.email || u.phoneNumber || 'User'}</div>
-                             <div class="small">${u.handle ? ('@' + u.handle) : (u.phoneNumber || '')}</div>
-                           </div>
-                           <button class=\"delete-btn\">Delete</button>`;
-          const delBtn = row.querySelector('.delete-btn');
-          delBtn.addEventListener('click', async () => {
+
+          // avatar (fixed, round)
+          const avatar = document.createElement('div');
+          avatar.className = 'contact-avatar';
+          avatar.textContent = (u.displayName || u.email || 'U').charAt(0).toUpperCase();
+
+          // info (name + sub)
+          const info = document.createElement('div');
+          info.className = 'contact-info';
+          const nameDiv = document.createElement('div');
+          nameDiv.className = 'contact-name';
+          nameDiv.textContent = u.displayName || u.email || u.phoneNumber || 'User';
+          const subDiv = document.createElement('div');
+          subDiv.className = 'small';
+          subDiv.textContent = u.handle ? ('@' + u.handle) : (u.phoneNumber || '');
+
+          info.appendChild(nameDiv);
+          info.appendChild(subDiv);
+
+          // delete button (small boxed button, fixed place on right)
+          const delBtn = document.createElement('button');
+          delBtn.className = 'delete-btn';
+          delBtn.title = 'Delete contact';
+          delBtn.type = 'button';
+          delBtn.textContent = '×';
+          delBtn.addEventListener('click', async (ev) => {
+            // prevent row click / bubbling
+            ev.stopPropagation();
             const ok = confirm('Delete this contact? This will remove them from your Home list.');
             if (!ok) return;
             try {
               await set(dbRef(db, 'contacts/' + currentUser.uid + '/' + uid), null);
               // reload UI
               await loadProfileContacts();
-              await loadChats(); // <-- ensure removed from Home list immediately
+              await loadChats();
             } catch (e) {
               console.error('delete contact error', e);
             }
           });
+
+          row.appendChild(avatar);
+          row.appendChild(info);
+          row.appendChild(delBtn);
+
           profileContactsList.appendChild(row);
         }
       } catch (e) {
@@ -1609,7 +1672,7 @@ button, .btn, a {
       }
     }
 
-    navYou.removeEventListener && navYou.removeEventListener('click', ()=>{});
+    navYou.removeEventListenernavYou.removeEventListener && navYou.removeEventListener('click', ()=>{});
     /* navYou click handler replaced by profile handler above */
 
     // ensure Home / Groups clear navYou active and update fixed header title
