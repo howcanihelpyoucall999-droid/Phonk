@@ -2190,13 +2190,12 @@ document.getElementById('globalAvatarLinkSave').addEventListener('click', functi
       var ov = document.createElement('div');
       ov.style.position='fixed'; ov.style.left=0; ov.style.top=0; ov.style.right=0; ov.style.bottom=0;
       ov.style.background='rgba(0,0,0,0.45)'; ov.style.display='flex'; ov.style.alignItems='center'; ov.style.justifyContent='center'; ov.style.zIndex=99999;
-      ov.innerHTML = '<div style="background:#fff;padding:18px;border-radius:12px;max-width:520px;width:92%;text-align:center;">' + '<h3>Confirm profile picture</h3>' + ''<img src="''" style="max-width:240px;max-height:240px;border-radius:8px;object-fit:cover;display:block;margin:0 auto 12px" />' + '<div style="display:flex;gap:8px;justify-content:center;margin-top:12px;">' + '<button id="quickConfirmCancel" class="btn">Cancel</button>' + '<button id="quickConfirmBtn" class="btn primary">Confirm</button>' + '</div></div>';
+      ov.innerHTML = '<div style="background:#fff;padding:18px;border-radius:12px;max-width:520px;width:92%;text-align:center;">' + '<h3>Confirm profile picture</h3>' + '<p style="word-break:break-word;color:#444;font-size:13px;margin:8px 0 12px;">'+url+'</p>' + '<img src="'+url+'" style="max-width:240px;max-height:240px;border-radius:8px;object-fit:cover;display:block;margin:0 auto 12px" />' + '<div style="display:flex;gap:8px;justify-content:center;margin-top:12px;">' + '<button id="quickConfirmCancel" class="btn">Cancel</button>' + '<button id="quickConfirmBtn" class="btn primary">Confirm</button>' + '</div></div>';
       document.body.appendChild(ov);
       document.getElementById('quickConfirmCancel').addEventListener('click', function(){ ov.remove(); });
       document.getElementById('quickConfirmBtn').addEventListener('click', function(){
         if (typeof applyProfilePhoto === 'function') {
-          applyProfilePhoto(url, function(err){ if (!err) { try { var pa = document.getElementById('profileAvatar'); if (pa) { pa.style.backgroundImage = 'url("' + url + '")'; pa.textContent = ''; pa.dataset.selected = url; } } catch(e){}
-                ov.remove(); alert('Profile picture updated'); } else alert('Could not save: ' + (err && err.message)); });
+          applyProfilePhoto(url, function(err){ if (!err) { ov.remove(); alert('Profile picture updated'); } else alert('Could not save: ' + (err && err.message)); });
         } else {
           try { document.querySelectorAll('.profile-photo img, .avatar img, img.profile-avatar, .user-avatar img').forEach(function(i){ i.src = url; }); } catch(e){}
           try { localStorage.setItem('profilePhotoURL', url); } catch(e) {}
@@ -2227,9 +2226,6 @@ document.getElementById('globalAvatarLinkSave').addEventListener('click', functi
 .pencil-preview {
   width:160px; height:160px; border-radius:50%; background:#f4f7ff; overflow:hidden; flex:0 0 160px;
   display:flex; align-items:center; justify-content:center;
-
-  border: 6px solid #ff8a52; /* orange preview ring */
-  box-shadow: 0 6px 18px rgba(255,138,90,0.12);
 }
 .pencil-preview img { width:100%; height:100%; object-fit:cover; display:block; }
 .pencil-controls { flex:1; }
@@ -2250,7 +2246,7 @@ document.getElementById('globalAvatarLinkSave').addEventListener('click', functi
       <div class="pencil-preview"><img id="pencilPreviewImg" src="" alt="preview" /></div>
       <div class="pencil-controls">
         <input id="pencilAvatarInput" type="text" placeholder="Paste an image URL (link only) — jpg, png, webp" />
-        <div class="pencil-hint">Paste an image URL and press Confirm.</div>
+        <div class="pencil-hint">Paste the image URL above. When you press <strong>Confirm</strong> the image will be saved as your profile picture and shown across the app (including the @You contacts).</div>
         <div class="pencil-actions">
           <button id="pencilCancelBtn" class="btn">Cancel</button>
           <button id="pencilConfirmBtn" class="btn primary">Confirm</button>
@@ -2335,8 +2331,7 @@ document.getElementById('globalAvatarLinkSave').addEventListener('click', functi
       var user = firebase.auth().currentUser;
       if (user && typeof user.updateProfile === 'function') {
         user.updateProfile({ photoURL: url }).then(function(){
-          try { if (firebase.database) firebase.database().ref('users/' + user.uid + '/photoURL').set(url);
-            try { if (firebase.database) firebase.database().ref('users/' + user.uid + '/profilePic').set(url); } catch(e){}; } catch(e){}
+          try { if (firebase.database) firebase.database().ref('users/' + user.uid + '/photoURL').set(url); } catch(e){}
           return cb && cb(null);
         }).catch(function(err){
           try {
@@ -2358,8 +2353,7 @@ document.getElementById('globalAvatarLinkSave').addEventListener('click', functi
         var u = auth.currentUser;
         if (u) {
           updateProfile(u, { photoURL: url }).then(function(){
-            try { if (typeof getDatabase === 'function' && typeof ref === 'function' && typeof set === 'function') set(ref(getDatabase(), 'users/' + u.uid + '/photoURL'), url);
-            try { if (typeof set === 'function' && typeof ref === 'function') set(ref(getDatabase(), 'users/' + u.uid + '/profilePic'), url); } catch(e){}; } catch(e){}
+            try { if (typeof getDatabase === 'function' && typeof ref === 'function' && typeof set === 'function') set(ref(getDatabase(), 'users/' + u.uid + '/photoURL'), url); } catch(e){}
             return cb && cb(null);
           }).catch(function(err){ return cb && cb(err); });
           return;
@@ -2371,8 +2365,6 @@ document.getElementById('globalAvatarLinkSave').addEventListener('click', functi
     try { if (typeof setCurrentUserPhoto === 'function') { setCurrentUserPhoto(url); return cb && cb(null); } } catch(e){}
     try { if (typeof saveProfile === 'function') { saveProfile({ photoURL: url }); return cb && cb(null); } } catch(e){}
 
-    // ensure UI update (fallback)
-    try { var el = document.getElementById('profileAvatar'); if (el) { el.style.backgroundImage = 'url("' + url + '")'; el.textContent = ''; el.dataset.selected = url; } } catch(e){}
     // fallback success
     return cb && cb(null);
   }
@@ -2420,7 +2412,6 @@ document.getElementById('globalAvatarLinkSave').addEventListener('click', functi
         } else {
           statusEl.style.color = '#0a8a00';
           statusEl.textContent = 'Profile picture saved.';
-          try { var pa = document.getElementById('profileAvatar'); if (pa) { pa.style.backgroundImage = 'url("' + url + '")'; pa.textContent = ''; pa.dataset.selected = url; } } catch(e){}
           setTimeout(function(){ hideModal(); }, 700);
         }
       });
@@ -2698,62 +2689,104 @@ document.getElementById('globalAvatarLinkSave').addEventListener('click', functi
   </div>
 
 
-<!-- Added: loadProfile + saveAbout to persist profilePic and about in Realtime DB -->
+<!-- Added: validateAndSaveImageURL to support hosts that block direct hotlinking -->
 <script>
-function loadProfile() {
-  try {
-    firebase.auth().onAuthStateChanged(function(user){
-      if(!user) return;
-      firebase.database().ref('users/' + user.uid).once('value').then(function(snapshot){
-        var data = snapshot.val() || {};
-        var avatar = document.getElementById('profileAvatar');
-        var aboutInput = document.getElementById('aboutInput');
-        var pic = data.profilePic || data.photoURL;
-        if (pic && avatar) {
-          avatar.style.backgroundImage = 'url("' + pic + '")';
-          avatar.textContent = '';
-          avatar.dataset.selected = pic;
-        } else if (avatar) {
-          avatar.style.backgroundImage = '';
-        }
-        if (aboutInput && data.about) aboutInput.value = data.about;
-      }).catch(function(e){ console.error('loadProfile error', e); });
+function stripProtocol(u) {
+  return u.replace(/^https?:\/\//i, '');
+}
+
+function loadImg(url, timeoutMs) {
+  timeoutMs = timeoutMs || 7000;
+  return new Promise(function(resolve, reject){
+    var img = new Image();
+    var called = false;
+    var t = setTimeout(function(){
+      if(called) return;
+      called = true;
+      img.onload = img.onerror = null;
+      reject(new Error('timeout'));
+    }, timeoutMs);
+    img.onload = function(){
+      if(called) return;
+      called = true;
+      clearTimeout(t);
+      resolve(true);
+    };
+    img.onerror = function(){
+      if(called) return;
+      called = true;
+      clearTimeout(t);
+      reject(new Error('error loading'));
+    };
+    try { img.crossOrigin = 'Anonymous'; } catch(e){}
+    img.src = url;
+  });
+}
+
+function validateAndSaveImageURL(url) {
+  return new Promise(function(resolve, reject){
+    if(!url || !url.match(/^https?:\/\//i)) {
+      return reject(new Error('Please enter a valid image URL starting with http:// or https://'));
+    }
+    loadImg(url, 7000).then(function(){
+      resolve({ displayUrl: url, originalUrl: url, proxied: false });
+    }).catch(function(){
+      try {
+        var proxy = 'https://images.weserv.nl/?url=' + encodeURIComponent(stripProtocol(url)) + '&w=1200';
+        loadImg(proxy, 8000).then(function(){
+          resolve({ displayUrl: proxy, originalUrl: url, proxied: true });
+        }).catch(function(){
+          reject(new Error('Could not load the image directly and proxy attempts failed. The host may block hotlinking or disallow cross-origin requests. Try an image from Imgur, i.stack.imgur, images.unsplash.com, or another direct image URL that allows embedding.'));
+        });
+      } catch(e){
+        reject(new Error('Proxy attempt failed: ' + (e && e.message)));
+      }
     });
-  } catch(e) { console.error(e); }
+  });
 }
 
-function saveAbout(){
-  try {
-    var aboutInput = document.getElementById('aboutInput');
-    var user = firebase.auth().currentUser;
-    if (!user) { alert('Please sign in to save your about.'); return; }
-    var aboutText = aboutInput ? aboutInput.value.trim() : '';
-    firebase.database().ref('users/' + user.uid + '/about').set(aboutText).then(function(){
-      var s = document.getElementById('aboutStatus');
-      if(s){ s.textContent = 'Saved'; setTimeout(function(){s.textContent='';},1500); }
-    }).catch(function(e){ console.error('saveAbout error', e); alert('Could not save about.'); });
-  } catch(e) { console.error(e); }
+function quickConfirmApply(url) {
+  var statusEl = document.getElementById('quickConfirmStatus') || null;
+  if (statusEl) { statusEl.textContent = 'Checking image...'; }
+  validateAndSaveImageURL(url).then(function(result){
+    if (typeof applyProfilePhoto === 'function') {
+      applyProfilePhoto(result.displayUrl, function(err){
+        if(!err) {
+          try {
+            var user = firebase.auth().currentUser;
+            if (user) {
+              firebase.database().ref('users/' + user.uid + '/profilePicOriginal').set(result.originalUrl);
+              firebase.database().ref('users/' + user.uid + '/profilePic').set(result.displayUrl);
+            }
+          } catch(e){ console.warn('Could not save original URL', e); }
+          if (statusEl) { statusEl.textContent = 'Saved.'; setTimeout(function(){ if(statusEl) statusEl.textContent=''; },1200); }
+          try { hideModal(); } catch(e){}
+          alert('Profile picture updated');
+        } else {
+          if (statusEl) { statusEl.textContent = ''; }
+          alert('Could not save: ' + (err && err.message));
+        }
+      });
+    } else {
+      alert('applyProfilePhoto not available.');
+    }
+  }).catch(function(err){
+    if (statusEl) { statusEl.textContent = ''; }
+    alert('Image validation failed: ' + (err && err.message));
+  });
 }
 
-document.addEventListener('DOMContentLoaded', function(){
-  // If the about input area doesn't exist, try to insert it in a likely place.
-  if(!document.getElementById('aboutInput')) {
-    // Find a container near profile settings or '@You' page
-    var area = document.querySelector('.profile-settings') || document.querySelector('.profile') || document.querySelector('.content') || document.body;
-    var wrapper = document.createElement('div');
-    wrapper.style.marginTop = '12px';
-    wrapper.innerHTML = '<label for="aboutInput" style="display:block;font-weight:600;margin-bottom:6px">About</label>'
-      + '<textarea id="aboutInput" placeholder="Write something about yourself..." style="width:100%;min-height:80px;padding:8px;border-radius:8px;border:1px solid #ddd;font-size:14px"></textarea>'
-      + '<div style="margin-top:8px"><button id="saveAboutBtn" onclick="saveAbout()" style="padding:8px 12px;border:none;border-radius:8px;background:#0a6cff;color:#fff">Save About</button>'
-      + ' <span id="aboutStatus" style="margin-left:8px;color:#0a8a00"></span></div>';
-    try { area.appendChild(wrapper); } catch(e) { document.body.appendChild(wrapper); }
-  }
-
-  // Ensure loadProfile runs after auth is ready
-  if (typeof firebase !== 'undefined' && firebase && firebase.auth) {
-    loadProfile();
-  } else {
-    console.warn('Firebase not found — loadProfile will run when auth becomes available.');
+document.addEventListener('click', function(e){
+  var t = e.target;
+  if (t && t.id === 'quickConfirmBtn') {
+    e.preventDefault();
+    var urlEl = document.getElementById('quickConfirmUrl') || document.getElementById('pencilUrl') || null;
+    var url = urlEl ? (urlEl.value || (urlEl.dataset && urlEl.dataset.url) || urlEl.textContent || '') : '';
+    if(!url) {
+      var img = document.querySelector('.pencil-preview img') || document.querySelector('#quickConfirmPreview img');
+      if(img) url = img.src;
+    }
+    quickConfirmApply(url);
   }
 });
 </script>
