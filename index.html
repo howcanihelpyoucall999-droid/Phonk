@@ -473,12 +473,84 @@ button, .btn, a {
 }
 #permissionDismiss{ background:transparent; border:none; color:var(--muted); cursor:pointer; font-size:13px; }
 
+
+/* ===== Added modal & blur styles for + button updates ===== */
+.phone.blurred-bg { filter: blur(6px) saturate(0.98); transition: filter 220ms ease; pointer-events: none; }
+.modal-overlay, .modal-center {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+  background: rgba(0,0,0,0.35);
+}
+.modal-center .modal-box {
+  width: 92%;
+  max-width: 420px;
+  background: linear-gradient(180deg,#fff,#fbfdff);
+  border-radius: 12px;
+  padding: 14px;
+  box-shadow: 0 18px 50px rgba(0,0,0,0.22);
+  box-sizing: border-box;
+  position: relative;
+}
+.modal-center .modal-box .close-x {
+  position: absolute;
+  right: 10px;
+  top: 8px;
+  width: 36px;
+  height: 36px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:50%;
+  background:#fff;
+  border:1px solid rgba(0,0,0,0.06);
+  cursor:pointer;
+  font-weight:700;
+  box-shadow:0 6px 18px rgba(0,0,0,0.06);
+}
+.modal-center .modal-box h4 { margin:0 0 8px; color:var(--primary); }
+.modal-center .modal-box .small { color:var(--muted); font-size:13px; margin-bottom:8px; }
+
+#individualModal .modal-inner { display:flex; flex-direction:column; gap:8px; }
+#individualModal input[type="text"] { width:100%; padding:10px; border-radius:10px; border:1px solid rgba(11,96,214,0.06); }
+#individualModal .action-row { display:flex; gap:8px; justify-content:flex-end; margin-top:6px; }
+
+#modalBackdrop { display:none; position:fixed; inset:0; z-index:99998; align-items:center; justify-content:center; background:rgba(0,0,0,0.35); }
+#modalBackdrop .modal { width:92%; max-width:560px; background:#fff; border-radius:12px; padding:12px; box-sizing:border-box; box-shadow:0 18px 50px rgba(0,0,0,0.18); position:relative; }
+#modalBackdrop .close-x { position:absolute; right:12px; top:10px; width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#fff;border:1px solid rgba(0,0,0,0.06); cursor:pointer; font-weight:700; }
+#modalBackdrop .group-avatar-preview { width:96px;height:96px;border-radius:12px;overflow:hidden;background:#f0f6ff;border:6px solid #fff;margin-right:12px; display:flex;align-items:center;justify-content:center; font-weight:700; color:var(--primary); font-size:36px; }
+#modalBackdrop .group-header { display:flex; align-items:center; gap:12px; margin-bottom:8px; }
+#modalBackdrop .image-link-row { display:flex; gap:8px; align-items:center; }
+#modalBackdrop input[type="url"] { flex:1; padding:8px;border-radius:8px;border:1px solid rgba(11,96,214,0.06); }
+#modalBackdrop .choose-gallery-btn { padding:8px 10px; border-radius:8px; border:none; background:var(--primary); color:#fff; cursor:pointer; }
+
+.avatar-grid.compact { grid-template-columns: repeat(6, 1fr); gap:6px; }
+.avatar-grid.compact img { height:48px; border-radius:8px; }
+
 </style>
 </head>
 <body>
   <!-- Startup loader (visible immediately, will be hidden after 1s) -->
   <div id="startup-loader" aria-hidden="false">
     <div class="loader" role="progressbar" aria-label="Loading"></div>
+
+    <!-- Individual Chat Modal (centered, blurred background, cross to close) -->
+    <div id="individualModal" class="modal-center" aria-hidden="true">
+      <div class="modal-box modal-inner" role="dialog" aria-modal="true">
+        <div class="close-x" id="closeIndividualModal" title="Close">×</div>
+        <h4>Create chat with</h4>
+        <div class="small">Enter email or phone and add as individual chat.</div>
+        <input id="individualEmailOrPhone" type="text" placeholder="Email or phone">
+        <div style="display:flex;gap:8px;justify-content:flex-end;">
+          <button id="individualCancelBtn" class="btn ghost" style="padding:8px 12px;">Cancel</button>
+          <button id="individualAddBtn" class="btn primary" style="padding:8px 12px;">Add & Open</button>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <div class="phone">
@@ -633,7 +705,7 @@ button, .btn, a {
     <div class="avatar-modal" id="avatarModal" aria-hidden="true">
       <div class="modal-inner">
         <h4 style="margin-top:0">Choose profile picture</h4>
-        <div class="avatar-grid" id="avatarGrid"></div>
+        <div class="avatar-grid compact" id="avatarGrid"></div>
         <div style="text-align:right;margin-top:8px;">
           <button id="saveAvatarModal" class="btn primary" style="margin-right:8px;">Save</button>
           <button id="closeAvatarModal" class="btn ghost">Cancel</button>
@@ -707,6 +779,19 @@ button, .btn, a {
   <div class="modal-backdrop" id="modalBackdrop">
     <div class="modal" role="dialog" aria-modal="true">
       <h4 id="modalTitle">New Group</h4>
+      <div class="group-header">
+        <div class="group-avatar-preview" id="groupAvatarPreview">G</div>
+        <div style="flex:1;">
+          <div style="display:flex;gap:8px;margin-bottom:8px;">
+            <input id="groupImageUrl" type="url" placeholder="Paste image URL (optional)" />
+            <button id="groupImageLoad" class="choose-gallery-btn">Load</button>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <button id="openGroupGallery" class="btn ghost">Choose from gallery</button>
+            <div style="color:var(--muted);font-size:13px;">or pick a picture below</div>
+          </div>
+        </div>
+      </div>
       <div class="section-title">Group name</div>
       <input id="groupName" placeholder="Type group name..." />
 
@@ -2682,6 +2767,208 @@ document.getElementById('globalAvatarLinkSave').addEventListener('click', functi
 
 })(); // end permission overlay IIFE
 // --- End permission overlay logic ---
+
+
+
+
+    // ===== START: + button improvements (delay + 2s, improved UI) =====
+    let plusShowTimeout = null;
+    floatingBtn.addEventListener('click', (e) => {
+      // If already scheduled, cancel and hide
+      if (plusShowTimeout) {
+        clearTimeout(plusShowTimeout);
+        plusShowTimeout = null;
+        plusMenu.style.display = 'none';
+        return;
+      }
+      // Small visual feedback (pulse)
+      floatingBtn.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.06)' }, { transform: 'scale(1)'}], { duration: 240 });
+      // show the menu after 2 seconds
+      plusShowTimeout = setTimeout(() => {
+        plusMenu.style.display = 'flex';
+        // auto-hide after 4s (so user sees choices)
+        setTimeout(() => { plusMenu.style.display = 'none'; plusShowTimeout = null; }, 4000);
+      }, 2000);
+    });
+
+    // Individual chat modal open/close
+    const individualModal = document.getElementById('individualModal');
+    const individualCancelBtn = document.getElementById('individualCancelBtn');
+    const closeIndividualModal = document.getElementById('closeIndividualModal');
+    const individualAddBtn = document.getElementById('individualAddBtn');
+    const individualInput = document.getElementById('individualEmailOrPhone');
+
+    plusIndividualBtn.removeEventListener && plusIndividualBtn.removeEventListener('click', ()=>{}); // safe remove if exists
+    plusIndividualBtn.addEventListener('click', () => {
+      plusMenu.style.display = 'none';
+      document.querySelector('.phone').classList.add('blurred-bg');
+      individualModal.style.display = 'flex';
+      individualModal.setAttribute('aria-hidden', 'false');
+      setTimeout(()=> individualInput.focus(), 60);
+    });
+    function closeIndividual() {
+      individualModal.style.display = 'none';
+      individualModal.setAttribute('aria-hidden', 'true');
+      document.querySelector('.phone').classList.remove('blurred-bg');
+      individualInput.value = '';
+      updateFloatingVisibility();
+    }
+    individualCancelBtn.addEventListener('click', closeIndividual);
+    closeIndividualModal.addEventListener('click', closeIndividual);
+    individualModal.addEventListener('click', (e)=> { if (e.target === individualModal) closeIndividual(); });
+
+    individualAddBtn.addEventListener('click', async ()=>{
+      const q = (individualInput.value||'').trim();
+      if (!q) return alert('Enter email or phone.');
+      // reuse existing add flow
+      addChatIdentifier.value = q;
+      addBtn.click();
+      closeIndividual();
+    });
+
+    // ===== START: Group modal enhancements (avatar URL + gallery) =====
+    const groupAvatarPreview = document.getElementById('groupAvatarPreview');
+    const groupImageUrlInput = document.getElementById('groupImageUrl');
+    const groupImageLoadBtn = document.getElementById('groupImageLoad');
+    const openGroupGalleryBtn = document.getElementById('openGroupGallery');
+    let selectedGroupImage = null; // can be data-url or remote URL or gallery id
+
+    // apply preview helper
+    function updateGroupAvatarPreview() {
+      if (!groupAvatarPreview) return;
+      if (!selectedGroupImage) {
+        groupAvatarPreview.textContent = 'G';
+        groupAvatarPreview.style.backgroundImage = '';
+      } else {
+        groupAvatarPreview.textContent = '';
+        groupAvatarPreview.style.backgroundImage = `url("${selectedGroupImage}")`;
+        groupAvatarPreview.style.backgroundSize = 'cover';
+        groupAvatarPreview.style.backgroundPosition = 'center';
+      }
+    }
+
+    groupImageLoadBtn && groupImageLoadBtn.addEventListener('click', ()=>{
+      const url = (groupImageUrlInput.value||'').trim();
+      if (!url) return alert('Paste a valid image URL first.');
+      // basic validation
+      if (!/^https?:\/\//i.test(url)) return alert('Please paste a valid http or https image URL.');
+      selectedGroupImage = url;
+      updateGroupAvatarPreview();
+    });
+
+    openGroupGalleryBtn && openGroupGalleryBtn.addEventListener('click', ()=>{
+      // open existing avatar modal (already contains avatarGrid)
+      document.getElementById('avatarModal').style.display = 'flex';
+      // mark that we're picking for group
+      document.getElementById('avatarModal').dataset.target = 'group';
+    });
+
+    // When clicking Save in avatar modal, detect target (profile or group)
+    const saveAvatarModalBtn = document.getElementById('saveAvatarModal');
+    saveAvatarModalBtn && saveAvatarModalBtn.addEventListener('click', ()=>{
+      const sel = document.querySelector('#avatarGrid img.selected');
+      const modal = document.getElementById('avatarModal');
+      const target = modal && modal.dataset.target ? modal.dataset.target : 'profile';
+      if (sel) {
+        const src = sel.dataset.src || sel.src;
+        if (target === 'group') {
+          selectedGroupImage = src;
+          updateGroupAvatarPreview();
+        } else {
+          // profile avatar selection path (existing behavior)
+          document.getElementById('profileAvatar').style.backgroundImage = `url("${src}")`;
+          document.getElementById('profileAvatar').textContent = '';
+        }
+      }
+      document.getElementById('avatarModal').style.display = 'none';
+      document.getElementById('avatarModal').dataset.target = '';
+    });
+
+    // close gallery when cancelling
+    document.getElementById('closeAvatarModal').addEventListener('click', ()=>{
+      document.getElementById('avatarModal').style.display = 'none';
+      document.getElementById('avatarModal').dataset.target = '';
+    });
+
+    // On createGroupBtn, save groupImage into groupData
+    createGroupBtn.removeEventListener && createGroupBtn.removeEventListener('click', ()=>{});
+    createGroupBtn.addEventListener('click', async () => {
+      const name = (groupNameInput.value || '').trim();
+      if (!name) return alert('Enter group name');
+      const memberUids = Object.keys(selectedGroupMembers);
+      if (memberUids.length === 0) return alert('Add at least one member');
+      const groupsRef = dbRef(db, 'groups');
+      const newGroupRef = push(groupsRef);
+      const groupId = newGroupRef.key;
+      const groupData = {
+        id: groupId,
+        name,
+        members: { [currentUser.uid]: true },
+        createdAt: Date.now(),
+        createdBy: currentUser.uid,
+        image: selectedGroupImage || ''
+      };
+      memberUids.forEach(uid => groupData.members[uid] = true);
+      await set(newGroupRef, groupData);
+      modalBackdrop.style.display = 'none';
+      groupNameInput.value = '';
+      selectedGroupMembers = {};
+      renderSelectedMembers();
+      selectedGroupImage = null;
+      updateGroupAvatarPreview();
+      alert('Group created');
+      loadGroups();
+      updateFloatingVisibility();
+    });
+
+    // ensure modalBackdrop close x exists and closes properly (add-close fallback)
+    // add a close button if not already present
+    (function ensureModalClose(){
+      if (!document.querySelector('#modalBackdrop .close-x')) {
+        const closeBtn = document.createElement('div');
+        closeBtn.className = 'close-x';
+        closeBtn.id = 'closeGroupModal';
+        closeBtn.textContent = '×';
+        document.querySelector('#modalBackdrop .modal')?.appendChild(closeBtn);
+        closeBtn.addEventListener('click', ()=> {
+          modalBackdrop.style.display = 'none';
+          document.querySelector('.phone').classList.remove('blurred-bg');
+          selectedGroupImage = null;
+          updateGroupAvatarPreview();
+          updateFloatingVisibility();
+        });
+      } else {
+        document.querySelector('#modalBackdrop .close-x').addEventListener('click', ()=> {
+          modalBackdrop.style.display = 'none';
+          document.querySelector('.phone').classList.remove('blurred-bg');
+          selectedGroupImage = null;
+          updateGroupAvatarPreview();
+          updateFloatingVisibility();
+        });
+      }
+    })();
+
+    // when opening group modal via plusGroupBtn, blur background and show backdrop
+    plusGroupBtn.addEventListener('click', () => {
+      plusMenu.style.display = 'none';
+      document.querySelector('.phone').classList.add('blurred-bg');
+      modalBackdrop.style.display = 'flex';
+    });
+
+    // clicking outside modal closes it
+    modalBackdrop.addEventListener('click', (e)=> {
+      if (e.target === modalBackdrop) {
+        modalBackdrop.style.display = 'none';
+        document.querySelector('.phone').classList.remove('blurred-bg');
+        selectedGroupImage = null;
+        updateGroupAvatarPreview();
+        updateFloatingVisibility();
+      }
+    });
+
+    // Ensure updateFloatingVisibility is invoked after modal actions
+    window.addEventListener('resize', updateFloatingVisibility);
+    // ===== END: + button & modal improvements =====
 
 </script>
 
