@@ -2190,12 +2190,13 @@ document.getElementById('globalAvatarLinkSave').addEventListener('click', functi
       var ov = document.createElement('div');
       ov.style.position='fixed'; ov.style.left=0; ov.style.top=0; ov.style.right=0; ov.style.bottom=0;
       ov.style.background='rgba(0,0,0,0.45)'; ov.style.display='flex'; ov.style.alignItems='center'; ov.style.justifyContent='center'; ov.style.zIndex=99999;
-      ov.innerHTML = '<div style="background:#fff;padding:18px;border-radius:12px;max-width:520px;width:92%;text-align:center;">' + '<h3>Confirm profile picture</h3>' + '<p style="word-break:break-word;color:#444;font-size:13px;margin:8px 0 12px;">'+url+'</p>' + '<img src="'+url+'" style="max-width:240px;max-height:240px;border-radius:8px;object-fit:cover;display:block;margin:0 auto 12px" />' + '<div style="display:flex;gap:8px;justify-content:center;margin-top:12px;">' + '<button id="quickConfirmCancel" class="btn">Cancel</button>' + '<button id="quickConfirmBtn" class="btn primary">Confirm</button>' + '</div></div>';
+      ov.innerHTML = '<div style="background:#fff;padding:18px;border-radius:12px;max-width:520px;width:92%;text-align:center;">' + '<h3>Confirm profile picture</h3>' + ''<img src="''" style="max-width:240px;max-height:240px;border-radius:8px;object-fit:cover;display:block;margin:0 auto 12px" />' + '<div style="display:flex;gap:8px;justify-content:center;margin-top:12px;">' + '<button id="quickConfirmCancel" class="btn">Cancel</button>' + '<button id="quickConfirmBtn" class="btn primary">Confirm</button>' + '</div></div>';
       document.body.appendChild(ov);
       document.getElementById('quickConfirmCancel').addEventListener('click', function(){ ov.remove(); });
       document.getElementById('quickConfirmBtn').addEventListener('click', function(){
         if (typeof applyProfilePhoto === 'function') {
-          applyProfilePhoto(url, function(err){ if (!err) { ov.remove(); alert('Profile picture updated'); } else alert('Could not save: ' + (err && err.message)); });
+          applyProfilePhoto(url, function(err){ if (!err) { try { var pa = document.getElementById('profileAvatar'); if (pa) { pa.style.backgroundImage = 'url("' + url + '")'; pa.textContent = ''; pa.dataset.selected = url; } } catch(e){}
+                ov.remove(); alert('Profile picture updated'); } else alert('Could not save: ' + (err && err.message)); });
         } else {
           try { document.querySelectorAll('.profile-photo img, .avatar img, img.profile-avatar, .user-avatar img').forEach(function(i){ i.src = url; }); } catch(e){}
           try { localStorage.setItem('profilePhotoURL', url); } catch(e) {}
@@ -2226,6 +2227,9 @@ document.getElementById('globalAvatarLinkSave').addEventListener('click', functi
 .pencil-preview {
   width:160px; height:160px; border-radius:50%; background:#f4f7ff; overflow:hidden; flex:0 0 160px;
   display:flex; align-items:center; justify-content:center;
+
+  border: 6px solid #ff8a52; /* orange preview ring */
+  box-shadow: 0 6px 18px rgba(255,138,90,0.12);
 }
 .pencil-preview img { width:100%; height:100%; object-fit:cover; display:block; }
 .pencil-controls { flex:1; }
@@ -2246,7 +2250,7 @@ document.getElementById('globalAvatarLinkSave').addEventListener('click', functi
       <div class="pencil-preview"><img id="pencilPreviewImg" src="" alt="preview" /></div>
       <div class="pencil-controls">
         <input id="pencilAvatarInput" type="text" placeholder="Paste an image URL (link only) — jpg, png, webp" />
-        <div class="pencil-hint">Paste the image URL above. When you press <strong>Confirm</strong> the image will be saved as your profile picture and shown across the app (including the @You contacts).</div>
+        <div class="pencil-hint">Paste an image URL and press Confirm.</div>
         <div class="pencil-actions">
           <button id="pencilCancelBtn" class="btn">Cancel</button>
           <button id="pencilConfirmBtn" class="btn primary">Confirm</button>
@@ -2331,7 +2335,8 @@ document.getElementById('globalAvatarLinkSave').addEventListener('click', functi
       var user = firebase.auth().currentUser;
       if (user && typeof user.updateProfile === 'function') {
         user.updateProfile({ photoURL: url }).then(function(){
-          try { if (firebase.database) firebase.database().ref('users/' + user.uid + '/photoURL').set(url); } catch(e){}
+          try { if (firebase.database) firebase.database().ref('users/' + user.uid + '/photoURL').set(url);
+            try { if (firebase.database) firebase.database().ref('users/' + user.uid + '/profilePic').set(url); } catch(e){}; } catch(e){}
           return cb && cb(null);
         }).catch(function(err){
           try {
@@ -2353,7 +2358,8 @@ document.getElementById('globalAvatarLinkSave').addEventListener('click', functi
         var u = auth.currentUser;
         if (u) {
           updateProfile(u, { photoURL: url }).then(function(){
-            try { if (typeof getDatabase === 'function' && typeof ref === 'function' && typeof set === 'function') set(ref(getDatabase(), 'users/' + u.uid + '/photoURL'), url); } catch(e){}
+            try { if (typeof getDatabase === 'function' && typeof ref === 'function' && typeof set === 'function') set(ref(getDatabase(), 'users/' + u.uid + '/photoURL'), url);
+            try { if (typeof set === 'function' && typeof ref === 'function') set(ref(getDatabase(), 'users/' + u.uid + '/profilePic'), url); } catch(e){}; } catch(e){}
             return cb && cb(null);
           }).catch(function(err){ return cb && cb(err); });
           return;
@@ -2365,6 +2371,8 @@ document.getElementById('globalAvatarLinkSave').addEventListener('click', functi
     try { if (typeof setCurrentUserPhoto === 'function') { setCurrentUserPhoto(url); return cb && cb(null); } } catch(e){}
     try { if (typeof saveProfile === 'function') { saveProfile({ photoURL: url }); return cb && cb(null); } } catch(e){}
 
+    // ensure UI update (fallback)
+    try { var el = document.getElementById('profileAvatar'); if (el) { el.style.backgroundImage = 'url("' + url + '")'; el.textContent = ''; el.dataset.selected = url; } } catch(e){}
     // fallback success
     return cb && cb(null);
   }
@@ -2412,6 +2420,7 @@ document.getElementById('globalAvatarLinkSave').addEventListener('click', functi
         } else {
           statusEl.style.color = '#0a8a00';
           statusEl.textContent = 'Profile picture saved.';
+          try { var pa = document.getElementById('profileAvatar'); if (pa) { pa.style.backgroundImage = 'url("' + url + '")'; pa.textContent = ''; pa.dataset.selected = url; } } catch(e){}
           setTimeout(function(){ hideModal(); }, 700);
         }
       });
@@ -2687,330 +2696,6 @@ document.getElementById('globalAvatarLinkSave').addEventListener('click', functi
       </div>
     </div>
   </div>
-
-
-<!-- Added: validateAndSaveImageURL to support hosts that block direct hotlinking -->
-<script>
-function stripProtocol(u) {
-  return u.replace(/^https?:\/\//i, '');
-}
-
-function loadImg(url, timeoutMs) {
-  timeoutMs = timeoutMs || 7000;
-  return new Promise(function(resolve, reject){
-    var img = new Image();
-    var called = false;
-    var t = setTimeout(function(){
-      if(called) return;
-      called = true;
-      img.onload = img.onerror = null;
-      reject(new Error('timeout'));
-    }, timeoutMs);
-    img.onload = function(){
-      if(called) return;
-      called = true;
-      clearTimeout(t);
-      resolve(true);
-    };
-    img.onerror = function(){
-      if(called) return;
-      called = true;
-      clearTimeout(t);
-      reject(new Error('error loading'));
-    };
-    try { img.crossOrigin = 'Anonymous'; } catch(e){}
-    img.src = url;
-  });
-}
-
-function validateAndSaveImageURL(url) {
-  return new Promise(function(resolve, reject){
-    if(!url || !url.match(/^https?:\/\//i)) {
-      return reject(new Error('Please enter a valid image URL starting with http:// or https://'));
-    }
-    loadImg(url, 7000).then(function(){
-      resolve({ displayUrl: url, originalUrl: url, proxied: false });
-    }).catch(function(){
-      try {
-        var proxy = 'https://images.weserv.nl/?url=' + encodeURIComponent(stripProtocol(url)) + '&w=1200';
-        loadImg(proxy, 8000).then(function(){
-          resolve({ displayUrl: proxy, originalUrl: url, proxied: true });
-        }).catch(function(){
-          reject(new Error('Could not load the image directly and proxy attempts failed. The host may block hotlinking or disallow cross-origin requests. Try an image from Imgur, i.stack.imgur, images.unsplash.com, or another direct image URL that allows embedding.'));
-        });
-      } catch(e){
-        reject(new Error('Proxy attempt failed: ' + (e && e.message)));
-      }
-    });
-  });
-}
-
-function quickConfirmApply(url) {
-  var statusEl = document.getElementById('quickConfirmStatus') || null;
-  if (statusEl) { statusEl.textContent = 'Checking image...'; }
-  validateAndSaveImageURL(url).then(function(result){
-    if (typeof applyProfilePhoto === 'function') {
-      applyProfilePhoto(result.displayUrl, function(err){
-        if(!err) {
-          try {
-            var user = firebase.auth().currentUser;
-            if (user) {
-              firebase.database().ref('users/' + user.uid + '/profilePicOriginal').set(result.originalUrl);
-              firebase.database().ref('users/' + user.uid + '/profilePic').set(result.displayUrl);
-            }
-          } catch(e){ console.warn('Could not save original URL', e); }
-          if (statusEl) { statusEl.textContent = 'Saved.'; setTimeout(function(){ if(statusEl) statusEl.textContent=''; },1200); }
-          try { hideModal(); } catch(e){}
-          alert('Profile picture updated');
-        } else {
-          if (statusEl) { statusEl.textContent = ''; }
-          alert('Could not save: ' + (err && err.message));
-        }
-      });
-    } else {
-      alert('applyProfilePhoto not available.');
-    }
-  }).catch(function(err){
-    if (statusEl) { statusEl.textContent = ''; }
-    alert('Image validation failed: ' + (err && err.message));
-  });
-}
-
-document.addEventListener('click', function(e){
-  var t = e.target;
-  if (t && t.id === 'quickConfirmBtn') {
-    e.preventDefault();
-    var urlEl = document.getElementById('quickConfirmUrl') || document.getElementById('pencilUrl') || null;
-    var url = urlEl ? (urlEl.value || (urlEl.dataset && urlEl.dataset.url) || urlEl.textContent || '') : '';
-    if(!url) {
-      var img = document.querySelector('.pencil-preview img') || document.querySelector('#quickConfirmPreview img');
-      if(img) url = img.src;
-    }
-    quickConfirmApply(url);
-  }
-});
-</script>
-
-
-<!-- PROFILE LINK PREVIEW + STRONG CONFIRM HANDLER -->
-<script>
-(function(){
-  // Safe helpers (reuse if others exist)
-  function el(id){ return document.getElementById(id); }
-  function qs(sel){ return document.querySelector(sel); }
-
-  // Show message to user in modal/overlay or alert fallback
-  function showMessage(msg, isError) {
-    var status = el('quickConfirmStatus') || el('aboutStatus') || qs('.status') || null;
-    if (status) {
-      status.textContent = msg;
-      status.style.color = isError ? '#c00' : '#0a8a00';
-      if (!isError) setTimeout(function(){ if(status) status.textContent=''; }, 1600);
-    } else {
-      try { alert(msg); } catch(e){ console.log(msg); }
-    }
-  }
-
-  // Update round preview element when URL changes
-  function updateRoundPreview(url) {
-    try {
-      // Try to find common preview containers
-      var preview = qs('.pencil-preview') || qs('#quickConfirmPreview') || qs('.avatar-preview') || null;
-      if (!preview) {
-        // create small preview near inputs if none
-        var container = qs('.pencil') || qs('.profile') || document.body;
-        preview = document.createElement('div');
-        preview.className = 'pencil-preview';
-        preview.style.width = '84px';
-        preview.style.height = '84px';
-        preview.style.borderRadius = '50%';
-        preview.style.overflow = 'hidden';
-        preview.style.display = 'inline-block';
-        preview.style.marginLeft = '10px';
-        preview.style.backgroundSize = 'cover';
-        preview.style.backgroundPosition = 'center';
-        preview.style.border = '4px solid #ff8a52';
-        (container.firstChild) ? container.insertBefore(preview, container.firstChild) : container.appendChild(preview);
-      }
-      if (!url) {
-        preview.style.backgroundImage = '';
-        preview.innerHTML = '';
-        return;
-      }
-      // If proxied URL (images.weserv) may be used; show it directly
-      preview.style.backgroundImage = 'url(\"' + url + '\")';
-      preview.innerHTML = '';
-    } catch(e){ console.warn('updateRoundPreview error', e); }
-  }
-
-  // Attempt to verify image loads by creating an Image object
-  function testImage(url, timeoutMs) {
-    timeoutMs = timeoutMs || 7000;
-    return new Promise(function(resolve, reject){
-      try {
-        var img = new Image();
-        var done = false;
-        var t = setTimeout(function(){ if(done) return; done=true; img.onload=img.onerror=null; reject(new Error('timeout')); }, timeoutMs);
-        img.onload = function(){ if(done) return; done=true; clearTimeout(t); img.onload=img.onerror=null; resolve(true); };
-        img.onerror = function(){ if(done) return; done=true; clearTimeout(t); img.onload=img.onerror=null; reject(new Error('error loading')); };
-        try { img.crossOrigin = 'Anonymous'; } catch(e) {}
-        img.src = url;
-      } catch(ex){ reject(ex); }
-    });
-  }
-
-  // Simple proxy fallback using images.weserv.nl (only domain+path is appended)
-  function makeProxy(url) {
-    try {
-      var stripped = url.replace(/^https?:\/\//i, '');
-      return 'https://images.weserv.nl/?url=' + encodeURIComponent(stripped) + '&w=1200';
-    } catch(e){ return null; }
-  }
-
-  // Validate or fallback and return {displayUrl, originalUrl, proxied}
-  function validateImageUrl(url) {
-    return new Promise(function(resolve, reject){
-      if (!url || !url.match(/^https?:\/\//i)) {
-        return reject(new Error('Enter a valid URL starting with http:// or https://'));
-      }
-      // First try direct load
-      testImage(url, 6000).then(function(){
-        resolve({ displayUrl: url, originalUrl: url, proxied: false });
-      }).catch(function(){
-        // Try proxy
-        var proxy = makeProxy(url);
-        if (proxy) {
-          testImage(proxy, 8000).then(function(){
-            resolve({ displayUrl: proxy, originalUrl: url, proxied: true });
-          }).catch(function(){
-            reject(new Error('Image did not load directly and proxy fallback failed. The host may block hotlinking. Try another image host (Imgur, images.unsplash.com, i.imgur.com, GitHub raw image links).'));
-          });
-        } else {
-          reject(new Error('Could not build proxy URL for fallback.'));
-        }
-      });
-    });
-  }
-
-  // Core: apply and persist profile image (displayUrl is the URL to use in UI)
-  function saveProfileImage(displayUrl, originalUrl, cb) {
-    try {
-      if (typeof applyProfilePhoto === 'function') {
-        applyProfilePhoto(displayUrl, function(err){
-          if (err) {
-            if (cb) cb(err);
-            return;
-          }
-          // ensure DB keys are set (profilePic used for display, profilePicOriginal for original)
-          try {
-            var user = null;
-            if (typeof firebase !== 'undefined' && firebase && firebase.auth) user = firebase.auth().currentUser;
-            if (user) {
-              firebase.database().ref('users/' + user.uid + '/profilePic').set(displayUrl);
-              if (originalUrl) firebase.database().ref('users/' + user.uid + '/profilePicOriginal').set(originalUrl);
-            }
-          } catch(e){ console.warn('DB write failed', e); }
-          // update UI avatar element immediately
-          try {
-            var pa = el('profileAvatar') || qs('.profile-avatar') || qs('.avatar');
-            if (pa) {
-              // set as background image if element supports it, else try to set src of an img inside it
-              try { pa.style.backgroundImage = 'url(\"' + displayUrl + '\")'; pa.textContent = ''; } catch(e){}
-              var innerImg = pa.querySelector && pa.querySelector('img');
-              if (innerImg) innerImg.src = displayUrl;
-            }
-          } catch(e){}
-          if (cb) cb(null);
-        });
-      } else {
-        // fallback if applyProfilePhoto not defined: write DB directly and update UI
-        try {
-          var user = null;
-          if (typeof firebase !== 'undefined' && firebase && firebase.auth) user = firebase.auth().currentUser;
-          if (user) {
-            firebase.database().ref('users/' + user.uid + '/profilePic').set(displayUrl);
-            if (originalUrl) firebase.database().ref('users/' + user.uid + '/profilePicOriginal').set(originalUrl);
-          }
-        } catch(e){ console.warn('DB write failed', e); }
-        try {
-          var pa2 = el('profileAvatar') || qs('.profile-avatar') || qs('.avatar');
-          if (pa2) { pa2.style.backgroundImage = 'url(\"' + displayUrl + '\")'; pa2.textContent = ''; }
-        } catch(e){}
-        if (cb) cb(null);
-      }
-    } catch(ex){ if (cb) cb(ex); }
-  }
-
-  // Hook into the confirm button flow
-  document.addEventListener('click', function(ev){
-    var t = ev.target;
-    if (!t) return;
-    // Confirm / Save button id 'quickConfirmBtn' or class 'confirm-btn'
-    if (t.id === 'quickConfirmBtn' || t.classList.contains('confirm-btn')) {
-      ev.preventDefault();
-      // attempt to read URL from various possible inputs
-      var urlInput = el('quickConfirmUrl') || el('pencilUrl') || qs('.pencil input[type="text"]') || qs('.image-url-input') || null;
-      var url = '';
-      if (urlInput) url = urlInput.value || urlInput.textContent || urlInput.dataset && urlInput.dataset.url || '';
-      // fallback: if a preview <img> exists, use its src
-      if (!url) {
-        var img = qs('.pencil-preview img') || qs('#quickConfirmPreview img') || qs('.preview img');
-        if (img) url = img.src || '';
-      }
-      if (!url) { showMessage('Please enter an image URL first.', true); return; }
-      showMessage('Validating image...', false);
-      validateImageUrl(url).then(function(res){
-        // show preview of the displayUrl (may be proxied)
-        updateRoundPreview(res.displayUrl);
-        saveProfileImage(res.displayUrl, res.originalUrl, function(err){
-          if (err) {
-            showMessage('Could not save image: ' + (err && err.message), true);
-          } else {
-            showMessage('Profile picture saved.');
-            // close modal if hideModal exists
-            try { if (typeof hideModal === 'function') hideModal(); } catch(e){}
-          }
-        });
-      }).catch(function(err){
-        showMessage('Image link is not valid: ' + (err && err.message), true);
-      });
-    }
-  });
-
-  // Live preview as user types/pastes URL
-  document.addEventListener('input', function(ev){
-    var t = ev.target;
-    if (!t) return;
-    if (t.id === 'quickConfirmUrl' || t.id === 'pencilUrl' || t.classList.contains('image-url-input')) {
-      var u = t.value || t.dataset && t.dataset.url || '';
-      // quick passive preview using the raw URL (no heavy validation)
-      updateRoundPreview(u);
-    }
-  });
-
-  // Ensure initial load populates preview from existing saved db entry when auth ready
-  function initPreviewFromDB(){
-    try {
-      if (typeof firebase !== 'undefined' && firebase && firebase.auth) {
-        firebase.auth().onAuthStateChanged(function(user){
-          if (!user) return;
-          firebase.database().ref('users/' + user.uid).once('value').then(function(snap){
-            var d = snap.val() || {};
-            var pic = d.profilePic || d.photoURL || null;
-            if (pic) updateRoundPreview(pic);
-            // also if user has about, set about input (keeps previous behavior)
-            var aboutInput = document.getElementById('aboutInput');
-            if (aboutInput && d.about) aboutInput.value = d.about;
-          }).catch(function(e){ console.warn('initPreviewFromDB error', e); });
-        });
-      }
-    } catch(e){ console.warn(e); }
-  }
-  document.addEventListener('DOMContentLoaded', initPreviewFromDB);
-  // Also run immediately in case auth already loaded
-  setTimeout(initPreviewFromDB, 800);
-})();
-</script>
 
 </body>
 </html>
