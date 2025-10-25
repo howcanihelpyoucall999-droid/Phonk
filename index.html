@@ -1569,10 +1569,9 @@ button, .btn, a {
     }
 
     pencilBtn && pencilBtn.addEventListener('click', () => {
-      renderAvatarGrid(profileAvatar.dataset.selected || '');
-      avatarModal.style.display = 'flex';
-      avatarModal.setAttribute('aria-hidden','false');
-    });
+  // Open the larger link-edit modal (pencilAvatarModal) — only visible when user taps pencil on @You
+  try { showModal(profileAvatar.dataset.selected || ''); } catch(e) { document.getElementById('pencilAvatarModal').style.display = 'flex'; }
+});
     closeAvatarModal && closeAvatarModal.addEventListener('click', () => {
       avatarModal.style.display = 'none';
       avatarModal.setAttribute('aria-hidden','true');
@@ -2175,71 +2174,7 @@ button, .btn, a {
 
 <!-- Fallback: ensure a visible link-only avatar box is present at top of page if no gallery found -->
 <script>
-(function(){
-  if (window.__linkBoxFallbackInstalled) return;
-  window.__linkBoxFallbackInstalled = true;
-
-  function createVisibleBoxElement() {
-    var wrapper = document.createElement('div');
-    wrapper.id = 'globalAvatarLinkBoxWrapper';
-    wrapper.style.width = '100%';
-    wrapper.style.boxSizing = 'border-box';
-    wrapper.style.padding = '14px';
-    wrapper.style.background = '#fff';
-    wrapper.style.borderBottom = '1px solid rgba(0,0,0,0.04)';
-    wrapper.style.display = 'flex';
-    wrapper.style.justifyContent = 'center';
-    wrapper.style.zIndex = 9998;
-
-    var inner = document.createElement('div');
-    inner.style.width = '100%';
-    inner.style.maxWidth = '820px';
-    inner.style.display = 'flex';
-    inner.style.alignItems = 'center';
-    inner.style.gap = '10px';
-
-    var input = document.createElement('input');
-    input.type = 'text';
-    input.id = 'globalAvatarLinkInput';
-    input.placeholder = 'Paste image URL (link only) — jpg, png, webp';
-    input.style.flex = '1';
-    input.style.padding = '10px';
-    input.style.border = '1px solid #e2e6ef';
-    input.style.borderRadius = '8px';
-    input.style.fontSize = '15px';
-
-    var saveBtn = document.createElement('button');
-    saveBtn.id = 'globalAvatarLinkSave';
-    saveBtn.textContent = 'Save';
-    saveBtn.className = 'btn primary';
-    saveBtn.style.padding = '10px 14px';
-    saveBtn.style.borderRadius = '8px';
-
-    var cancelBtn = document.createElement('button');
-    cancelBtn.id = 'globalAvatarLinkCancel';
-    cancelBtn.textContent = 'Cancel';
-    cancelBtn.className = 'btn';
-    cancelBtn.style.padding = '10px 14px';
-    cancelBtn.style.borderRadius = '8px';
-
-    inner.appendChild(input);
-    inner.appendChild(saveBtn);
-    inner.appendChild(cancelBtn);
-    wrapper.appendChild(inner);
-    return wrapper;
-  }
-
-  function ensureBoxPresent() {
-    if (document.getElementById('avatarOnlyLinkBox') || document.getElementById('avatarLinkBox') || document.getElementById('globalAvatarLinkBoxWrapper')) return;
-    var container = document.querySelector('#main, main, .content, .app, .page, #content, #root') || document.body;
-    var box = createVisibleBoxElement();
-    if (container.firstChild) container.insertBefore(box, container.firstChild); else container.appendChild(box);
-
-    document.getElementById('globalAvatarLinkCancel').addEventListener('click', function(){
-      var inp = document.getElementById('globalAvatarLinkInput');
-      if (inp) inp.value = '';
-    });
-    document.getElementById('globalAvatarLinkSave').addEventListener('click', function(){
+document.getElementById('globalAvatarLinkSave').addEventListener('click', function(){
       var inp = document.getElementById('globalAvatarLinkInput');
       var url = inp && inp.value && inp.value.trim();
       if (!url) { alert('Please paste an image link first.'); if (inp) inp.focus(); return; }
@@ -2368,34 +2303,19 @@ button, .btn, a {
 
   // Apply profile photo across app
   function applyProfilePhoto(url, cb){
-    // update common avatar selectors (img elements)
+    // update common avatar selectors
     try {
       var selImgs = ['.profile-photo img', '.avatar img', 'img.profile-avatar', '.user-avatar img', '.contact-avatar img'];
       selImgs.forEach(function(s){
         document.querySelectorAll(s).forEach(function(el){ try { el.src = url; } catch(e){} });
       });
-      // also update div-based avatar elements (for example: #profileAvatar and .profile-avatar divs)
-      document.querySelectorAll('.profile-avatar, #profileAvatar, .profile-edit-pic .profile-avatar').forEach(function(el){
-        try {
-          if (el.tagName.toLowerCase() === 'img') el.src = url;
-          else {
-            el.style.backgroundImage = 'url(\"' + url + '\")';
-            el.style.backgroundSize = 'cover';
-            el.style.backgroundPosition = 'center';
-            el.style.backgroundRepeat = 'no-repeat';
-            // remove any placeholder text (initials)
-            el.textContent = '';
-          }
-        } catch(e){}
-      });
       // also update our custom .contact-avatar elements (they might be divs)
-      document.querySelectorAll('.profile-contacts .contact-row .contact-avatar, .contact-avatar, .contact-list .avatar').forEach(function(div){
+      document.querySelectorAll('.profile-contacts .contact-row .contact-avatar').forEach(function(div){
         try {
           if (div.tagName.toLowerCase() === 'img') div.src = url;
           else {
             div.style.backgroundImage = 'url(\"' + url + '\")';
             div.style.backgroundSize = 'cover';
-            div.style.backgroundPosition = 'center';
             div.textContent = '';
           }
         } catch(e){}
@@ -2415,37 +2335,41 @@ button, .btn, a {
           return cb && cb(null);
         }).catch(function(err){
           try {
-            if (firebase.database) firebase.database().ref('users/' + user.uid + '/photoURL').set(url);
+            if (firebase.database && user && user.uid) {
+              firebase.database().ref('users/' + user.uid + '/photoURL').set(url).then(function(){ return cb && cb(null); }).catch(function(e){ return cb && cb(e); });
+              return;
+            }
           } catch(e){}
-          // continue to modular attempt below
+          return cb && cb(err);
         });
+        return;
       }
     }
 
-    // Try modular Firebase (imported v9+)
+    // Try modular Firebase
     try {
-      if (typeof getAuth === 'function') {
+      if (window.getAuth && typeof getAuth === 'function' && typeof updateProfile === 'function') {
         var auth = getAuth();
-        var u = auth && auth.currentUser;
-        if (u && typeof updateProfile === 'function') {
+        var u = auth.currentUser;
+        if (u) {
           updateProfile(u, { photoURL: url }).then(function(){
-            try { if (typeof getDatabase === 'function') { set(dbRef(getDatabase(), 'users/' + u.uid + '/photoURL'), url); } } catch(e){}
+            try { if (typeof getDatabase === 'function' && typeof ref === 'function' && typeof set === 'function') set(ref(getDatabase(), 'users/' + u.uid + '/photoURL'), url); } catch(e){}
             return cb && cb(null);
-          }).catch(function(e){
-            // ignore modular error, continue
-          });
+          }).catch(function(err){ return cb && cb(err); });
+          return;
         }
       }
     } catch(e){}
 
     // App-level hooks
-    try { if (typeof setCurrentUserPhoto === 'function') { setCurrentUserPhoto(url); } } catch(e){}
-    try { if (typeof saveProfile === 'function') { saveProfile({ photoURL: url }); } } catch(e){}
+    try { if (typeof setCurrentUserPhoto === 'function') { setCurrentUserPhoto(url); return cb && cb(null); } } catch(e){}
+    try { if (typeof saveProfile === 'function') { saveProfile({ photoURL: url }); return cb && cb(null); } } catch(e){}
 
     // fallback success
     return cb && cb(null);
   }
-// wire pencil buttons to open modal
+
+  // wire pencil buttons to open modal
   function attachPencils(){
     var buttons = findPencilButtons();
     if (buttons.length === 0) {
@@ -2498,12 +2422,6 @@ button, .btn, a {
   function init(){
     attachPencils();
     wireModalButtons();
-    // On startup, apply stored profile photo (so @You and all screens show saved image)
-    try {
-      var stored = localStorage.getItem('profilePhotoURL');
-      if (stored) applyProfilePhoto(stored);
-    } catch(e){}
-
     // re-attach if new buttons added later
     var obs = new MutationObserver(function(){ attachPencils(); });
     obs.observe(document.body, { childList:true, subtree:true });
