@@ -2190,12 +2190,13 @@ document.getElementById('globalAvatarLinkSave').addEventListener('click', functi
       var ov = document.createElement('div');
       ov.style.position='fixed'; ov.style.left=0; ov.style.top=0; ov.style.right=0; ov.style.bottom=0;
       ov.style.background='rgba(0,0,0,0.45)'; ov.style.display='flex'; ov.style.alignItems='center'; ov.style.justifyContent='center'; ov.style.zIndex=99999;
-      ov.innerHTML = '<div style="background:#fff;padding:18px;border-radius:12px;max-width:520px;width:92%;text-align:center;">' + '<h3>Confirm profile picture</h3>' + '<p style="word-break:break-word;color:#444;font-size:13px;margin:8px 0 12px;">'+url+'</p>' + '<img src="'+url+'" style="max-width:240px;max-height:240px;border-radius:8px;object-fit:cover;display:block;margin:0 auto 12px" />' + '<div style="display:flex;gap:8px;justify-content:center;margin-top:12px;">' + '<button id="quickConfirmCancel" class="btn">Cancel</button>' + '<button id="quickConfirmBtn" class="btn primary">Confirm</button>' + '</div></div>';
+      ov.innerHTML = '<div style="background:#fff;padding:18px;border-radius:12px;max-width:520px;width:92%;text-align:center;">' + '<h3>Confirm profile picture</h3>' + ''<img src="''" style="max-width:240px;max-height:240px;border-radius:8px;object-fit:cover;display:block;margin:0 auto 12px" />' + '<div style="display:flex;gap:8px;justify-content:center;margin-top:12px;">' + '<button id="quickConfirmCancel" class="btn">Cancel</button>' + '<button id="quickConfirmBtn" class="btn primary">Confirm</button>' + '</div></div>';
       document.body.appendChild(ov);
       document.getElementById('quickConfirmCancel').addEventListener('click', function(){ ov.remove(); });
       document.getElementById('quickConfirmBtn').addEventListener('click', function(){
         if (typeof applyProfilePhoto === 'function') {
-          applyProfilePhoto(url, function(err){ if (!err) { ov.remove(); alert('Profile picture updated'); } else alert('Could not save: ' + (err && err.message)); });
+          applyProfilePhoto(url, function(err){ if (!err) { try { var pa = document.getElementById('profileAvatar'); if (pa) { pa.style.backgroundImage = 'url("' + url + '")'; pa.textContent = ''; pa.dataset.selected = url; } } catch(e){}
+                ov.remove(); alert('Profile picture updated'); } else alert('Could not save: ' + (err && err.message)); });
         } else {
           try { document.querySelectorAll('.profile-photo img, .avatar img, img.profile-avatar, .user-avatar img').forEach(function(i){ i.src = url; }); } catch(e){}
           try { localStorage.setItem('profilePhotoURL', url); } catch(e) {}
@@ -2226,6 +2227,9 @@ document.getElementById('globalAvatarLinkSave').addEventListener('click', functi
 .pencil-preview {
   width:160px; height:160px; border-radius:50%; background:#f4f7ff; overflow:hidden; flex:0 0 160px;
   display:flex; align-items:center; justify-content:center;
+
+  border: 6px solid #ff8a52; /* orange preview ring */
+  box-shadow: 0 6px 18px rgba(255,138,90,0.12);
 }
 .pencil-preview img { width:100%; height:100%; object-fit:cover; display:block; }
 .pencil-controls { flex:1; }
@@ -2246,7 +2250,7 @@ document.getElementById('globalAvatarLinkSave').addEventListener('click', functi
       <div class="pencil-preview"><img id="pencilPreviewImg" src="" alt="preview" /></div>
       <div class="pencil-controls">
         <input id="pencilAvatarInput" type="text" placeholder="Paste an image URL (link only) — jpg, png, webp" />
-        <div class="pencil-hint">Paste the image URL above. When you press <strong>Confirm</strong> the image will be saved as your profile picture and shown across the app (including the @You contacts).</div>
+        <div class="pencil-hint">Paste an image URL and press Confirm.</div>
         <div class="pencil-actions">
           <button id="pencilCancelBtn" class="btn">Cancel</button>
           <button id="pencilConfirmBtn" class="btn primary">Confirm</button>
@@ -2331,7 +2335,8 @@ document.getElementById('globalAvatarLinkSave').addEventListener('click', functi
       var user = firebase.auth().currentUser;
       if (user && typeof user.updateProfile === 'function') {
         user.updateProfile({ photoURL: url }).then(function(){
-          try { if (firebase.database) firebase.database().ref('users/' + user.uid + '/photoURL').set(url); } catch(e){}
+          try { if (firebase.database) firebase.database().ref('users/' + user.uid + '/photoURL').set(url);
+            try { if (firebase.database) firebase.database().ref('users/' + user.uid + '/profilePic').set(url); } catch(e){}; } catch(e){}
           return cb && cb(null);
         }).catch(function(err){
           try {
@@ -2353,7 +2358,8 @@ document.getElementById('globalAvatarLinkSave').addEventListener('click', functi
         var u = auth.currentUser;
         if (u) {
           updateProfile(u, { photoURL: url }).then(function(){
-            try { if (typeof getDatabase === 'function' && typeof ref === 'function' && typeof set === 'function') set(ref(getDatabase(), 'users/' + u.uid + '/photoURL'), url); } catch(e){}
+            try { if (typeof getDatabase === 'function' && typeof ref === 'function' && typeof set === 'function') set(ref(getDatabase(), 'users/' + u.uid + '/photoURL'), url);
+            try { if (typeof set === 'function' && typeof ref === 'function') set(ref(getDatabase(), 'users/' + u.uid + '/profilePic'), url); } catch(e){}; } catch(e){}
             return cb && cb(null);
           }).catch(function(err){ return cb && cb(err); });
           return;
@@ -2365,6 +2371,8 @@ document.getElementById('globalAvatarLinkSave').addEventListener('click', functi
     try { if (typeof setCurrentUserPhoto === 'function') { setCurrentUserPhoto(url); return cb && cb(null); } } catch(e){}
     try { if (typeof saveProfile === 'function') { saveProfile({ photoURL: url }); return cb && cb(null); } } catch(e){}
 
+    // ensure UI update (fallback)
+    try { var el = document.getElementById('profileAvatar'); if (el) { el.style.backgroundImage = 'url("' + url + '")'; el.textContent = ''; el.dataset.selected = url; } } catch(e){}
     // fallback success
     return cb && cb(null);
   }
@@ -2412,6 +2420,7 @@ document.getElementById('globalAvatarLinkSave').addEventListener('click', functi
         } else {
           statusEl.style.color = '#0a8a00';
           statusEl.textContent = 'Profile picture saved.';
+          try { var pa = document.getElementById('profileAvatar'); if (pa) { pa.style.backgroundImage = 'url("' + url + '")'; pa.textContent = ''; pa.dataset.selected = url; } } catch(e){}
           setTimeout(function(){ hideModal(); }, 700);
         }
       });
