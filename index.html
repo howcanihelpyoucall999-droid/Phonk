@@ -2791,5 +2791,226 @@ document.addEventListener('click', function(e){
 });
 </script>
 
+
+<!-- PROFILE LINK PREVIEW + STRONG CONFIRM HANDLER -->
+<script>
+(function(){
+  // Safe helpers (reuse if others exist)
+  function el(id){ return document.getElementById(id); }
+  function qs(sel){ return document.querySelector(sel); }
+
+  // Show message to user in modal/overlay or alert fallback
+  function showMessage(msg, isError) {
+    var status = el('quickConfirmStatus') || el('aboutStatus') || qs('.status') || null;
+    if (status) {
+      status.textContent = msg;
+      status.style.color = isError ? '#c00' : '#0a8a00';
+      if (!isError) setTimeout(function(){ if(status) status.textContent=''; }, 1600);
+    } else {
+      try { alert(msg); } catch(e){ console.log(msg); }
+    }
+  }
+
+  // Update round preview element when URL changes
+  function updateRoundPreview(url) {
+    try {
+      // Try to find common preview containers
+      var preview = qs('.pencil-preview') || qs('#quickConfirmPreview') || qs('.avatar-preview') || null;
+      if (!preview) {
+        // create small preview near inputs if none
+        var container = qs('.pencil') || qs('.profile') || document.body;
+        preview = document.createElement('div');
+        preview.className = 'pencil-preview';
+        preview.style.width = '84px';
+        preview.style.height = '84px';
+        preview.style.borderRadius = '50%';
+        preview.style.overflow = 'hidden';
+        preview.style.display = 'inline-block';
+        preview.style.marginLeft = '10px';
+        preview.style.backgroundSize = 'cover';
+        preview.style.backgroundPosition = 'center';
+        preview.style.border = '4px solid #ff8a52';
+        (container.firstChild) ? container.insertBefore(preview, container.firstChild) : container.appendChild(preview);
+      }
+      if (!url) {
+        preview.style.backgroundImage = '';
+        preview.innerHTML = '';
+        return;
+      }
+      // If proxied URL (images.weserv) may be used; show it directly
+      preview.style.backgroundImage = 'url(\"' + url + '\")';
+      preview.innerHTML = '';
+    } catch(e){ console.warn('updateRoundPreview error', e); }
+  }
+
+  // Attempt to verify image loads by creating an Image object
+  function testImage(url, timeoutMs) {
+    timeoutMs = timeoutMs || 7000;
+    return new Promise(function(resolve, reject){
+      try {
+        var img = new Image();
+        var done = false;
+        var t = setTimeout(function(){ if(done) return; done=true; img.onload=img.onerror=null; reject(new Error('timeout')); }, timeoutMs);
+        img.onload = function(){ if(done) return; done=true; clearTimeout(t); img.onload=img.onerror=null; resolve(true); };
+        img.onerror = function(){ if(done) return; done=true; clearTimeout(t); img.onload=img.onerror=null; reject(new Error('error loading')); };
+        try { img.crossOrigin = 'Anonymous'; } catch(e) {}
+        img.src = url;
+      } catch(ex){ reject(ex); }
+    });
+  }
+
+  // Simple proxy fallback using images.weserv.nl (only domain+path is appended)
+  function makeProxy(url) {
+    try {
+      var stripped = url.replace(/^https?:\/\//i, '');
+      return 'https://images.weserv.nl/?url=' + encodeURIComponent(stripped) + '&w=1200';
+    } catch(e){ return null; }
+  }
+
+  // Validate or fallback and return {displayUrl, originalUrl, proxied}
+  function validateImageUrl(url) {
+    return new Promise(function(resolve, reject){
+      if (!url || !url.match(/^https?:\/\//i)) {
+        return reject(new Error('Enter a valid URL starting with http:// or https://'));
+      }
+      // First try direct load
+      testImage(url, 6000).then(function(){
+        resolve({ displayUrl: url, originalUrl: url, proxied: false });
+      }).catch(function(){
+        // Try proxy
+        var proxy = makeProxy(url);
+        if (proxy) {
+          testImage(proxy, 8000).then(function(){
+            resolve({ displayUrl: proxy, originalUrl: url, proxied: true });
+          }).catch(function(){
+            reject(new Error('Image did not load directly and proxy fallback failed. The host may block hotlinking. Try another image host (Imgur, images.unsplash.com, i.imgur.com, GitHub raw image links).'));
+          });
+        } else {
+          reject(new Error('Could not build proxy URL for fallback.'));
+        }
+      });
+    });
+  }
+
+  // Core: apply and persist profile image (displayUrl is the URL to use in UI)
+  function saveProfileImage(displayUrl, originalUrl, cb) {
+    try {
+      if (typeof applyProfilePhoto === 'function') {
+        applyProfilePhoto(displayUrl, function(err){
+          if (err) {
+            if (cb) cb(err);
+            return;
+          }
+          // ensure DB keys are set (profilePic used for display, profilePicOriginal for original)
+          try {
+            var user = null;
+            if (typeof firebase !== 'undefined' && firebase && firebase.auth) user = firebase.auth().currentUser;
+            if (user) {
+              firebase.database().ref('users/' + user.uid + '/profilePic').set(displayUrl);
+              if (originalUrl) firebase.database().ref('users/' + user.uid + '/profilePicOriginal').set(originalUrl);
+            }
+          } catch(e){ console.warn('DB write failed', e); }
+          // update UI avatar element immediately
+          try {
+            var pa = el('profileAvatar') || qs('.profile-avatar') || qs('.avatar');
+            if (pa) {
+              // set as background image if element supports it, else try to set src of an img inside it
+              try { pa.style.backgroundImage = 'url(\"' + displayUrl + '\")'; pa.textContent = ''; } catch(e){}
+              var innerImg = pa.querySelector && pa.querySelector('img');
+              if (innerImg) innerImg.src = displayUrl;
+            }
+          } catch(e){}
+          if (cb) cb(null);
+        });
+      } else {
+        // fallback if applyProfilePhoto not defined: write DB directly and update UI
+        try {
+          var user = null;
+          if (typeof firebase !== 'undefined' && firebase && firebase.auth) user = firebase.auth().currentUser;
+          if (user) {
+            firebase.database().ref('users/' + user.uid + '/profilePic').set(displayUrl);
+            if (originalUrl) firebase.database().ref('users/' + user.uid + '/profilePicOriginal').set(originalUrl);
+          }
+        } catch(e){ console.warn('DB write failed', e); }
+        try {
+          var pa2 = el('profileAvatar') || qs('.profile-avatar') || qs('.avatar');
+          if (pa2) { pa2.style.backgroundImage = 'url(\"' + displayUrl + '\")'; pa2.textContent = ''; }
+        } catch(e){}
+        if (cb) cb(null);
+      }
+    } catch(ex){ if (cb) cb(ex); }
+  }
+
+  // Hook into the confirm button flow
+  document.addEventListener('click', function(ev){
+    var t = ev.target;
+    if (!t) return;
+    // Confirm / Save button id 'quickConfirmBtn' or class 'confirm-btn'
+    if (t.id === 'quickConfirmBtn' || t.classList.contains('confirm-btn')) {
+      ev.preventDefault();
+      // attempt to read URL from various possible inputs
+      var urlInput = el('quickConfirmUrl') || el('pencilUrl') || qs('.pencil input[type="text"]') || qs('.image-url-input') || null;
+      var url = '';
+      if (urlInput) url = urlInput.value || urlInput.textContent || urlInput.dataset && urlInput.dataset.url || '';
+      // fallback: if a preview <img> exists, use its src
+      if (!url) {
+        var img = qs('.pencil-preview img') || qs('#quickConfirmPreview img') || qs('.preview img');
+        if (img) url = img.src || '';
+      }
+      if (!url) { showMessage('Please enter an image URL first.', true); return; }
+      showMessage('Validating image...', false);
+      validateImageUrl(url).then(function(res){
+        // show preview of the displayUrl (may be proxied)
+        updateRoundPreview(res.displayUrl);
+        saveProfileImage(res.displayUrl, res.originalUrl, function(err){
+          if (err) {
+            showMessage('Could not save image: ' + (err && err.message), true);
+          } else {
+            showMessage('Profile picture saved.');
+            // close modal if hideModal exists
+            try { if (typeof hideModal === 'function') hideModal(); } catch(e){}
+          }
+        });
+      }).catch(function(err){
+        showMessage('Image link is not valid: ' + (err && err.message), true);
+      });
+    }
+  });
+
+  // Live preview as user types/pastes URL
+  document.addEventListener('input', function(ev){
+    var t = ev.target;
+    if (!t) return;
+    if (t.id === 'quickConfirmUrl' || t.id === 'pencilUrl' || t.classList.contains('image-url-input')) {
+      var u = t.value || t.dataset && t.dataset.url || '';
+      // quick passive preview using the raw URL (no heavy validation)
+      updateRoundPreview(u);
+    }
+  });
+
+  // Ensure initial load populates preview from existing saved db entry when auth ready
+  function initPreviewFromDB(){
+    try {
+      if (typeof firebase !== 'undefined' && firebase && firebase.auth) {
+        firebase.auth().onAuthStateChanged(function(user){
+          if (!user) return;
+          firebase.database().ref('users/' + user.uid).once('value').then(function(snap){
+            var d = snap.val() || {};
+            var pic = d.profilePic || d.photoURL || null;
+            if (pic) updateRoundPreview(pic);
+            // also if user has about, set about input (keeps previous behavior)
+            var aboutInput = document.getElementById('aboutInput');
+            if (aboutInput && d.about) aboutInput.value = d.about;
+          }).catch(function(e){ console.warn('initPreviewFromDB error', e); });
+        });
+      }
+    } catch(e){ console.warn(e); }
+  }
+  document.addEventListener('DOMContentLoaded', initPreviewFromDB);
+  // Also run immediately in case auth already loaded
+  setTimeout(initPreviewFromDB, 800);
+})();
+</script>
+
 </body>
 </html>
