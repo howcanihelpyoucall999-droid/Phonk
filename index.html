@@ -343,6 +343,14 @@
 .profile-field input[type="text"], .profile-field textarea { width:100%; padding:10px; border-radius:10px; border:1px solid rgba(11,96,214,0.06); font-size:15px; }
 .save-profile-btn { margin-top:12px; }
 .profile-contacts { margin-top:18px; }
+
+/* --- USER CHANGE: make contact name truncate with ellipsis and ensure circle avatars --- */
+.contact-row{ min-width:0; }
+.contact-row > div { min-width:0; }
+.contact-row .contact-name{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
+/* Ensure avatar in contact-row is a perfect circle */
+.contact-row .contact-avatar, .contact-row > div > .contact-avatar { width:44px; height:44px; border-radius:50%; overflow:hidden; display:flex; align-items:center; justify-content:center; }
+
 .contact-row { display:flex; align-items:center; gap:10px; padding:8px; border-radius:8px; background:#fff; border:1px solid rgba(11,96,214,0.04); margin-bottom:8px; }
 .contact-row .contact-name { flex:1; font-weight:700; color:var(--primary); }
 .contact-row .delete-btn { background:#ff4d4f; color:#fff; border:none; padding:6px 8px; border-radius:8px; cursor:pointer; }
@@ -464,22 +472,6 @@ button, .btn, a {
   background:var(--primary); color:#fff; font-weight:600;
 }
 #permissionDismiss{ background:transparent; border:none; color:var(--muted); cursor:pointer; font-size:13px; }
-
-</style>
-<style>
-
-/* --- Chat message slide-in animations (left/right) --- */
-@keyframes slideInFromLeft {
-  0% { transform: translateX(-30px); opacity: 0; }
-  100% { transform: translateX(0); opacity: 1; }
-}
-@keyframes slideInFromRight {
-  0% { transform: translateX(30px); opacity: 0; }
-  100% { transform: translateX(0); opacity: 1; }
-}
-.enter-from-left { animation: slideInFromLeft 220ms cubic-bezier(.22,.9,.37,1) both; }
-.enter-from-right { animation: slideInFromRight 220ms cubic-bezier(.22,.9,.37,1) both; }
-.enter-from-left, .enter-from-right { will-change: transform, opacity; }
 
 </style>
 </head>
@@ -614,15 +606,19 @@ button, .btn, a {
         </div>
 
         <div class="profile-field">
-          <label style="font-size:13px;color:var(--muted)">Handle (public)</label>
-          <input id="profileHandle" type="text" placeholder="@yourhandle">
-        </div>
+  <label style="font-size:13px;color:var(--muted)">Handle (public)</label>
+  <div style="display:flex;align-items:center;gap:8px;">
+    <input id="profileHandle" type="text" placeholder="@yourhandle" readonly>
+    <small id="profileHandleNote" style="color:var(--muted);font-size:13px;">(cannot change)</small>
+  </div>
+</div>
 
         <div class="profile-field" id="profileAboutField">
           <label style="font-size:13px;color:var(--muted)">About</label>
           <textarea id="profileAbout" rows="2" placeholder='Hi, I am using Zag Messenger'></textarea>
         </div>
-        <button id="saveProfileBtn" class="btn primary save-profile-btn">Save</button>
+        <div id="saveHint" style="font-size:13px;color:var(--muted);margin-top:8px;">Please save after making changes to your profile.</div>
+<button id="saveProfileBtn" class="btn primary save-profile-btn">Save</button>
 
         <hr style="margin:14px 0;border:none;border-top:1px dashed rgba(11,96,214,0.06)">
 
@@ -1609,8 +1605,9 @@ button, .btn, a {
         let data = snap.exists() ? snap.val() : {};
         if (data.displayName) profileDisplayName.value = data.displayName;
         else profileDisplayName.value = (currentUser.email || '').split('@')[0] || '';
-        if (data.handle) profileHandle.value = data.handle;
-        else profileHandle.value = '';
+        /* enforce handle as email local-part and make it readonly (cannot change) */
+        profileHandle.value = (currentUser && currentUser.email ? (currentUser.email.split('@')[0]) : (data && data.handle ? data.handle : '')) || '';
+        try { profileHandle.setAttribute('readonly','true'); } catch(e){};
         if (data.about) profileAbout.value = data.about;
         else profileAbout.value = 'Hi, I am using Zag Messenger';
         if (data.profilePic) {
@@ -2266,7 +2263,9 @@ document.getElementById('globalAvatarLinkSave').addEventListener('click', functi
       <div class="pencil-preview"><img id="pencilPreviewImg" src="" alt="preview" /></div>
       <div class="pencil-controls">
         <input id="pencilAvatarInput" type="text" placeholder="Paste an image URL (link only) — jpg, png, webp" />
-        <div class="pencil-hint">Paste an image URL and press Confirm.</div>
+        
+        <div id="pencilValidation" style="color:#d9534f;margin-top:8px;font-size:13px;display:none;"></div>
+<div class="pencil-hint">Paste an image URL and press Confirm.</div>
         <div class="pencil-actions">
           <button id="pencilCancelBtn" class="btn">Cancel</button>
           <button id="pencilConfirmBtn" class="btn primary">Confirm</button>
@@ -2714,84 +2713,49 @@ document.getElementById('globalAvatarLinkSave').addEventListener('click', functi
   </div>
 
 
-<script>
+// --- User change: validate pencil avatar link before accepting ---
 (function(){
-  function findChatContainer(){
-    var selectors = ['#chatMessages','#messages','.messages','.chat-messages','.chat-body','#chat .messages','.conversation'];
-    for(var i=0;i<selectors.length;i++){
-      var el = document.querySelector(selectors[i]);
-      if(el) return el;
-    }
-    var el = document.querySelector('[role=main]') || document.querySelector('[role=listbox]');
-    if(el) return el;
-    return document.body;
+  function isValidImageUrl(u){
+    if(!u) return false;
+    try {
+      var p = /^https?:\/\/.+\.(jpg|jpeg|png|webp|gif)$/i;
+      return p.test(u);
+    } catch(e){ return false; }
   }
 
-  function shouldAnimateNode(node){
-    if(!(node instanceof Element)) return false;
-    var cls = node.className || '';
-    if(/(^|\s)(message|msg|bubble|chat-message|chat-row|conversation-row)(\s|$)/i.test(cls)) return true;
-    if(node.getAttribute && (node.getAttribute('role')==='listitem' || node.getAttribute('role')==='article' || node.getAttribute('role')==='message')) return true;
-    if(node.children.length===0 && node.textContent && node.textContent.trim().length>0 && node.closest && node.closest('.messages')) return true;
-    return false;
-  }
-
-  function applyEnterClass(node){
-    try{
-      if(!(node instanceof Element)) return;
-      if(node.classList.contains('enter-from-left') || node.classList.contains('enter-from-right')) return;
-      var parent = node.parentElement || node.closest('.messages') || document.body;
-      var pRect = parent.getBoundingClientRect();
-      var nRect = node.getBoundingClientRect();
-      var nCenter = nRect.left + nRect.width/2;
-      var side = (nCenter > (pRect.left + pRect.width/2)) ? 'right' : 'left';
-      if(side==='right') node.classList.add('enter-from-right');
-      else node.classList.add('enter-from-left');
-      node.addEventListener('animationend', function onEnd(){
-        try{ node.classList.remove('enter-from-left'); node.classList.remove('enter-from-right'); }catch(e){}
-        node.removeEventListener('animationend', onEnd);
-      });
-    }catch(e){ console.warn('applyEnterClass error', e); }
-  }
-
-  var chat = findChatContainer();
-
-  var observer = new MutationObserver(function(muts){
-    muts.forEach(function(m){
-      m.addedNodes && m.addedNodes.forEach(function(node){
-        if(shouldAnimateNode(node)){
-          setTimeout(function(){ applyEnterClass(node); }, 10);
-        }
-        if(node.querySelectorAll){
-          var kids = node.querySelectorAll('.message, .msg, .bubble, .chat-message, [role="message"], [role="listitem"], .chat-row, .conversation-row');
-          for(var i=0;i<kids.length;i++){ (function(nk){ setTimeout(function(){ applyEnterClass(nk); }, 10); })(kids[i]); }
-        }
-      });
+  var pencilConfirm = document.getElementById('pencilConfirmBtn');
+  var pencilInput = document.getElementById('pencilAvatarInput');
+  var pencilValidation = document.getElementById('pencilValidation') || document.getElementById('pencilStatus');
+  if (pencilConfirm){
+    pencilConfirm.addEventListener('click', function(ev){
+      ev.preventDefault && ev.preventDefault();
+      var url = pencilInput ? (pencilInput.value||'').trim() : '';
+      if(!isValidImageUrl(url)){
+        if(pencilValidation){ pencilValidation.style.display='block'; pencilValidation.textContent = 'Please enter a valid image link (jpg/png/webp). Some links may not work — try a different URL.'; }
+        return;
+      }
+      // valid -> try to apply via existing helper if available, otherwise update UI and close modal
+      if(typeof applyProfilePhoto === 'function'){
+        applyProfilePhoto(url, function(err){
+          if(!err){
+            try { document.getElementById('pencilAvatarModal').style.display = 'none'; } catch(e){};
+            alert('Profile picture updated');
+          } else {
+            if(pencilValidation){ pencilValidation.style.display='block'; pencilValidation.textContent = 'Could not save this image link. Try a different link.'; }
+          }
+        });
+      } else {
+        try { var pa = document.getElementById('profileAvatar'); if(pa){ pa.style.backgroundImage='url(\"'+url+'\")'; pa.textContent=''; pa.dataset.selected = url; } } catch(e) {}
+        try { document.getElementById('pencilAvatarModal').style.display='none'; } catch(e){};
+      }
     });
-  });
-  observer.observe(chat, { childList: true, subtree: true });
-
-  function patchFunction(obj, name){
-    try{
-      if(!obj || !name || !obj[name]) return;
-      var orig = obj[name];
-      obj[name] = function(){
-        var res = orig.apply(this, arguments);
-        try{
-          var chatEl = findChatContainer();
-          var last = chatEl && (chatEl.lastElementChild || chatEl.querySelector(':scope > *:last-child'));
-          if(last && shouldAnimateNode(last)) applyEnterClass(last);
-        }catch(e){}
-        return res;
-      };
-    }catch(e){}
   }
-
-  try{ patchFunction(window, 'appendMessage'); }catch(e){};
-  try{ patchFunction(window, 'addMessage'); }catch(e){};
-  try{ patchFunction(window, 'renderMessage'); }catch(e){};
+  // hide validation on cancel
+  var pencilCancel = document.getElementById('pencilCancelBtn');
+  if (pencilCancel){
+    pencilCancel.addEventListener('click', function(){ if(pencilValidation){ pencilValidation.style.display='none'; pencilValidation.textContent=''; } document.getElementById('pencilAvatarModal').style.display='none'; });
+  }
 })();
-</script>
 
 </body>
 </html>
