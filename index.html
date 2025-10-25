@@ -639,6 +639,42 @@ button, .btn, a {
   .plus-menu { right:12px; left:auto; }
 }
 
+
+/* Pencil button on group avatar */
+.edit-pencil {
+  position: absolute;
+  right: 6px;
+  top: 6px;
+  width:28px;
+  height:28px;
+  border-radius:8px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background: rgba(255,255,255,0.14);
+  color: var(--modal-text);
+  font-size:14px;
+  cursor:pointer;
+  border:1px solid rgba(255,255,255,0.06);
+  box-shadow:0 6px 18px rgba(3,24,78,0.12);
+}
+
+/* Make sure group avatar container is position:relative so pencil sits correctly */
+.group-avatar-preview { position: relative; }
+
+/* Group lists: fix in mobile screen and allow internal scrolling */
+.groups-list, .group-list, #groupsSection, .groups { max-height: 56vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+
+/* Auto-hide helper class (for visibility transitions) */
+.auto-hide { transition: opacity 220ms ease, transform 220ms ease; opacity: 1; transform: translateY(0); }
+.auto-hide.hidden { opacity: 0; transform: translateY(8px); pointer-events: none; }
+
+/* make sure modal content fully scrollable */
+.modal-center .modal-box .modal-content { max-height: 68vh; overflow-y: auto; padding-right:6px; }
+
+/* Ensure group modal scrolls into view when opened */
+#modalBackdrop .modal { max-height: 82vh; overflow: hidden; }
+
 </style>
 </head>
 <body>
@@ -889,7 +925,7 @@ button, .btn, a {
     <div class="modal" role="dialog" aria-modal="true">
       <h4 id="modalTitle">New Group</h4>
       <div class="group-header">
-        <div class="group-avatar-preview" id="groupAvatarPreview">G</div>
+        <div class="group-avatar-preview" id="groupAvatarPreview">G  <div class="edit-pencil" id="groupEditPencil" title="Edit group picture">✎</div></div>
         <div style="flex:1;">
           <div style="display:flex;gap:8px;margin-bottom:8px;">
             <input id="groupImageUrl" type="url" placeholder="Paste image URL (optional)" />
@@ -3138,6 +3174,158 @@ if (modalContacts) modalContacts.style.maxHeight = (window.innerHeight * 0.48) +
 window.addEventListener('resize', ()=> {
   if (modalContacts) modalContacts.style.maxHeight = (window.innerHeight * 0.48) + 'px';
 });
+
+
+
+
+// ===== additional behavior: auto-hide and group edit pencil =====
+(function(){
+  let hidePlusTimer = null;
+  let modalAutoCloseTimer = null;
+
+  function scheduleHidePlusMenu() {
+    if (hidePlusTimer) clearTimeout(hidePlusTimer);
+    hidePlusTimer = setTimeout(()=> {
+      plusMenu.style.display = 'none';
+      plusShowTimeout = null;
+    }, 3000);
+  }
+  function clearHidePlusMenu() { if (hidePlusTimer) { clearTimeout(hidePlusTimer); hidePlusTimer = null; } }
+
+  // hook into floating button show to schedule hide
+  const originalFloatingHandler = floatingBtn.onclick;
+  floatingBtn.addEventListener('click', ()=> {
+    // when plus shown, schedule hide
+    if (plusMenu && plusMenu.style.display === 'flex') scheduleHidePlusMenu();
+  });
+
+  // ensure when plusMenu is toggled open by our code, schedule hide
+  const origShowPlus = () => {
+    if (plusMenu) scheduleHidePlusMenu();
+  };
+
+  // Cancel hide when user interacts with plus menu options
+  document.addEventListener('pointerdown', (e)=> {
+    if (e.target.closest && e.target.closest('.plus-menu')) clearHidePlusMenu();
+  });
+
+  // Auto-close modals after 3 seconds unless user interacts
+  function scheduleModalAutoClose(modalEl) {
+    if (!modalEl) return;
+    if (modalAutoCloseTimer) clearTimeout(modalAutoCloseTimer);
+    modalAutoCloseTimer = setTimeout(()=> {
+      // only close if no input focused inside modal
+      const active = document.activeElement;
+      if (modalEl.contains(active) && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) {
+        // user is typing, don't close
+        return;
+      }
+      // hide both possible modals
+      modalEl.style.display = 'none';
+      modalBackdrop.style.display = 'none';
+      individualModal.style.display = 'none';
+      document.querySelector('.phone').classList.remove('blurred-bg');
+      lockBodyScroll(false);
+    }, 3000);
+  }
+  function clearModalAutoClose() { if (modalAutoCloseTimer) { clearTimeout(modalAutoCloseTimer); modalAutoCloseTimer = null; } }
+
+  // when opening individual or group modals, schedule auto close
+  plusIndividualBtn && plusIndividualBtn.addEventListener('click', ()=> { scheduleModalAutoClose(individualModal); });
+  plusGroupBtn && plusGroupBtn.addEventListener('click', ()=> { scheduleModalAutoClose(modalBackdrop); });
+
+  // if user focuses inputs inside modal, cancel auto-close
+  const inputs = document.querySelectorAll('#individualModal input, #modalBackdrop input, #modalBackdrop textarea, #modalBackdrop [contenteditable]');
+  inputs.forEach(inp => inp && inp.addEventListener('focus', ()=> clearModalAutoClose()));
+
+  // clicking or pointerdown inside modal cancels auto-close (interaction)
+  document.querySelectorAll('#individualModal, #modalBackdrop, #avatarModal').forEach(el => {
+    if (!el) return;
+    el.addEventListener('pointerdown', ()=> clearModalAutoClose());
+  });
+
+  // Group edit pencil behavior: open avatar modal for group image select
+  const groupEditPencil = document.getElementById('groupEditPencil');
+  if (groupEditPencil) {
+    groupEditPencil.addEventListener('click', ()=> {
+      // open avatar modal and mark target = 'group'
+      const avatarModal = document.getElementById('avatarModal');
+      if (avatarModal) {
+        avatarModal.style.display = 'flex';
+        avatarModal.dataset.target = 'group';
+      }
+      // ensure blur/backdrop remains
+      document.querySelector('.phone').classList.add('blurred-bg');
+      lockBodyScroll(true);
+      clearModalAutoClose();
+    });
+  }
+
+  // When saving avatar for group while editing an existing group, update group image in DB if modalBackdrop has editGroupId
+  const origSaveHandler = document.getElementById('saveAvatarModal');
+  origSaveHandler && origSaveHandler.addEventListener('click', async ()=>{
+    const avatarModal = document.getElementById('avatarModal');
+    const target = avatarModal && avatarModal.dataset.target ? avatarModal.dataset.target : 'profile';
+    const sel = document.querySelector('#avatarGrid img.selected');
+    const src = sel ? (sel.dataset.src || sel.src) : null;
+    if (!src) {
+      // if no selection but there's an input URL in avatar modal, pick it
+      const urlInput = document.getElementById('groupImageUrl') || document.querySelector('#avatarModal input[type="url"]');
+      if (urlInput && urlInput.value) {
+        selectedGroupImage = urlInput.value.trim();
+      }
+    }
+    if (target === 'group' && (src || selectedGroupImage)) {
+      // update preview immediately
+      selectedGroupImage = src || selectedGroupImage;
+      updateGroupAvatarPreview();
+      // if editing an existing group, write to DB
+      const editId = modalBackdrop && modalBackdrop.dataset && modalBackdrop.dataset.editGroupId ? modalBackdrop.dataset.editGroupId : null;
+      if (editId && typeof db !== 'undefined' && typeof ref !== 'undefined' && typeof update === 'function') {
+        try {
+          const updates = { image: selectedGroupImage || '' };
+          await update(ref(db, 'groups/' + editId), updates);
+          // notify and close
+          // optionally show toast
+        } catch (err) {
+          console.warn('Failed to update group image', err);
+        }
+      }
+    }
+    // close avatar modal
+    if (document.getElementById('avatarModal')) {
+      document.getElementById('avatarModal').style.display = 'none';
+      document.getElementById('avatarModal').dataset.target = '';
+    }
+    document.querySelector('.phone').classList.remove('blurred-bg');
+    lockBodyScroll(false);
+  });
+
+  // Ensure when group modal opens, scroll the group section (inside modal) to top and ensure content fully visible
+  const openGroupModal = () => {
+    modalBackdrop.style.display = 'flex';
+    modalBackdrop.style.alignItems = 'center';
+    modalBackdrop.style.justifyContent = 'center';
+    const innerContent = modalBackdrop.querySelector('.modal');
+    if (innerContent) {
+      const contentScroll = innerContent.querySelector('.modal-content') || innerContent;
+      if (contentScroll) contentScroll.scrollTop = 0;
+      // ensure focus on group name input if present
+      const gName = document.getElementById('groupNameInput') || document.querySelector('#modalBackdrop input[name="groupName"]');
+      if (gName) setTimeout(()=> gName.focus(), 80);
+    }
+  };
+  // replace existing plusGroupBtn click to call openGroupModal as well
+  if (plusGroupBtn) {
+    plusGroupBtn.addEventListener('click', ()=> {
+      document.querySelector('.phone').classList.add('blurred-bg');
+      openGroupModal();
+      lockBodyScroll(true);
+      scheduleModalAutoClose(modalBackdrop);
+    });
+  }
+
+})();
 
 </script>
 
