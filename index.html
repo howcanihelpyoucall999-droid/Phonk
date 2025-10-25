@@ -2697,5 +2697,66 @@ document.getElementById('globalAvatarLinkSave').addEventListener('click', functi
     </div>
   </div>
 
+
+<!-- Added: loadProfile + saveAbout to persist profilePic and about in Realtime DB -->
+<script>
+function loadProfile() {
+  try {
+    firebase.auth().onAuthStateChanged(function(user){
+      if(!user) return;
+      firebase.database().ref('users/' + user.uid).once('value').then(function(snapshot){
+        var data = snapshot.val() || {};
+        var avatar = document.getElementById('profileAvatar');
+        var aboutInput = document.getElementById('aboutInput');
+        var pic = data.profilePic || data.photoURL;
+        if (pic && avatar) {
+          avatar.style.backgroundImage = 'url("' + pic + '")';
+          avatar.textContent = '';
+          avatar.dataset.selected = pic;
+        } else if (avatar) {
+          avatar.style.backgroundImage = '';
+        }
+        if (aboutInput && data.about) aboutInput.value = data.about;
+      }).catch(function(e){ console.error('loadProfile error', e); });
+    });
+  } catch(e) { console.error(e); }
+}
+
+function saveAbout(){
+  try {
+    var aboutInput = document.getElementById('aboutInput');
+    var user = firebase.auth().currentUser;
+    if (!user) { alert('Please sign in to save your about.'); return; }
+    var aboutText = aboutInput ? aboutInput.value.trim() : '';
+    firebase.database().ref('users/' + user.uid + '/about').set(aboutText).then(function(){
+      var s = document.getElementById('aboutStatus');
+      if(s){ s.textContent = 'Saved'; setTimeout(function(){s.textContent='';},1500); }
+    }).catch(function(e){ console.error('saveAbout error', e); alert('Could not save about.'); });
+  } catch(e) { console.error(e); }
+}
+
+document.addEventListener('DOMContentLoaded', function(){
+  // If the about input area doesn't exist, try to insert it in a likely place.
+  if(!document.getElementById('aboutInput')) {
+    // Find a container near profile settings or '@You' page
+    var area = document.querySelector('.profile-settings') || document.querySelector('.profile') || document.querySelector('.content') || document.body;
+    var wrapper = document.createElement('div');
+    wrapper.style.marginTop = '12px';
+    wrapper.innerHTML = '<label for="aboutInput" style="display:block;font-weight:600;margin-bottom:6px">About</label>'
+      + '<textarea id="aboutInput" placeholder="Write something about yourself..." style="width:100%;min-height:80px;padding:8px;border-radius:8px;border:1px solid #ddd;font-size:14px"></textarea>'
+      + '<div style="margin-top:8px"><button id="saveAboutBtn" onclick="saveAbout()" style="padding:8px 12px;border:none;border-radius:8px;background:#0a6cff;color:#fff">Save About</button>'
+      + ' <span id="aboutStatus" style="margin-left:8px;color:#0a8a00"></span></div>';
+    try { area.appendChild(wrapper); } catch(e) { document.body.appendChild(wrapper); }
+  }
+
+  // Ensure loadProfile runs after auth is ready
+  if (typeof firebase !== 'undefined' && firebase && firebase.auth) {
+    loadProfile();
+  } else {
+    console.warn('Firebase not found — loadProfile will run when auth becomes available.');
+  }
+});
+</script>
+
 </body>
 </html>
