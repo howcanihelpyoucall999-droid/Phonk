@@ -530,6 +530,115 @@ button, .btn, a {
 .avatar-grid.compact { grid-template-columns: repeat(6, 1fr); gap:6px; }
 .avatar-grid.compact img { height:48px; border-radius:8px; }
 
+
+/* ===== OVERRIDES: Blue rounded modal theme + scroll fix + plus-menu styling ===== */
+:root { --app-blue: #0b60d6; --app-blue-2: #0c7bff; --modal-text: #ffffff; --muted-on-blue: rgba(255,255,255,0.85); }
+
+.plus-menu {
+  background: linear-gradient(180deg,var(--app-blue-2),var(--app-blue));
+  padding: 10px;
+  border-radius: 14px;
+  gap:10px;
+  box-shadow: 0 18px 50px rgba(11,96,214,0.18);
+  display:none;
+  flex-direction:column;
+}
+.plus-menu button {
+  background: rgba(255,255,255,0.09);
+  color: var(--modal-text);
+  border: none;
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-weight:600;
+  cursor:pointer;
+  width:100%;
+  text-align:left;
+  box-shadow: none;
+}
+.plus-menu button:hover { background: rgba(255,255,255,0.13); }
+
+.modal-overlay, .modal-center {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  background: rgba(3,24,78,0.28); /* subtle deep-blue overlay to match theme */
+}
+.modal-center .modal-box {
+  width: 92%;
+  max-width: 520px;
+  background: linear-gradient(180deg,var(--app-blue),var(--app-blue-2));
+  border-radius: 18px;
+  padding: 18px;
+  color: var(--modal-text);
+  box-shadow: 0 28px 70px rgba(3,24,78,0.35);
+  position: relative;
+  transform: translateY(0);
+}
+.modal-center .modal-box .close-x {
+  position: absolute;
+  right: 12px;
+  top: 10px;
+  width: 40px;
+  height: 40px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:50%;
+  background: rgba(255,255,255,0.14);
+  color: var(--modal-text);
+  cursor:pointer;
+  font-weight:700;
+  box-shadow:0 8px 20px rgba(3,24,78,0.18);
+  border: none;
+}
+
+.modal-center .modal-box h4 { margin:0 0 8px; color:var(--modal-text); }
+.modal-center .modal-box .small { color:var(--muted-on-blue); font-size:13px; margin-bottom:8px; }
+
+/* Force modal to be vertically centered and fixed (won't fly up) */
+.modal-center { display:none; align-items:center; justify-content:center; }
+.modal-center .modal-box { max-height:82vh; overflow:hidden; }
+
+/* Make contacts list inside modal scrollable without moving modal */
+#modalBackdrop .contacts, #modalBackdrop .contacts-list, #modalBackdrop .contactsContainer, #modalBackdrop .contactsList {
+  max-height: 48vh;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+/* Avatar preview adjustments on blue background */
+#groupAvatarPreview {
+  width:96px;
+  height:96px;
+  border-radius:14px;
+  overflow:hidden;
+  background: rgba(255,255,255,0.12);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:var(--modal-text);
+  font-weight:700;
+  font-size:36px;
+  border:4px solid rgba(255,255,255,0.06);
+}
+
+/* Make sure profile avatar preview looks okay against blue */
+#profileAvatar { border-radius:12px; overflow:hidden; background: rgba(255,255,255,0.06); }
+
+/* ensure avatar modal itself appears over blue overlay and has rounded look */
+#avatarModal .modal { border-radius:14px; padding:12px; max-width:520px; background: linear-gradient(180deg,#f8fbff,#eaf3ff); color:#042a66; }
+
+/* small responsive tweak */
+@media (max-width:420px) {
+  .modal-center .modal-box { width: 96%; padding:12px; border-radius:14px; }
+  .plus-menu { right:12px; left:auto; }
+}
+
 </style>
 </head>
 <body>
@@ -2787,7 +2896,7 @@ document.getElementById('globalAvatarLinkSave').addEventListener('click', functi
       plusShowTimeout = setTimeout(() => {
         plusMenu.style.display = 'flex';
         // auto-hide after 4s (so user sees choices)
-        setTimeout(() => { plusMenu.style.display = 'none'; plusShowTimeout = null; }, 4000);
+        setTimeout(() => { plusMenu.style.display = 'none'; plusShowTimeout = null; }, 3000);
       }, 2000);
     });
 
@@ -2969,6 +3078,66 @@ document.getElementById('globalAvatarLinkSave').addEventListener('click', functi
     // Ensure updateFloatingVisibility is invoked after modal actions
     window.addEventListener('resize', updateFloatingVisibility);
     // ===== END: + button & modal improvements =====
+
+
+
+
+// Ensure modals lock background scroll and keep centered; ensure contacts inside modal scroll only
+function lockBodyScroll(lock) {
+  if (lock) {
+    document.body.style.overflow = 'hidden';
+  } else {
+    document.body.style.overflow = '';
+  }
+}
+
+// Modify existing eventbindings to lock/unlock scroll
+const origPlusGroupBtn = plusGroupBtn;
+if (origPlusGroupBtn) {
+  origPlusGroupBtn.addEventListener('click', () => {
+    plusMenu.style.display = 'none';
+    document.querySelector('.phone').classList.add('blurred-bg');
+    modalBackdrop.style.display = 'flex';
+    modalBackdrop.style.alignItems = 'center';
+    modalBackdrop.style.justifyContent = 'center';
+    lockBodyScroll(true);
+  });
+}
+
+if (plusIndividualBtn) {
+  plusIndividualBtn.addEventListener('click', () => {
+    plusMenu.style.display = 'none';
+    document.querySelector('.phone').classList.add('blurred-bg');
+    individualModal.style.display = 'flex';
+    individualModal.style.alignItems = 'center';
+    individualModal.style.justifyContent = 'center';
+    individualModal.setAttribute('aria-hidden', 'false');
+    lockBodyScroll(true);
+  });
+}
+
+// Close handlers should unlock scroll
+const closeModalAndUnlock = () => {
+  modalBackdrop.style.display = 'none';
+  individualModal.style.display = 'none';
+  document.querySelector('.phone').classList.remove('blurred-bg');
+  lockBodyScroll(false);
+  updateGroupAvatarPreview();
+};
+
+// bind close buttons to unlock scroll
+document.querySelectorAll('.close-x').forEach(btn => {
+  btn.addEventListener('click', closeModalAndUnlock);
+});
+modalBackdrop.addEventListener('click', (e)=> { if (e.target === modalBackdrop) closeModalAndUnlock(); });
+individualModal.addEventListener('click', (e)=> { if (e.target === individualModal) closeModalAndUnlock(); });
+
+// Ensure contacts container inside modal is scrollable and does not expand modal beyond viewport
+const modalContacts = document.querySelector('#modalBackdrop .contacts, #modalBackdrop .contacts-list, #modalBackdrop .contactsContainer, #modalBackdrop .contactsList');
+if (modalContacts) modalContacts.style.maxHeight = (window.innerHeight * 0.48) + 'px';
+window.addEventListener('resize', ()=> {
+  if (modalContacts) modalContacts.style.maxHeight = (window.innerHeight * 0.48) + 'px';
+});
 
 </script>
 
