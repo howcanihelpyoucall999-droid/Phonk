@@ -1,2761 +1,415 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Zag Messenger — User fixes (profile & contacts improvements)</title>
-  <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Live Messaging App</title>
   <style>
-    :root{
-      --input-area-height:74px;
-      --bottom-nav-height:64px;
-      --bg:#e9f1ff;
-      --primary:#0b60d6;
-      --primary-dark:#0849a6;
-      --muted:#9aaecf;
-      --hand-font:'Patrick Hand', 'Segoe UI', Arial, sans-serif;
-      --header-height:56px;
-      --wave-height:28px;
-      --fixed-list-header-height:48px; /* New: height of the fixed 'My chats' header */
-      --fab-top-offset:400px; /* Adjusted: to move the + to the black circle's position */
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f5; min-height: 100vh; display: flex; justify-content: center; align-items: flex-start; }
+    .container { width: 100%; max-width: 480px; background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 0 10px rgba(0,0,0,0.1); box-sizing: border-box; margin-top: 10px; }
+    h2 { text-align: center; margin: 4px 0 12px; }
+    h3 { margin: 18px 0 8px; }
+    input, button, select, textarea { width: 100%; padding: 10px; margin: 8px 0; border-radius: 6px; border: 1px solid #ccc; box-sizing: border-box; font-size: 16px; }
+    button { border: none; background: #007bff; color: white; cursor: pointer; font-weight: 600; }
+    button:hover { background: #0056b3; }
+    button:disabled { background: #cccccc; cursor: not-allowed; }
+    .message { padding: 8px; margin: 8px 0; border-radius: 5px; }
+    .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+    .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+    #posts-grid-container { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; margin-top: 10px; }
+    .post-card img { width: 100%; border-radius: 10px; display:block; }
+    .chat-list-item { display: flex; align-items: center; padding: 10px; background: #eee; margin: 5px 0; border-radius: 8px; cursor: pointer; }
+    .chat-list-item:hover { background: #ddd; }
+    .chat-list-avatar { width: 40px; height: 40px; border-radius: 50%; background: #007bff; color:#fff; display:flex;align-items:center;justify-content:center;margin-right:10px; font-weight: bold;}
+    .chat-list-name { font-weight: bold; }
+    #individual-chat-container { border: 1px solid #ccc; border-radius: 8px; padding: 10px; margin-top: 10px; background: #f9f9f9; display: none; flex-direction: column; height: 60vh; min-height: 360px; }
+    #chat-header { display:flex; align-items:center; gap:8px; padding-bottom:8px; border-bottom:1px solid #eee; margin-bottom:8px; }
+    #chat-messages { flex-grow:1; overflow-y:auto; display:flex; flex-direction:column; gap:6px; padding-right:6px; }
+    .chat-message { padding:8px 12px; border-radius:15px; max-width:75%; line-height:1.4; word-wrap:break-word; }
+    .chat-message.sent { background:#007bff; color:#fff; align-self:flex-end; margin-left:auto; border-bottom-right-radius:2px; }
+    .chat-message.received { background:#e2e6ea; color:#333; align-self:flex-start; margin-right:auto; border-bottom-left-radius:2px; }
+    #chat-input-area { display:flex; gap:8px; margin-top:8px; }
+    #chat-input-area input { flex:1; margin:0; }
+    #chat-input-area button { width:auto; padding:10px 14px; margin:0; }
+    @media (max-width:420px) {
+      #posts-grid-container { grid-template-columns: 1fr; }
+      .container { padding:16px; border-radius:10px; margin-top:6px; }
     }
-    html,body{height:100%;margin:0;font-family:var(--hand-font);background:linear-gradient(180deg,var(--bg),#eef6ff 60%);overflow:hidden;}
-    .phone{
-      width:100%;
-      height:100vh;
-      background:#fff;
-      display:flex;
-      flex-direction:column;
-      box-sizing:border-box;
-      /* Padding top to account for top header + wave */
-      padding-top: calc(var(--header-height) + var(--wave-height));
-      position:relative;
-    }
-
-    /* fixed top header */
-    .header{
-      display:flex;
-      align-items:center;
-      padding:10px 14px;
-      gap:10px;
-      background:linear-gradient(180deg,var(--primary),var(--primary-dark));
-      color:#fff;
-      position:fixed;
-      top:0;
-      left:0;
-      right:0;
-      height:var(--header-height);
-      z-index:120;
-      box-sizing:border-box;
-    }
-    .logo{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;overflow:hidden;background:linear-gradient(180deg,#fff,#f7fbff);}
-    .logo img{width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;}
-
-    .title{font-size:20px;color:#fff;font-weight:700;}
-    .menu{margin-left:auto;font-size:20px;color:#fff; cursor:pointer;} /* Added cursor */
-
-    /* wave under the header: now blue fill per user's request */
-    .wave-top{
-      width:100%;
-      height:var(--wave-height);
-      position:fixed;
-      top:var(--header-height);
-      left:0;
-      right:0;
-      z-index:119;
-      margin-top:0;
-    }
-    .wave-top svg{width:100%;height:100%;display:block;}
-    .wave-top path{fill:var(--primary);} 
-
-    /* Fixed header for 'My chats' list */
-    .fixed-list-header {
-      position: fixed;
-      top: calc(var(--header-height) + var(--wave-height)); 
-      left: 0;
-      right: 0;
-      z-index: 100;
-      padding: 12px 18px 8px 18px;
-      background: var(--bg); 
-      box-sizing: border-box;
-      height: var(--fixed-list-header-height);
-      display: flex; 
-      align-items: center;
-      justify-content: space-between;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.02);
-    }
-    .fixed-list-header h3 {
-        color: var(--primary);
-        margin: 0;
-    }
-    .fixed-list-header .top-controls{
-       display:flex;
-       align-items:center;
-       gap:12px;
-       justify-content:space-between;
-       width: 100%;
-    }
-
-    .auth{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:20px;overflow-y:auto;background:#f0f4fc;}
-    .welcome{font-size:22px;color:var(--primary);}
-    .sub{color:var(--muted);font-size:13px;margin-bottom:12px;}
-    input{border:1px solid rgba(75,134,230,0.08);border-radius:10px;padding:12px 14px;font-size:15px;background:linear-gradient(180deg,#fff,#fbfdff);font-family:var(--hand-font);color:var(--primary);width:90%;max-width:360px;margin-bottom:10px;box-sizing:border-box;}
-    .phone-group{display:flex;align-items:center;gap:8px;width:90%;max-width:360px;margin-bottom:10px;}
-    .country-code{border:1px solid rgba(75,134,230,0.08);border-radius:10px;padding:12px;width:70px;text-align:center;background:linear-gradient(180deg,#fff,#fbfdff);color:var(--primary);}
-    .btn{padding:10px 12px;border-radius:10px;border:none;cursor:pointer;font-weight:700;font-size:15px;box-shadow:0 6px 14px rgba(75,134,230,0.08);width:90%;max-width:360px;margin-bottom:8px;font-family:var(--hand-font);}
-    .primary{background:linear-gradient(180deg,var(--primary),var(--primary-dark));color:#fff;}
-    .ghost{background:#f6f9ff;color:var(--primary);}
-    .toggle-btns{display:flex;gap:12px;margin-top:12px;flex-direction:column;align-items:center;}
-    .toggle-btns .btn{width:auto;padding:8px 16px;}
-    .app{
-        display:none;
-        flex:1;
-        overflow-y:auto;
-        /* UPDATED: Increased padding-top to ensure content starts safely below the fixed header */
-        padding:calc(var(--fixed-list-header-height) + 8px) 18px 120px 18px; 
-        box-sizing:border-box;
-    }
-    .chats h3{color:var(--primary);margin:8px 0 12px;}
-    .chat-item{display:flex;gap:10px;align-items:center;padding:12px;background:linear-gradient(180deg,#fff,#fbfdff);border-radius:10px;margin-bottom:12px;border:1px solid rgba(75,134,230,0.06);cursor:pointer;}
-    .avatar{width:52px;height:52px;border-radius:50%;background:linear-gradient(180deg,#dbeeff,#c1ddff);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--primary);font-size:18px;}
-    .chat-meta{flex:1;}
-    .chat-meta .name{font-weight:700;color:var(--primary);font-size:16px;}
-    .chat-meta .sub{font-size:13px;color:var(--muted);margin-top:4px;}
-    #add-chat-area{display:none;margin-bottom:12px;position:relative;}
-    #closeAddChat{position:absolute;top:-10px;right:-10px;background:#fff;border:2px solid #ccc;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-weight:bold;color:#777;}
-
-    /* Floating + repositioned to the requested position (black circle) */
-    .floating-new{
-      position:fixed;
-      right:20px;
-      top: calc(var(--header-height) + var(--wave-height) + var(--fab-top-offset));
-      width:64px;
-      height:64px;
-      border-radius:50%;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      background:linear-gradient(180deg,var(--primary),var(--primary-dark));
-      color:#fff;
-      box-shadow:0 12px 28px rgba(11,96,214,0.2);
-      border:6px solid #fff;
-      font-weight:700;
-      cursor:pointer;
-      z-index:140;
-    }
-    .plus-menu{
-      position:fixed;
-      right:18px;
-      top: calc(var(--header-height) + var(--wave-height) + var(--fab-top-offset) - 80px);
-      width:200px;
-      background:#fff;
-      border-radius:10px;
-      padding:8px;
-      box-shadow:0 20px 60px rgba(0,0,0,0.12);
-      z-index:150;
-      display:none;
-      flex-direction:column;
-      gap:8px;
-    }
-
-    .bottom-nav{position:fixed;left:0;bottom:0;width:100%;background:linear-gradient(180deg,#fff,#f6fbff);border-top:1px solid rgba(0,0,0,0.03);padding:14px;text-align:center;color:var(--primary);font-size:18px;font-weight:700;z-index:45;display:flex;gap:10px;justify-content:center;align-items:center;}
-    .bottom-nav span{cursor:pointer;padding:6px 10px;border-radius:8px;}
-    .bottom-nav .active{background:linear-gradient(180deg,#eff7ff,#dfeffe);box-shadow:0 6px 14px rgba(11,96,214,0.06);}
-
-    .chat-screen{display:none;flex-direction:column;flex:1;overflow:hidden;padding:0;box-sizing:border-box;background-image: url('bg.png');background-repeat:no-repeat;background-size:cover;background-position:center;}
-
-    /* chat header now positioned below header+wave when visible */
-    .chat-header{
-      display:flex;
-      align-items:center;
-      padding:10px 12px;
-      border-bottom:1px dashed rgba(75,134,230,0.04);
-      margin-bottom:8px;
-      z-index:140;
-      gap:10px;
-      position:fixed;
-      left:0;
-      right:0;
-      background:linear-gradient(180deg,#ffffff,#fbfdff);
-      box-shadow:0 6px 20px rgba(10,30,80,0.06);
-      height:var(--header-height);
-      box-sizing:border-box;
-      top: calc(var(--header-height) + var(--wave-height));
-    }
-    .chat-header-left{flex:0 0 auto;}
-    .chat-header-center{flex:1;display:flex;align-items:center;justify-content:center;gap:10px;min-width:0;}
-    .chat-header-center .avatar{width:44px;height:44px;border-radius:50%;flex-shrink:0;}
-    .chat-center-text{min-width:0;text-align:left;max-width:60vw;}
-    .chat-center-text .chat-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700;color:var(--primary);font-size:16px;max-width:100%;}
-    .chat-center-text .small{font-size:12px;color:var(--muted);opacity:0.9;margin-top:3px;}
-    #backToChatListBtn{padding:6px 10px !important;border-radius:8px !important;font-size:14px !important;min-width:56px;}
-    .chat-menu-btn{
-      padding:6px 10px;
-      border-radius:8px;
-      border:none;
-      background:linear-gradient(180deg,var(--primary),var(--primary-dark));
-      color:#fff;
-      font-weight:700;
-      cursor:pointer;
-      box-shadow:0 4px 8px rgba(11,96,214,0.06);
-    }
-    .chat-messages{
-      flex:1;
-      overflow-y:auto;
-      display:flex;
-      flex-direction:column;
-      gap:8px;
-      padding:6px;
-      padding-top: calc(var(--header-height) + var(--wave-height) + var(--header-height) + 12px);
-      padding-bottom:120px; 
-      box-sizing:border-box;
-      background-image: url('bg.png');
-      background-repeat: no-repeat;
-      background-size: cover;
-      background-position: center;
-    }
-    .bubble{padding:10px 14px;border-radius:18px;max-width:78%;line-height:1.4;box-shadow:0 6px 14px rgba(10,30,80,0.04);margin-bottom:8px;}
-    .bubble.sent{align-self:flex-end;background:linear-gradient(180deg,var(--primary),var(--primary-dark));color:#fff;}
-    .bubble.received{align-self:flex-start;background:#fff;color:var(--primary);border:1px solid rgba(75,134,230,0.04);}
-    .msg-meta{display:block;font-size:11px;opacity:0.85;margin-top:6px;}
-
-    .chat-input-area-wrapper{
-      position:fixed;
-      left:0;
-      right:0;
-      bottom:64px; 
-      padding:8px 18px 10px 18px;
-      /* Background transparent as requested */
-      background:transparent; 
-      box-sizing:border-box;
-      width:100%;
-      z-index:80;
-      display:flex;
-      justify-content:center;
-      border-top:1px solid rgba(11,96,214,0.08);
-      transition: bottom 260ms cubic-bezier(.22,.9,.32,1), transform 260ms ease;
-      transform: translateZ(0);
-    }
-    .chat-input{display:flex;gap:8px;align-items:center;border-radius:999px;padding:8px;background:#fff;border:2px solid var(--primary);transition:border-color 0.3s, transform 0.1s;max-width:920px;width:100%;box-sizing:border-box;}
-    @keyframes gentleShake{0%,100%{transform:translateX(0);}25%{transform:translateX(-2px);}75%{transform:translateX(2px);}}
-    .chat-input.typing{animation:gentleShake 0.25s ease-in-out;}
-    .chat-input input{flex:1;border:none;outline:none;font-size:15px;padding:10px 6px;font-family:var(--hand-font);color:var(--primary);background:transparent;}
-    .send-btn{width:44px;height:44px;border-radius:50%;border:none;background:linear-gradient(180deg,var(--primary),var(--primary-dark));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;cursor:pointer;box-shadow:0 4px 10px rgba(11,96,214,0.15);}
-    .chat-header-right{margin-left:auto;display:flex;align-items:center;gap:8px;}
-
-    /* Side Menu CSS */
-    .side-menu-backdrop {
-        position: fixed;
-        inset: 0;
-        background: rgba(0,0,0,0.3);
-        z-index: 200;
-        display: none;
-        transition: opacity 0.3s;
-        opacity: 0;
-    }
-    .side-menu {
-        position: fixed;
-        top: 0;
-        right: 0;
-        height: 100%;
-        width: 80%; /* Adjust as needed */
-        max-width: 320px;
-        background: #fff;
-        z-index: 210;
-        box-shadow: -4px 0 16px rgba(0,0,0,0.15);
-        transform: translateX(100%);
-        transition: transform 0.3s ease-out;
-        padding: 20px;
-        box-sizing: border-box;
-        display: flex;
-        flex-direction: column;
-    }
-    .side-menu.open {
-        transform: translateX(0);
-    }
-    .side-menu-backdrop.visible {
-        opacity: 1;
-        display: block;
-    }
-    .side-menu-header {
-        font-size: 20px;
-        font-weight: 700;
-        color: var(--primary);
-        margin-bottom: 20px;
-        border-bottom: 1px solid rgba(0,0,0,0.05);
-        padding-bottom: 10px;
-    }
-
-
-    @media (min-width:900px){
-      .phone{max-width:420px;margin:0 auto;box-shadow:0 20px 60px rgba(0,0,0,0.08);}
-      .plus-menu{right:calc(50% - 210px);}
-      .chat-input-area-wrapper{left:calc(50% - 210px);right:calc(50% - 210px);width:420px;bottom:64px;} 
-    }
-
-    /* Ensures chat input is always visible and bottom nav hidden in chat mode */
-    .phone.chat-active .bottom-nav{ display:none !important; }
-    .phone.chat-active .chat-input-area-wrapper{ bottom: 0 !important; z-index: 200; }
-    .phone.chat-active .chat-messages{
-      padding-bottom: calc(var(--input-area-height) + 12px) !important;
-      /* ensure messages container size adapts */
-    }
-    /* Make sure chat-screen overlays do not get overlapped by other UI */
-    .chat-screen{ z-index:160; position:relative; }
-
-    /* --- START: Startup loader overlay styles (added) --- */
-    #startup-loader{
-      position:fixed;
-      inset:0;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      background:rgba(255,255,255,0.95);
-      z-index:9999;
-      pointer-events:auto;
-    }
-    #startup-loader .loader {
-      width:45px;
-      aspect-ratio:1;
-      --c: no-repeat linear-gradient(#007bff 0 0);
-      background: var(--c), var(--c), var(--c);
-      filter: drop-shadow(0 0 6px #007bff);
-      animation: l18-1 1s infinite, l18-2 1s infinite;
-    }
-    @keyframes l18-1 {
-      0%,100% { background-size: 20% 100%; }
-      33%,66% { background-size: 20% 20%; }
-    }
-    @keyframes l18-2 {
-      0%,33%   { background-position: 0 0, 50% 50%, 100% 100%; }
-      66%,100% { background-position: 100% 0, 50% 50%, 0 100%; }
-    }
-    /* --- END: Startup loader overlay styles --- */
-
-
-/* Profile section styles */
-.profile-section { display:none; flex:1; overflow-y:auto; padding: calc(var(--header-height) + var(--wave-height) + 12px) 18px 120px 18px; box-sizing:border-box; }
-.profile-card { max-width:420px; margin:12px auto; background:linear-gradient(180deg,#fff,#fbfdff); border-radius:12px; padding:16px; box-shadow:0 12px 30px rgba(10,30,80,0.06); }
-.profile-avatar { width:120px; height:120px; border-radius:50%; overflow:hidden; display:block; margin:0 auto 12px; border:6px solid #fff; background:#f0f6ff; align-items:center; justify-content:center; display:flex; font-weight:700; color:var(--primary); font-size:42px; background-size:cover;background-position:center;}
-.profile-edit-pic { position:relative; display:flex; justify-content:center; }
-.pencil-btn { position:absolute; right:calc(50% - 40px); top:68px; background:var(--primary); color:#fff; border-radius:50%; width:36px; height:36px; display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 6px 14px rgba(11,96,214,0.12); border:3px solid #fff; }
-.profile-field { margin:8px 0; display:flex; flex-direction:column; gap:6px; }
-.profile-field input[type="text"], .profile-field textarea { width:100%; padding:10px; border-radius:10px; border:1px solid rgba(11,96,214,0.06); font-size:15px; }
-.save-profile-btn { margin-top:12px; }
-.profile-contacts { margin-top:18px; }
-
-/* --- USER CHANGE: make contact name truncate with ellipsis and ensure circle avatars --- */
-.contact-row{ min-width:0; }
-.contact-row > div { min-width:0; }
-.contact-row .contact-name{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
-/* Ensure avatar in contact-row is a perfect circle */
-.contact-row .contact-avatar, .contact-row > div > .contact-avatar { width:44px; height:44px; border-radius:50%; overflow:hidden; display:flex; align-items:center; justify-content:center; }
-
-.contact-row { display:flex; align-items:center; gap:10px; padding:8px; border-radius:8px; background:#fff; border:1px solid rgba(11,96,214,0.04); margin-bottom:8px; }
-.contact-row .contact-name { flex:1; font-weight:700; color:var(--primary); }
-.contact-row .delete-btn { background:#ff4d4f; color:#fff; border:none; padding:6px 8px; border-radius:8px; cursor:pointer; }
-.avatar-grid { display:grid; grid-template-columns: repeat(5,1fr); gap:8px; padding:12px; max-width:640px; margin:0 auto; }
-.avatar-grid img { width:100%; height:56px; object-fit:cover; border-radius:8px; cursor:pointer; border:2px solid transparent; }
-.avatar-grid img.selected { outline:3px solid var(--primary); border-color:var(--primary); }
-.avatar-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:99999; align-items:center; justify-content:center; }
-.avatar-modal .modal-inner { width:92%; max-width:760px; background:#fff; border-radius:12px; padding:12px; max-height:80vh; overflow:auto; }
-
-
-/* --- Added: Replace blue click highlight with ash color --- */
-* {
-  -webkit-tap-highlight-color: #d3d3d3 !important;
-}
-button:active, button:focus {
-  background-color: #d3d3d3 !important;
-  outline: none !important;
-}
-a:active, a:focus {
-  background-color: #d3d3d3 !important;
-  outline: none !important;
-}
-
-
-/* --- Added: Ash ripple click animation --- */
-/* Ensure clickable elements are positioned for ripple */
-button, .btn, a {
-  position: relative; /* keep layout unchanged but allow absolute ripple */
-  overflow: hidden;   /* contain the ripple inside the element */
-  -webkit-tap-highlight-color: transparent !important;
-}
-
-/* ripple element */
-.ripple-circle {
-  position: absolute;
-  border-radius: 50%;
-  transform: scale(0);
-  pointer-events: none;
-  opacity: 0.18;
-  background: #d3d3d3;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-  transition: transform 480ms cubic-bezier(.2,.9,.2,1), opacity 380ms linear;
-  will-change: transform, opacity;
-  z-index: 9999;
-}
-.ripple-circle.fadeout {
-  opacity: 0;
-  transition: opacity 360ms linear;
-}
-
-
-    /* --- START: Added for call UI and small back icon --- */
-    #backToChatListBtn.back-icon{
-      font-size:18px !important;
-      padding:6px 8px !important;
-      min-width:36px !important;
-      height:36px !important;
-      display:inline-flex !important;
-      align-items:center;
-      justify-content:center;
-      border-radius:8px !important;
-    }
-    .chat-center-text .chat-name{
-      font-size:14px; /* made smaller */
-      font-weight:700;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-      max-width: calc(50vw - 40px);
-    }
-    .chat-dots{
-      font-size:14px;
-      color:var(--muted);
-      opacity:0.95;
-      user-select:none;
-    }
-    .chat-action-btn{
-      background:transparent;
-      border:none;
-      font-size:20px;
-      padding:6px 8px;
-      border-radius:8px;
-      cursor:pointer;
-      line-height:1;
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-    }
-    .chat-action-btn:active{ transform:scale(0.96); }
-    /* Small modal for local preview when starting a call */
-    #localCallModal{
-      position:fixed; inset:0; display:none; align-items:center; justify-content:center; z-index:99999;
-      background: rgba(0,0,0,0.45);
-    }
-    #localCallModal .modal-inner{
-      width:92%; max-width:420px; background:#fff; border-radius:12px; padding:12px; box-sizing:border-box;
-      display:flex; flex-direction:column; gap:8px; align-items:center;
-    }
-    #localCallModal video{ width:100%; height:auto; border-radius:8px; background:#000; }
-    #localCallModal .call-controls{ display:flex; gap:8px; width:100%; justify-content:center; }
-    #localCallModal .hangup-btn{ padding:8px 12px; border-radius:8px; border:none; background:#ff4d4f; color:#fff; cursor:pointer; }
-    #localCallModal .close-preview{ padding:8px 12px; border-radius:8px; border:1px solid #ccc; background:#fff; cursor:pointer; }
-    /* --- END: Added for call UI --- */
-
-
-/* Permission overlay to request camera+mic with a user gesture */
-#permissionOverlay{
-  position:fixed; inset:0; display:none; align-items:center; justify-content:center; z-index:100000;
-  background: rgba(0,0,0,0.6);
-}
-#permissionOverlay .overlay-inner{
-  width:92%; max-width:480px; background:#fff; border-radius:12px; padding:18px; box-sizing:border-box;
-  display:flex; flex-direction:column; gap:12px; align-items:center; text-align:center;
-}
-#permissionOverlay h3{ margin:0; font-size:18px; }
-#permissionOverlay p{ margin:0; color:var(--muted); font-size:13px; }
-#enableMediaBtn{
-  margin-top:6px; padding:10px 14px; border-radius:10px; border:none; cursor:pointer;
-  background:var(--primary); color:#fff; font-weight:600;
-}
-#permissionDismiss{ background:transparent; border:none; color:var(--muted); cursor:pointer; font-size:13px; }
-
-</style>
+  </style>
 </head>
 <body>
-  <!-- Startup loader (visible immediately, will be hidden after 1s) -->
-  <div id="startup-loader" aria-hidden="false">
-    <div class="loader" role="progressbar" aria-label="Loading"></div>
-  </div>
+  <div class="container">
+    <h2>Live Messaging App</h2>
 
-  <div class="phone">
-    <div class="header" id="topHeader">
-      <div class="logo"><img src="logo.png" alt="Zag Messenger Logo"></div>
-      <div class="title">Zag Messenger</div>
-      <!-- Added ID for easier targeting in JS for menu click -->
-      <div class="menu" id="topHeaderMenu">☰</div>
+    <div id="auth-section">
+      <div id="auth-message-area"></div>
+      <input type="email" id="email" placeholder="Email"/>
+      <input type="password" id="password" placeholder="Password"/>
+      <button id="signupBtn">Sign Up</button>
+      <button id="loginBtn">Sign In</button>
     </div>
 
-    <div class="wave-top" aria-hidden="true" id="waveTop">
-      <svg viewBox="0 0 100 10" preserveAspectRatio="none"><path d="M0 5 C20 9,40 1,60 5 C80 9,100 3,100 3 L100 10 L0 10 Z"></path></svg>
-    </div>
+    <div id="app-section" style="display:none;">
+      <h3>Upload Post</h3>
+      <input type="file" id="postImage" accept="image/*"/>
+      <button id="uploadPostBtn">Upload</button>
+      <div id="post-message-area"></div>
 
-    <!-- Auth -->
-    <div class="auth" id="auth-section">
-      <div class="welcome">Welcome,<br>to Zag Messenger.</div>
-      <div class="sub">Write your World</div>
-      <input id="email" type="email" placeholder="Email">
-      <div class="phone-group">
-        <input class="country-code" value="+880" disabled>
-        <input id="phoneNumber" type="tel" placeholder="Phone number">
-      </div>
-      <input id="password" type="password" placeholder="Password">
+      <h3>Posts</h3>
+      <div id="no-posts-message">No posts yet.</div>
+      <div id="posts-grid-container"></div>
 
-      <button id="authSubmitBtn" class="btn primary">Sign Up</button>
+      <hr>
 
-      <div class="toggle-btns">
-        <button id="toSignIn" class="btn ghost">Already have an account? Sign In</button>
-        <button id="toSignUp" class="btn ghost" style="display:none;">Don't have an account? Sign Up</button>
-      </div>
-    </div>
-
-    <!-- Fixed List Header (My chats / Groups title) -->
-    <!-- This will be hidden/shown by JS based on auth state and current view -->
-    <div class="fixed-list-header" id="fixedListHeader" style="display:none;">
-      <div class="top-controls">
-        <h3 style="margin:0" id="list-title">My chats</h3>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <div aria-hidden="true"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- App (Chats & Groups) -->
-    <div class="app" id="app-section">
-      <!-- Add -->
-      <div id="add-chat-area">
-        <div id="closeAddChat">×</div>
-        <input id="addChatIdentifier" type="text" placeholder="Enter user email or phone">
-        <button id="addChatBtn" class="btn primary">Add Person</button>
+      <h3>My Chats</h3>
+      <div id="chat-management-area">
+        <div id="chat-message-area"></div>
+        <input type="email" id="addChatEmail" placeholder="Enter user's email to chat"/>
+        <button id="addChatBtn">Add Person to Chat</button>
       </div>
 
-      <!-- Lists -->
+      <div id="no-chats-message">No active chats. Add someone to start chatting!</div>
       <div id="chat-list-container"></div>
-      <div id="group-list-container" style="display:none;"></div>
 
-      <!-- Games section (added) -->
-      <div id="games-section" style="display:none;padding:12px;">
-        <h3 style="color:var(--primary);margin-top:0;margin-bottom:8px;">Games</h3>
-        <div class="games-grid" style="display:flex;gap:12px;flex-wrap:wrap;">
-          <div class="game-card" data-game="tictactoe" style="flex:1 1 180px;padding:18px;border-radius:12px;background:linear-gradient(180deg,#fff,#f6fbff);border:1px solid rgba(11,96,214,0.06);cursor:pointer;text-align:center;font-weight:700;">
-            Tic‑Tac‑Toe
-            <div style="font-size:12px;color:var(--muted);margin-top:8px;">Play 1v1 with a contact</div>
-          </div>
-          <div class="game-card" data-game="rps" style="flex:1 1 180px;padding:18px;border-radius:12px;background:linear-gradient(180deg,#fff,#f6fbff);border:1px solid rgba(11,96,214,0.06);cursor:pointer;text-align:center;font-weight:700;">
-            Rock Paper Scissors
-            <div style="font-size:12px;color:var(--muted);margin-top:8px;">Quick challenge — best of one</div>
-          </div>
+      <div id="individual-chat-container">
+        <div id="chat-header">
+          <button id="backToChatListBtn" style="padding:6px 10px;">&lt; Back</button>
+          <div id="current-chat-avatar" class="chat-list-avatar"></div>
+          <h4 id="current-chat-name" style="margin:0;"></h4>
         </div>
-      </div>
-
-      <!-- Game invite modal -->
-      <div id="gameInviteModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:9999;align-items:center;justify-content:center;">
-        <div style="width:92%;max-width:420px;background:#fff;border-radius:12px;padding:12px;">
-          <h4 style="margin:0 0 10px;color:var(--primary)">Invite contact to play <span id="inviteGameName"></span></h4>
-          <div id="onlineContactsList" style="max-height:260px;overflow:auto;padding:6px 0"></div>
-          <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;">
-            <button id="cancelInviteBtn" class="btn ghost" style="padding:8px 12px;">Cancel</button>
-            <button id="sendInviteBtn" class="btn primary" style="padding:8px 12px;">Invite</button>
-          </div>
+        <div id="chat-messages"></div>
+        <div id="chat-input-area">
+          <input type="text" id="chatMessageInput" placeholder="Type a message..."/>
+          <button id="sendChatMessageBtn">Send</button>
         </div>
-      </div>
-
-      <!-- Incoming invite modal -->
-      <div id="incomingInviteModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:10000;align-items:center;justify-content:center;">
-        <div style="width:92%;max-width:420px;background:#fff;border-radius:12px;padding:12px;">
-          <h4 style="margin:0 0 6px;color:var(--primary)"><span id="incomingFromName"></span> invited you to play <span id="incomingGameName"></span></h4>
-          <div id="incomingInviteMsg" style="margin-top:6px;color:var(--muted);font-size:13px;">Would you like to play?</div>
-          <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;">
-            <button id="declineInviteBtn" class="btn ghost" style="padding:8px 12px;">Decline</button>
-            <button id="acceptInviteBtn" class="btn primary" style="padding:8px 12px;">Accept</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Game screen -->
-      <div id="game-screen" style="display:none;position:fixed;inset:0;background:linear-gradient(180deg,rgba(255,255,255,0.98),#fbfdff);z-index:9998;padding:12px;overflow:auto;">
-        <div style="max-width:560px;margin:0 auto;">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
-            <button id="closeGameScreen" class="btn ghost" style="padding:6px 10px;">&lt; Back</button>
-            <h3 id="gameScreenTitle" style="margin:0;color:var(--primary);font-size:18px;"></h3>
-            <div style="margin-left:auto;color:var(--muted);" id="gamePlayersInfo"></div>
-          </div>
-          <div id="gameContent"></div>
-        </div>
-      </div>
-
-    </div>
-
-    <!-- Chat Screen -->
-
-    <!-- Profile Section (@You) -->
-    <div class="profile-section" id="profile-section" aria-hidden="true">
-      <div class="profile-card" id="profile-card">
-        <div class="profile-edit-pic">
-          <div id="profileAvatar" class="profile-avatar" aria-hidden="false">U</div>
-          <div id="pencilBtn" class="pencil-btn" title="Change profile picture">✎</div>
-        </div>
-
-        <!-- Desired visual order: avatar -> name -> handle -> about -> contacts -->
-        <div class="profile-field">
-          <label style="font-size:13px;color:var(--muted)">Your name</label>
-          <input id="profileDisplayName" type="text" placeholder="Enter your name">
-        </div>
-
-        <div class="profile-field">
-  <label style="font-size:13px;color:var(--muted)">Handle (public)</label>
-  <div style="display:flex;align-items:center;gap:8px;">
-    <input id="profileHandle" type="text" placeholder="@yourhandle" readonly>
-    <small id="profileHandleNote" style="color:var(--muted);font-size:13px;">(cannot change)</small>
-  </div>
-</div>
-
-        <div class="profile-field" id="profileAboutField">
-          <label style="font-size:13px;color:var(--muted)">About</label>
-          <textarea id="profileAbout" rows="2" placeholder='Hi, I am using Zag Messenger'></textarea>
-        </div>
-        <div id="saveHint" style="font-size:13px;color:var(--muted);margin-top:8px;">Please save after making changes to your profile.</div>
-<button id="saveProfileBtn" class="btn primary save-profile-btn">Save</button>
-
-        <hr style="margin:14px 0;border:none;border-top:1px dashed rgba(11,96,214,0.06)">
-
-        <div class="profile-contacts">
-          <h4 style="margin:6px 0 10px;color:var(--primary)">Your contacts</h4>
-          <div id="profileContactsList"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Avatar picker modal -->
-    <div class="avatar-modal" id="avatarModal" aria-hidden="true">
-      <div class="modal-inner">
-        <h4 style="margin-top:0">Choose profile picture</h4>
-        <div class="avatar-grid" id="avatarGrid"></div>
-        <div style="text-align:right;margin-top:8px;">
-          <button id="saveAvatarModal" class="btn primary" style="margin-right:8px;">Save</button>
-          <button id="closeAvatarModal" class="btn ghost">Cancel</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="chat-screen" id="individual-chat-container">
-      <div class="chat-header" role="banner" id="chatHeader">
-        <div class="chat-header-left">
-          <button id="backToChatListBtn" class="btn ghost back-icon" aria-label="Back to chats">←</button>
-        </div>
-
-        <div class="chat-header-center" role="group" aria-label="Chat identity">
-          <div id="current-chat-avatar" class="avatar"></div>
-          <div class="chat-center-text">
-            <div style="display:flex;align-items:center;gap:6px;min-width:0;">
-              <div id="current-chat-name" class="chat-name" title=""></div>
-              <div class="chat-dots" aria-hidden="true">...</div>
-            </div>
-            <div id="current-chat-sub" class="small"></div>
-          </div>
-        </div>
-
-        <div class="chat-header-right" aria-hidden="false">
-          <!-- Call & video buttons -->
-          <button id="callBtn" class="chat-action-btn" title="Voice call" aria-label="Voice call">📞</button>
-          <button id="videoBtn" class="chat-action-btn" title="Video call" aria-label="Video call">📹</button>
-          <!-- Chat menu button with blue styling -->
-          <button id="chatMenuBtn" class="chat-menu-btn" aria-label="Chat menu">⋮</button>
-        </div>
-      </div>
-
-      <div id="chat-messages" class="chat-messages" role="log" aria-live="polite"></div>
-
-      <!-- Message Input Bar - Transparent Background -->
-      <div class="chat-input-area-wrapper" aria-label="Message input area">
-        <div id="chat-input-area" class="chat-input">
-          <input id="chatMessageInput" type="text" placeholder="Type a message..." aria-label="Type a message">
-          <button id="sendChatMessageBtn" class="send-btn" aria-label="Send message">➤</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="bottom-nav" id="bottom-nav">
-      <span id="nav-home" class="active">Home</span>
-      <span id="nav-groups">Groups</span>
-      <span id="nav-games">Games</span>
-      <span id="nav-you">@You</span>
-    </div>
-
-    <div class="floating-new" id="floatingNewBtn" title="Add new" style="display:none;">+</div>
-
-    <div class="plus-menu" id="plusMenu">
-      <button id="plusIndividualBtn">Individual Chat</button>
-      <button id="plusGroupBtn">Group Chat</button>
-    </div>
-  </div>
-
-  <!-- Side Menu HTML -->
-  <div class="side-menu-backdrop" id="sideMenuBackdrop">
-    <div class="side-menu" id="sideMenu">
-        <div class="side-menu-header">Menu</div>
-        <p style="color:var(--muted)">Content for the right-side menu will go here.</p>
-        <p style="color:var(--muted)">Example menu items (Settings, Profile, etc.)</p>
-    </div>
-  </div>
-
-
-  <!-- Group Modal -->
-  <div class="modal-backdrop" id="modalBackdrop">
-    <div class="modal" role="dialog" aria-modal="true">
-      <h4 id="modalTitle">New Group</h4>
-      <div class="section-title">Group name</div>
-      <input id="groupName" placeholder="Type group name..." />
-
-      <div class="section-title">Add people (type email or phone and press Enter)</div>
-      <input id="addMemberInput" placeholder="Email or phone" />
-
-      <div class="section-title">Selected members</div>
-      <div id="selectedMembers" style="min-height:40px;margin-bottom:8px;"></div>
-
-      <div class="section-title">Contacts (tap to toggle)</div>
-      <div class="contacts-list" id="contactsList"></div>
-
-      <div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end;">
-        <button id="cancelCreateGroup" class="btn ghost" style="width:auto;padding:8px 12px;">Cancel</button>
-        <button id="createGroupBtn" class="btn primary" style="width:auto;padding:8px 12px;">Create Group</button>
       </div>
     </div>
   </div>
 
   <script type="module">
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js';
-    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js';
-    import { getDatabase, ref as dbRef, set, get, onValue, push, update } from 'https://www.gstatic.com/firebasejs/10.13.2/firebase-database.js';
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
+    import { getDatabase, ref, push, onChildAdded, onValue, set, query, orderByChild, equalTo, get } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-database.js";
+    import { getStorage, ref as sRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-storage.js";
 
+    // <-- REPLACE WITH YOUR FIREBASE CONFIG IF NEEDED -->
     const firebaseConfig = {
-      apiKey: 'AIzaSyBUH95hXYxMVCfhJglN4j3CReXy-CLYwmA',
-      authDomain: 'live-messageinggkkh.firebaseapp.com',
-      databaseURL: 'https://live-messageinggkkh-default-rtdb.firebaseio.com',
-      projectId: 'live-messageinggkkh',
-      storageBucket: 'live-messageinggkkh.appspot.com',
-      messagingSenderId: '537475612761',
-      appId: '1:537475612761:web:d00723c117383e54027148'
+      apiKey: "AIzaSyBUH95hXYxMVCfhJglN4j3CReXy-CLYwmA",
+      authDomain: "live-messageinggkkh.firebaseapp.com",
+      databaseURL: "https://live-messageinggkkh-default-rtdb.firebaseio.com",
+      projectId: "live-messageinggkkh",
+      storageBucket: "live-messageinggkkh.appspot.com",
+      messagingSenderId: "537475612761",
+      appId: "1:537475612761:web:d00723c117383e54027148"
     };
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getDatabase(app);
+    const storage = getStorage(app);
 
-    // DOM refs
-    const authSection = document.getElementById('auth-section');
-    const appSection = document.getElementById('app-section');
-    const individualChat = document.getElementById('individual-chat-container');
-    const floatingBtn = document.getElementById('floatingNewBtn');
-    const plusMenu = document.getElementById('plusMenu');
-    const addChatArea = document.getElementById('add-chat-area');
-    const addChatIdentifier = document.getElementById('addChatIdentifier');
-    const addBtn = document.getElementById('addChatBtn');
-    const closeAdd = document.getElementById('closeAddChat');
-    const chatList = document.getElementById('chat-list-container');
-    const groupList = document.getElementById('group-list-container');
-    const backBtn = document.getElementById('backToChatListBtn');
-    const sendBtn = document.getElementById('sendChatMessageBtn');
-    const msgInput = document.getElementById('chatMessageInput');
-    const msgContainer = document.getElementById('chat-messages');
-    const bottomNav = document.getElementById('bottom-nav');
-    const authSubmitBtn = document.getElementById('authSubmitBtn');
-    const email = document.getElementById('email');
-    const pass = document.getElementById('password');
-    const phone = document.getElementById('phoneNumber');
-    const toSignIn = document.getElementById('toSignIn');
-    const toSignUp = document.getElementById('toSignUp');
-    const navHome = document.getElementById('nav-home');
-    const navGroups = document.getElementById('nav-groups');
-    const navGames = document.getElementById('nav-games');
-    const navYou = document.getElementById('nav-you');
-    const listTitle = document.getElementById('list-title');
-    const welcomeText = document.querySelector('.welcome');
-    const chatInputWrapper = document.querySelector('.chat-input-area-wrapper');
-    const chatMenuBtn = document.getElementById('chatMenuBtn');
-    const topHeaderMenu = document.getElementById('topHeaderMenu'); // New: Menu button
+    // Refs
+    const postsRef = ref(db, "posts");
+    const usersRef = ref(db, "users");
+    const chatsRef = ref(db, "chats");
+    const privateMessagesRoot = ref(db, "privateMessages");
 
-    const topHeader = document.getElementById('topHeader');
-    const waveTop = document.getElementById('waveTop');
-    const chatHeader = document.getElementById('chatHeader');
-    const fixedListHeader = document.getElementById('fixedListHeader'); 
+    // Elements
+    const emailInput = document.getElementById("email");
+    const passwordInput = document.getElementById("password");
+    const signupBtn = document.getElementById("signupBtn");
+    const loginBtn = document.getElementById("loginBtn");
+    const authMessageArea = document.getElementById("auth-message-area");
+    const postMessageArea = document.getElementById("post-message-area");
+    const addChatEmailInput = document.getElementById("addChatEmail");
+    const addChatBtn = document.getElementById("addChatBtn");
+    const chatMessageArea = document.getElementById("chat-message-area");
+    const chatListContainer = document.getElementById("chat-list-container");
+    const noChatsMessage = document.getElementById("no-chats-message");
+    const postsGrid = document.getElementById("posts-grid-container");
+    const noPostsMessage = document.getElementById("no-posts-message");
+    const individualChatContainer = document.getElementById("individual-chat-container");
+    const chatMessagesContainer = document.getElementById("chat-messages");
+    const chatMessageInput = document.getElementById("chatMessageInput");
+    const sendChatMessageBtn = document.getElementById("sendChatMessageBtn");
+    const currentChatName = document.getElementById("current-chat-name");
+    const currentChatAvatar = document.getElementById("current-chat-avatar");
+    const backToChatListBtn = document.getElementById("backToChatListBtn");
+    const uploadPostBtn = document.getElementById("uploadPostBtn");
+    const postImageInput = document.getElementById("postImage");
 
-    // Side Menu DOM Refs
-    const sideMenuBackdrop = document.getElementById('sideMenuBackdrop');
-    const sideMenu = document.getElementById('sideMenu');
+    let currentChatId = null;
+    let currentChatRecipientUid = null;
+    let currentChatRecipientEmail = null;
 
-    // Modal refs
-    const modalBackdrop = document.getElementById('modalBackdrop');
-    const createGroupBtn = document.getElementById('createGroupBtn');
-    const cancelCreateGroup = document.getElementById('cancelCreateGroup');
-    const groupNameInput = document.getElementById('groupName');
-    const addMemberInput = document.getElementById('addMemberInput');
-    const selectedMembersDiv = document.getElementById('selectedMembers');
-    const contactsListDiv = document.getElementById('contactsList');
-
-    const plusIndividualBtn = document.getElementById('plusIndividualBtn');
-    const plusGroupBtn = document.getElementById('plusGroupBtn');
-
-    let currentChat = null;
-    let currentUser = null;
-    let usersCache = {};
-    let selectedGroupMembers = {};
-    let isSigningUp = true;
-
-    // Side Menu Functions
-    function openSideMenu() {
-        sideMenuBackdrop.style.display = 'block';
-        setTimeout(() => {
-            sideMenuBackdrop.classList.add('visible');
-            sideMenu.classList.add('open');
-        }, 10);
+    function displayMessage(area, message, type) {
+      area.innerHTML = `<div class="message ${type}">${message}</div>`;
+      setTimeout(() => { area.innerHTML = ''; }, 5000);
     }
-
-    function closeSideMenu() {
-        sideMenuBackdrop.classList.remove('visible');
-        sideMenu.classList.remove('open');
-        setTimeout(() => {
-            sideMenuBackdrop.style.display = 'none';
-        }, 300); // Match CSS transition time
-    }
-
-    topHeaderMenu.addEventListener('click', openSideMenu);
-    sideMenuBackdrop.addEventListener('click', (e) => {
-        // Close if click is on the backdrop itself (not the menu)
-        if (e.target === sideMenuBackdrop) {
-            closeSideMenu();
-        }
-    });
-
-
-    // show/hide top header + wave + fixed list header together and adjust content padding
-    function setTopBannerVisible(visible) {
-      const phoneEl = document.querySelector('.phone');
-      if (visible) {
-        topHeader.style.display = 'flex';
-        waveTop.style.display = 'block';
-
-        // fixedListHeader visibility is managed in updateUI for auth check
-
-        // ensure phone content starts after header + wave
-        phoneEl.style.paddingTop = 'calc(var(--header-height) + var(--wave-height))';
-
-        // ensure chat header sits below header + wave
-        chatHeader.style.top = 'calc(var(--header-height) + var(--wave-height))';
-
-        // ensure chat-messages padding-top accounts for everything
-        document.querySelectorAll('.chat-messages').forEach(cm => {
-          cm.style.paddingTop = 'calc(var(--header-height) + var(--wave-height) + var(--header-height) + 12px)';
-        });
-      } else {
-        // hide them on chat screens
-        topHeader.style.display = 'none';
-        waveTop.style.display = 'none';
-        fixedListHeader.style.display = 'none'; // Ensure hidden on chat screen too
-
-        phoneEl.style.paddingTop = '0px';
-
-        // bring chat header to very top
-        chatHeader.style.top = '0px';
-        document.querySelectorAll('.chat-messages').forEach(cm => {
-          cm.style.paddingTop = 'calc(var(--header-height) + 12px)';
-        });
-      }
-    }
-
-    // initial
-    setTopBannerVisible(true);
-
-    // Ensure bottom-nav is hidden and input stays visible when inside an individual chat.
-    function enterChatMode(){
-      const phoneEl = document.querySelector('.phone');
-      if (phoneEl) phoneEl.classList.add('chat-active');
-      if (bottomNav) bottomNav.style.display = 'none';
-      if (chatInputWrapper) chatInputWrapper.style.bottom = '0px';
-      // adjust messages padding so last message is not hidden
-      if (msgContainer) msgContainer.style.paddingBottom = 'calc(var(--input-area-height) + 12px)';
-    }
-    function exitChatMode(){
-      const phoneEl = document.querySelector('.phone');
-      if (phoneEl) phoneEl.classList.remove('chat-active');
-      if (bottomNav) bottomNav.style.display = 'flex';
-      if (chatInputWrapper) chatInputWrapper.style.bottom = '64px';
-      if (msgContainer) msgContainer.style.paddingBottom = '120px';
-    }
-
-    function updateAuthUI() {
-      if (isSigningUp) {
-        authSubmitBtn.textContent = 'Sign Up';
-        welcomeText.innerHTML = 'Welcome,<br>to Zag Messenger.';
-        if (phone && phone.parentElement) phone.parentElement.style.display = 'flex';
-        toSignIn.style.display = 'block';
-        toSignUp.style.display = 'none';
-        authSubmitBtn.classList.add('primary');
-        authSubmitBtn.classList.remove('ghost');
-      } else {
-        authSubmitBtn.textContent = 'Sign In';
-        welcomeText.innerHTML = 'Welcome Back,<br>to Zag Messenger.';
-        if (phone && phone.parentElement) phone.parentElement.style.display = 'none';
-        toSignIn.style.display = 'none';
-        toSignUp.style.display = 'block';
-        authSubmitBtn.classList.add('primary');
-        authSubmitBtn.classList.remove('ghost');
-      }
-    }
-    toSignIn.addEventListener('click', () => { isSigningUp = false; updateAuthUI(); });
-    toSignUp.addEventListener('click', () => { isSigningUp = true; updateAuthUI(); });
-    updateAuthUI();
 
     async function createUserProfile(user) {
-      if (!user) return;
-      const userRef = dbRef(db, 'users/' + user.uid);
-      const snap = await get(userRef);
-      if (!snap.exists()) {
-        await set(userRef, {
-          email: user.email || '',
-          uid: user.uid,
-          phoneNumber: '+880' + (phone.value.trim() || '')
-        });
-      } else {
-        const data = snap.val();
-        if (!data.phoneNumber && phone.value.trim()) {
-          await update(userRef, { phoneNumber: '+880' + phone.value.trim() });
-        }
-      }
+      if (!user || !user.uid) return;
+      await set(ref(db, `users/${user.uid}`), { email: user.email || null, uid: user.uid });
     }
 
-    authSubmitBtn.addEventListener('click', async () => {
-      const e = (email.value || '').trim();
-      const p = (pass.value || '').trim();
-      const ph = (phone.value || '').trim();
-
-      if (!e || !p) {
-        return alert('Please enter email and password.');
+    async function getUserByEmail(email) {
+      if (!email) return null;
+      const usersQuery = query(usersRef, orderByChild('email'), equalTo(email));
+      const snapshot = await get(usersQuery);
+      if (snapshot.exists()) {
+        let userProfile = null;
+        snapshot.forEach(child => { userProfile = child.val(); });
+        return userProfile;
       }
-      if (isSigningUp && !ph) {
-        return alert('Please enter your phone number for sign up.');
-      }
+      return null;
+    }
 
+    // Sign up
+    signupBtn.onclick = async () => {
+      const email = emailInput.value.trim();
+      const password = passwordInput.value.trim();
+      if (!email || !password) {
+        displayMessage(authMessageArea, "Email and password cannot be empty.", "error");
+        return;
+      }
+      signupBtn.disabled = true;
       try {
-        if (isSigningUp) {
-          const userCredential = await createUserWithEmailAndPassword(auth, e, p);
-          await createUserProfile(userCredential.user);
-        } else {
-          await signInWithEmailAndPassword(auth, e, p);
-        }
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        await createUserProfile(userCredential.user);
+        displayMessage(authMessageArea, "Signed up successfully!", "success");
+        document.getElementById("auth-section").style.display = "none";
+        document.getElementById("app-section").style.display = "block";
+        // Load app data for the new user
+        loadPosts();
+        loadChatList();
       } catch (err) {
-        alert((isSigningUp ? 'Sign up' : 'Sign in') + ' failed: ' + err.message);
-        console.error(err);
+        displayMessage(authMessageArea, `Sign up failed: ${err.message}`, "error");
+      } finally {
+        signupBtn.disabled = false;
       }
-    });
+    };
 
+    // Sign in
+    loginBtn.onclick = async () => {
+      const email = emailInput.value.trim();
+      const password = passwordInput.value.trim();
+      if (!email || !password) {
+        displayMessage(authMessageArea, "Email and password cannot be empty.", "error");
+        return;
+      }
+      loginBtn.disabled = true;
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+        const user = auth.currentUser;
+        if (user) {
+          const userSnap = await get(ref(db, `users/${user.uid}`));
+          if (!userSnap.exists()) await createUserProfile(user);
+        }
+        displayMessage(authMessageArea, "Signed in successfully!", "success");
+        document.getElementById("auth-section").style.display = "none";
+        document.getElementById("app-section").style.display = "block";
+        loadPosts();
+        loadChatList();
+      } catch (err) {
+        displayMessage(authMessageArea, `Sign in failed: ${err.message}`, "error");
+      } finally {
+        loginBtn.disabled = false;
+      }
+    };
+
+    // Auth state listener - keep UI in sync if the user is already logged in
     onAuthStateChanged(auth, async (user) => {
-      currentUser = user;
       if (user) {
-        await createUserProfile(user);
-        loadUsersCache();
-        loadChats();
-        loadGroups();
+        await createUserProfile(user); // ensure profile exists
+        document.getElementById("auth-section").style.display = "none";
+        document.getElementById("app-section").style.display = "block";
+        displayMessage(authMessageArea, `Welcome, ${user.email}`, "success");
+        loadPosts();
+        loadChatList();
+      } else {
+        document.getElementById("auth-section").style.display = "block";
+        document.getElementById("app-section").style.display = "none";
+        individualChatContainer.style.display = "none";
+        displayMessage(authMessageArea, "Please sign in or sign up.", "info");
       }
-      updateUI(user);
-      updateFloatingVisibility();
     });
 
-    function updateUI(user) {
-      if (user) {
-        authSection.style.display = 'none';
-        appSection.style.display = 'block';
-        individualChat.style.display = 'none';
-        bottomNav.style.display = 'flex';
-        navHome.classList.add('active');
-        navGroups.classList.remove('active');
-        listTitle.innerText = 'My chats';
-        chatList.style.display = 'block';
-        groupList.style.display = 'none';
-        // show banner on list screens
-        setTopBannerVisible(true);
-        // UPDATED: Show fixed header only when signed in
-        fixedListHeader.style.display = 'flex'; 
-      } else {
-        authSection.style.display = 'flex';
-        appSection.style.display = 'none';
-        individualChat.style.display = 'none';
-        floatingBtn.style.display = 'none';
-        bottomNav.style.display = 'flex';
-        navHome.classList.remove('active');
-        navGroups.classList.remove('active');
-        setTopBannerVisible(true);
-        // UPDATED: Hide fixed header on auth screen
-        fixedListHeader.style.display = 'none'; 
-      }
-    }
-
-    function updateFloatingVisibility() {
-      const appVisible = appSection.style.display !== 'none';
-      const chatVisible = individualChat.style.display !== 'none';
-      // Only allow on 'Home' (My chats)
-      const allowedNav = navHome.classList.contains('active'); 
-
-      if (currentUser && appVisible && !chatVisible && allowedNav) {
-        floatingBtn.style.display = 'flex';
-      } else {
-        floatingBtn.style.display = 'none';
-        plusMenu.style.display = 'none';
-      }
-    }
-
-    function loadUsersCache() {
-      const usersRef = dbRef(db, 'users');
-      onValue(usersRef, snap => {
-        usersCache = {};
-        contactsListDiv.innerHTML = '';
-        snap.forEach(s => {
-          const u = s.val();
-          if (!u || !u.uid) return;
-          usersCache[u.uid] = u;
-          if (currentUser && u.uid !== currentUser.uid) {
-            const div = document.createElement('div');
-            div.className = 'contact-item';
-            div.dataset.uid = u.uid;
-            div.innerHTML = `<div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(180deg,#dbeeff,#c1ddff);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--primary);">${(u.email||'U').charAt(0).toUpperCase()}</div>
-                              <div style="flex:1;">
-                                <div style="font-weight:700;color:var(--primary);font-size:14px;">${u.email || u.phoneNumber || 'Unknown'}</div>
-                                <div class="small">${u.phoneNumber || ''}</div>
-                              </div>`;
-            div.addEventListener('click', () => {
-              if (selectedGroupMembers[u.uid]) {
-                delete selectedGroupMembers[u.uid];
-                div.style.opacity = '1';
-              } else {
-                selectedGroupMembers[u.uid] = u;
-                div.style.opacity = '0.6';
-              }
-              renderSelectedMembers();
-            });
-            contactsListDiv.appendChild(div);
-          }
-        });
-      });
-    }
-
-    function renderSelectedMembers() {
-      selectedMembersDiv.innerHTML = '';
-      Object.values(selectedGroupMembers).forEach(u => {
-        const span = document.createElement('span');
-        span.style.display = 'inline-block';
-        span.style.padding = '6px 10px';
-        span.style.marginRight = '6px';
-        span.style.background = '#f0f6ff';
-        span.style.borderRadius = '999px';
-        span.style.fontSize = '13px';
-        span.textContent = u.email || u.phoneNumber || 'Member';
-        selectedMembersDiv.appendChild(span);
-      });
-    }
-
-    function escapeHtml(unsafe) {
-      if (unsafe === undefined || unsafe === null) return '';
-      return String(unsafe)
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#039;');
-    }
-
-    function formatTime(ms) {
-      if (!ms) return '';
-      const d = new Date(Number(ms));
-      let hours = d.getHours();
-      const minutes = d.getMinutes();
-      const ampm = hours >= 12 ? 'PM' : 'AM';
-      hours = hours % 12;
-      if (hours === 0) hours = 12;
-      const mins = minutes < 10 ? '0' + minutes : minutes;
-      return hours + ':' + mins + ' ' + ampm;
-    }
-
-    function shortenMiddle(str, maxLen = 28) {
-      if (!str || str.length <= maxLen) return str;
-      const atIdx = str.indexOf('@');
-      if (atIdx > 0) {
-        const domain = str.substring(atIdx);
-        const keepLeft = Math.max(3, maxLen - domain.length - 3);
-        const left = str.substring(0, keepLeft);
-        return left + '...' + domain;
-      }
-      const leftKeep = Math.ceil((maxLen - 3) / 2);
-      const rightKeep = Math.floor((maxLen - 3) / 2);
-      return str.substring(0, leftKeep) + '...' + str.substring(str.length - rightKeep);
-    }
-
-    // Updated loadChats: show only contacts (so deleting a contact removes from Home)
-    async function loadChats() {
-      chatList.innerHTML = '';
-      if (!currentUser) {
-        chatList.innerHTML = '<div class="small">Sign in to see chats.</div>';
-        return;
-      }
-
+    // Upload post
+    uploadPostBtn.onclick = async () => {
+      const file = postImageInput.files[0];
+      if (!file) return displayMessage(postMessageArea, "Select an image file first.", "error");
+      if (!auth.currentUser) return displayMessage(postMessageArea, "You must be logged in to upload a post.", "error");
+      uploadPostBtn.disabled = true;
       try {
-        const contactsSnap = await get(dbRef(db, 'contacts/' + currentUser.uid));
-        if (!contactsSnap.exists()) {
-          chatList.innerHTML = '<div class="small">No contacts yet. Add people from the + button.</div>';
-          return;
-        }
-        const contactUids = Object.keys(contactsSnap.val() || {});
-        if (contactUids.length === 0) {
-          chatList.innerHTML = '<div class="small">No contacts yet. Add people from the + button.</div>';
-          return;
-        }
-
-        chatList.innerHTML = '';
-        for (const uid of contactUids) {
-          // fetch user from cache first, otherwise from DB
-          let u = usersCache[uid];
-          if (!u) {
-            try {
-              const usnap = await get(dbRef(db, 'users/' + uid));
-              if (usnap.exists()) u = usnap.val();
-            } catch (e) { console.error('fetch user error', e); }
-          }
-          if (!u) continue;
-          const item = document.createElement('div');
-          item.className = 'chat-item';
-          item.dataset.uid = u.uid;
-          item.innerHTML = `<div class="avatar">${(u.email||'U').charAt(0).toUpperCase()}</div>
-                            <div class="chat-meta">
-                              <div class="name">${u.displayName || u.email || u.phoneNumber || 'User'}</div>
-                              <div class="sub">${u.handle ? ('@' + u.handle) : (u.phoneNumber || '')}</div>
-                            </div>`;
-          item.addEventListener('click', () => {
-            openPrivateChatWith(u);
-          });
-          chatList.appendChild(item);
-        }
+        const fileRef = sRef(storage, 'posts/' + Date.now() + '_' + file.name);
+        await uploadBytes(fileRef, file);
+        const url = await getDownloadURL(fileRef);
+        await push(postsRef, { imageUrl: url, timestamp: Date.now(), userId: auth.currentUser.uid, userEmail: auth.currentUser.email });
+        displayMessage(postMessageArea, "Post uploaded successfully!", "success");
+        postImageInput.value = '';
       } catch (err) {
-        console.error('loadChats error', err);
-        chatList.innerHTML = '<div class="small">Error loading chats.</div>';
+        displayMessage(postMessageArea, `Failed to upload post: ${err.message}`, "error");
+      } finally {
+        uploadPostBtn.disabled = false;
       }
-    }
+    };
 
-    function scrollLatestMessageIntoView(behavior = 'auto') {
-      const last = msgContainer.lastElementChild;
-      if (!last) return;
-      try {
-        last.scrollIntoView({ behavior, block: 'end', inline: 'nearest' });
-      } catch (e) {
-        msgContainer.scrollTop = msgContainer.scrollHeight;
-      }
-    }
-
-    function openPrivateChatWith(userObj) {
-      if (!currentUser) return alert('Not signed in');
-      const chatId = [currentUser.uid, userObj.uid].sort().join('_');
-      currentChat = { type: 'private', id: chatId, with: userObj };
-
-      document.getElementById('current-chat-avatar').textContent = (userObj.email||'U').charAt(0).toUpperCase();
-      const displayName = userObj.displayName || userObj.email || userObj.phoneNumber || 'User';
-      const short = shortenMiddle(displayName, 28);
-      const nameEl = document.getElementById('current-chat-name');
-      nameEl.textContent = short;
-      nameEl.title = displayName;
-      document.getElementById('current-chat-sub').textContent = userObj.handle ? ('@' + userObj.handle) : (userObj.phoneNumber || '');
-
-      appSection.style.display = 'none';
-      individualChat.style.display = 'flex';
-      msgContainer.innerHTML = '';
-
-      // hide top banner (header + wave + fixed list header) on chat screen
-      setTopBannerVisible(false);
-      updateFloatingVisibility();
-      // ensure chat input stays visible and bottom nav hidden
-      enterChatMode();
-
-      const messagesRef = dbRef(db, 'messages/' + chatId);
-      onValue(messagesRef, snap => {
-        msgContainer.innerHTML = '';
-        snap.forEach(child => {
-          const m = child.val();
-          const isSent = m.sender === currentUser.uid;
-          const div = document.createElement('div');
-          div.className = 'bubble ' + (isSent ? 'sent' : 'received');
-          div.innerHTML = `<div>${escapeHtml(m.text)}</div>
-                           <div class="msg-meta">${formatTime(m.timestamp)}</div>`;
-          msgContainer.appendChild(div);
-        });
-        scrollLatestMessageIntoView();
-      });
-    }
-
-    function openGroupChat(groupObj) {
-      if (!currentUser) return alert('Not signed in');
-      currentChat = { type: 'group', id: groupObj.id, group: groupObj };
-      document.getElementById('current-chat-avatar').textContent = (groupObj.name||'G').charAt(0).toUpperCase();
-      const groupName = groupObj.name || 'Group';
-      const short = shortenMiddle(groupName, 28);
-      const nameEl = document.getElementById('current-chat-name');
-      nameEl.textContent = short;
-      nameEl.title = groupName;
-      document.getElementById('current-chat-sub').textContent = (Object.keys(groupObj.members||{}).length || 0) + ' members';
-
-      appSection.style.display = 'none';
-      individualChat.style.display = 'flex';
-      msgContainer.innerHTML = '';
-
-      // hide top banner on chat screen
-      setTopBannerVisible(false);
-      updateFloatingVisibility();
-      // ensure chat input stays visible and bottom nav hidden
-      enterChatMode();
-
-      const messagesRef = dbRef(db, 'messages/' + groupObj.id);
-      onValue(messagesRef, snap => {
-        msgContainer.innerHTML = '';
-        snap.forEach(child => {
-          const m = child.val();
-          const isSent = m.sender === currentUser.uid;
-          const div = document.createElement('div');
-          div.className = 'bubble ' + (isSent ? 'sent' : 'received');
-
-          let senderLabel = '';
-          if (!isSent) {
-            const sender = usersCache[m.sender];
-            if (sender) senderLabel = escapeHtml(sender.displayName || sender.email || sender.phoneNumber || 'Member');
-            else senderLabel = 'Member';
-          }
-
-          div.innerHTML = `<div style="font-weight:700;font-size:13px;margin-bottom:6px;">${senderLabel}</div>
-                           <div>${escapeHtml(m.text)}</div>
-                           <div class="msg-meta">${formatTime(m.timestamp)}</div>`;
-          msgContainer.appendChild(div);
-        });
-        scrollLatestMessageIntoView();
-      });
-    }
-
-    backBtn.addEventListener('click', () => {
-      individualChat.style.display = 'none';
-      appSection.style.display = 'block';
-      currentChat = null;
-      // show top banner when returning to list
-      setTopBannerVisible(true);
-      // restore bottom nav and input positioning
-      exitChatMode();
-      updateFloatingVisibility();
-    });
-
-    sendBtn.addEventListener('click', async () => {
-      const text = (msgInput.value || '').trim();
-      if (!text) return;
-      if (!currentChat) return alert('Open a chat first.');
-      const chatId = currentChat.id;
-      const messagesRef = dbRef(db, 'messages/' + chatId);
-      const newMsgRef = push(messagesRef);
-      await set(newMsgRef, {
-        text,
-        sender: currentUser.uid,
-        senderEmail: currentUser.email || '',
-        timestamp: Date.now()
-      });
-      msgInput.value = '';
-      setTimeout(() => scrollLatestMessageIntoView('smooth'), 120);
-    });
-
-    msgInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        sendBtn.click();
-      }
-    });
-
-    // Ensure + button functionality is working
-    floatingBtn.addEventListener('click', (e) => {
-      if (plusMenu.style.display === 'flex') {
-        plusMenu.style.display = 'none';
-      } else {
-        plusMenu.style.display = 'flex';
-        setTimeout(() => { plusMenu.style.display = 'none'; }, 6000);
-      }
-    });
-
-    plusIndividualBtn.addEventListener('click', () => {
-      plusMenu.style.display = 'none';
-      addChatArea.style.display = 'block';
-      addChatIdentifier.focus();
-      updateFloatingVisibility();
-    });
-    plusGroupBtn.addEventListener('click', () => {
-      plusMenu.style.display = 'none';
-      modalBackdrop.style.display = 'flex';
-    });
-
-    closeAdd.addEventListener('click', () => {
-      addChatArea.style.display = 'none';
-      updateFloatingVisibility();
-    });
-
-    addBtn.addEventListener('click', async () => {
-      const val = (addChatIdentifier.value || '').trim();
-      if (!val) return alert('Enter email or phone to add.');
-      const usersRef = dbRef(db, 'users');
-      const snapshot = await get(usersRef);
-      let found = null;
-      snapshot.forEach(s => {
-        const u = s.val();
-        if (!u) return;
-        if (u.email === val || u.phoneNumber === val || ('+880'+val) === u.phoneNumber) {
-          found = u;
-        }
-      });
-      if (!found) {
-        return alert('User not found in directory. They must sign up first.');
-      }
-      // add as contact for current user
-      try {
-        await set(dbRef(db, 'contacts/' + currentUser.uid + '/' + found.uid), true);
-      } catch(e){ console.error('add contact error', e); }
-      openPrivateChatWith(found);
-      addChatArea.style.display = 'none';
-      addChatIdentifier.value = '';
-      updateFloatingVisibility();
-    });
-
-    navGroups.addEventListener('click', () => {       try{ document.getElementById('games-section') && (document.getElementById('games-section').style.display = 'none'); }catch(e){}
-      closeProfile(); navGroups.classList.add('active');
-      navHome.classList.remove('active');
-      try{ navYou.classList.remove('active'); }catch(e){}
-      listTitle.innerText = 'Groups';
-      chatList.style.display = 'none';
-      groupList.style.display = 'block';
-      updateFloatingVisibility();
-      loadGroups();
-    });
-    navHome.addEventListener('click', () => {       try{ document.getElementById('games-section') && (document.getElementById('games-section').style.display = 'none'); }catch(e){}
-      closeProfile(); navHome.classList.add('active');
-      navGroups.classList.remove('active');
-      try{ navYou.classList.remove('active'); }catch(e){}
-      listTitle.innerText = 'My chats';
-      chatList.style.display = 'block';
-      groupList.style.display = 'none';
-      updateFloatingVisibility();
-      loadChats();
-    });
-
-    // connect @You to openProfile
-    navYou.addEventListener('click', (ev)=>{
-      openProfile();
-    });
-
-    cancelCreateGroup.addEventListener('click', () => {
-      modalBackdrop.style.display = 'none';
-      updateFloatingVisibility();
-    });
-    addMemberInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        const q = (addMemberInput.value || '').trim();
-        if (!q) return;
-        let found = null;
-        Object.values(usersCache).forEach(u => {
-          if (u.email === q || u.phoneNumber === q || ('+880'+q) === u.phoneNumber) found = u;
-        });
-        if (found) {
-          selectedGroupMembers[found.uid] = found;
-          renderSelectedMembers();
-          addMemberInput.value = '';
-        } else {
-          alert('User not found');
-        }
-      }
-    });
-
-    createGroupBtn.addEventListener('click', async () => {
-      const name = (groupNameInput.value || '').trim();
-      if (!name) return alert('Enter group name');
-      const memberUids = Object.keys(selectedGroupMembers);
-      if (memberUids.length === 0) return alert('Add at least one member');
-      const groupsRef = dbRef(db, 'groups');
-      const newGroupRef = push(groupsRef);
-      const groupId = newGroupRef.key;
-      const groupData = {
-        id: groupId,
-        name,
-        members: { [currentUser.uid]: true },
-        createdAt: Date.now(),
-        createdBy: currentUser.uid
-      };
-      memberUids.forEach(uid => groupData.members[uid] = true);
-      await set(newGroupRef, groupData);
-      modalBackdrop.style.display = 'none';
-      groupNameInput.value = '';
-      selectedGroupMembers = {};
-      renderSelectedMembers();
-      alert('Group created');
-      loadGroups();
-      updateFloatingVisibility();
-    });
-
-    function loadGroups() {
-      groupList.innerHTML = '';
-      if (!currentUser) {
-        groupList.innerHTML = '<div class="small">Sign in to see groups.</div>';
-        return;
-      }
-      const groupsRef = dbRef(db, 'groups');
-      get(groupsRef).then(snap => {
-        groupList.innerHTML = '';
-        if (!snap.exists()) return;
-        snap.forEach(s => {
-          const g = s.val();
-          if (!g || !g.members) return;
-          if (g.members[currentUser.uid]) {
+    // Load posts
+    function loadPosts() {
+      postsGrid.innerHTML = '';
+      onValue(postsRef, (snapshot) => {
+        postsGrid.innerHTML = '';
+        if (snapshot.exists()) {
+          noPostsMessage.style.display = 'none';
+          const postsData = [];
+          snapshot.forEach(child => postsData.push({ id: child.key, ...child.val() }));
+          postsData.sort((a,b) => (b.timestamp || 0) - (a.timestamp || 0));
+          postsData.forEach(post => {
             const div = document.createElement('div');
-            div.className = 'chat-item';
-            div.innerHTML = `<div class="avatar">G</div>
-                             <div class="chat-meta">
-                               <div class="name">${g.name}</div>
-                               <div class="sub">${Object.keys(g.members).length} members</div>
-                             </div>`;
-            div.addEventListener('click', () => {
-              openGroupChat(g);
-            });
-            groupList.appendChild(div);
-          }
-        });
-      }).catch(err => {
-        console.error('loadGroups error', err);
-        groupList.innerHTML = '<div class="small">Error loading groups.</div>';
-      });
-    }
-
-    /* navYou click handler replaced by profile handler above */
-
-    window.addEventListener('resize', updateFloatingVisibility);
-    window.addEventListener('focus', updateFloatingVisibility);
-
-    (function setupKeyboardAwareInput() {
-      const chatWrapper = chatInputWrapper;
-
-      function computeTargetBottom() {
-        const baseBottom = 64;
-        const maxExtra = 6;
-        if (window.visualViewport) {
-          const vhDiff = window.innerHeight - window.visualViewport.height;
-          const extra = Math.max(0, Math.min(maxExtra, vhDiff));
-          return baseBottom + extra;
-        }
-        return baseBottom + 28;
-      }
-
-      function onFocusAdjust() {
-        const target = computeTargetBottom();
-        chatWrapper.style.bottom = target + 'px';
-        chatWrapper.classList.add('keyboard-open');
-        try { scrollLatestMessageIntoView(); } catch(e){}
-      }
-
-      function onBlurReset() {
-        setTimeout(() => {
-          chatWrapper.style.bottom = '64px';
-          chatWrapper.classList.remove('keyboard-open');
-        }, 120);
-      }
-
-      msgInput.addEventListener('focus', onFocusAdjust);
-      msgInput.addEventListener('blur', onBlurReset);
-
-      if (window.visualViewport) {
-        window.visualViewport.addEventListener('resize', () => {
-          if (document.activeElement === msgInput) {
-            onFocusAdjust();
-          }
-        });
-      }
-
-      window.addEventListener('orientationchange', () => {
-        setTimeout(() => { chatWrapper.style.bottom = '64px'; }, 400);
-      });
-    })();
-
-    document.addEventListener('click', (e) => {
-      const id = e.target && e.target.id;
-      if (id === 'closeMainModal') {
-        document.querySelector('.phone').classList.remove('blurred-bg');
-        const m = document.getElementById('mainModalBackdrop');
-        if (m) m.style.display = 'none';
-      } else if (id === 'openIndividualModalBtn') {
-        document.querySelector('.phone').classList.remove('blurred-bg');
-        const m = document.getElementById('mainModalBackdrop');
-        if (m) m.style.display = 'none';
-        addChatArea.style.display = 'block';
-        addChatIdentifier.focus();
-      } else if (id === 'openGroupModalBtn') {
-        document.querySelector('.phone').classList.remove('blurred-bg');
-        const m = document.getElementById('mainModalBackdrop');
-        if (m) m.style.display = 'none';
-        modalBackdrop.style.display = 'flex';
-      }
-    });
-
-    floatingBtn.addEventListener('dblclick', () => {
-      const main = document.getElementById('mainModalBackdrop');
-      if (main) {
-        document.querySelector('.phone').classList.add('blurred-bg');
-        main.style.display = 'flex';
-      }
-    });
-
-    if (chatMenuBtn) {
-      chatMenuBtn.addEventListener('click', () => {
-        alert('Chat menu (⋮) clicked — implement actions as needed.');
-      });
-    }
-
-
-    // --- Profile page & avatar picker logic (updated) ---
-    const profileSection = document.getElementById('profile-section');
-    const profileAvatar = document.getElementById('profileAvatar');
-    const pencilBtn = document.getElementById('pencilBtn');
-    const avatarModal = document.getElementById('avatarModal');
-    const avatarGrid = document.getElementById('avatarGrid');
-    const closeAvatarModal = document.getElementById('closeAvatarModal');
-    const saveAvatarModal = document.getElementById('saveAvatarModal');
-    const profileDisplayName = document.getElementById('profileDisplayName');
-    const profileHandle = document.getElementById('profileHandle');
-    const profileAbout = document.getElementById('profileAbout');
-    const saveProfileBtn = document.getElementById('saveProfileBtn');
-    const profileContactsList = document.getElementById('profileContactsList');
-    const fixedHeaderTitle = document.getElementById('list-title');
-
-    const avatarFilenames = Array.from({length:30}).map((_,i)=> 'avatars/avatar' + (i+1) + '.png');
-
-    function setBottomActive(which) {
-      [navHome, navGroups, navGames, navYou].forEach(n=>n.classList.remove('active'));
-      if (which) which.classList.add('active');
-    }
-
-    function openProfile() {
-            try{ document.getElementById('games-section') && (document.getElementById('games-section').style.display = 'none'); }catch(e){}
-      if (!currentUser) return alert('Not signed in');
-      authSection.style.display = 'none';
-      appSection.style.display = 'none';
-      individualChat.style.display = 'none';
-      profileSection.style.display = 'block';
-      setTopBannerVisible(true);
-      floatingBtn.style.display = 'none';
-      setBottomActive(navYou);
-      try { fixedHeaderTitle.innerText = 'Profile settings'; } catch(e) {}
-      loadProfile();
-      loadProfileContacts();
-    }
-
-    function closeProfile() {
-            try{ document.getElementById('games-section') && (document.getElementById('games-section').style.display = 'none'); }catch(e){}
-      try{ navYou.classList.remove('active'); }catch(e){}
-      profileSection.style.display = 'none';
-      appSection.style.display = 'block';
-      setTopBannerVisible(true);
-      updateFloatingVisibility();
-      try { fixedHeaderTitle.innerText = 'My chats'; } catch(e) {}
-    }
-
-    function renderAvatarGrid(selectedUrl) {
-      avatarGrid.innerHTML = '';
-      avatarFilenames.forEach(url => {
-        const img = document.createElement('img');
-        img.src = url;
-        img.alt = 'avatar';
-        if (url === selectedUrl) img.classList.add('selected');
-        img.addEventListener('click', () => {
-          avatarGrid.querySelectorAll('img').forEach(x=>x.classList.remove('selected'));
-          img.classList.add('selected');
-          profileAvatar.style.backgroundImage = 'url(\"' + url + '\")';
-          profileAvatar.textContent = '';
-          profileAvatar.dataset.selected = url;
-        });
-        avatarGrid.appendChild(img);
-      });
-    }
-
-    pencilBtn && pencilBtn.addEventListener('click', () => {
-  // Open the larger link-edit modal (pencilAvatarModal) — only visible when user taps pencil on @You
-  try { showModal(profileAvatar.dataset.selected || ''); } catch(e) { document.getElementById('pencilAvatarModal').style.display = 'flex'; }
-});
-    closeAvatarModal && closeAvatarModal.addEventListener('click', () => {
-      avatarModal.style.display = 'none';
-      avatarModal.setAttribute('aria-hidden','true');
-    });
-    saveAvatarModal && saveAvatarModal.addEventListener('click', () => {
-      const sel = profileAvatar.dataset.selected;
-      if (sel) {
-        profileAvatar.style.backgroundImage = 'url(\"' + sel + '\")';
-        profileAvatar.textContent = '';
-      }
-      avatarModal.style.display = 'none';
-      avatarModal.setAttribute('aria-hidden','true');
-    });
-
-    async function loadProfile() {
-      if (!currentUser) return;
-      try {
-        const snap = await get(dbRef(db, 'users/' + currentUser.uid));
-        let data = snap.exists() ? snap.val() : {};
-        if (data.displayName) profileDisplayName.value = data.displayName;
-        else profileDisplayName.value = (currentUser.email || '').split('@')[0] || '';
-        /* enforce handle as email local-part and make it readonly (cannot change) */
-        profileHandle.value = (currentUser && currentUser.email ? (currentUser.email.split('@')[0]) : (data && data.handle ? data.handle : '')) || '';
-        try { profileHandle.setAttribute('readonly','true'); } catch(e){};
-        if (data.about) profileAbout.value = data.about;
-        else profileAbout.value = 'Hi, I am using Zag Messenger';
-        if (data.profilePic) {
-          profileAvatar.style.backgroundImage = 'url(\"' + data.profilePic + '\")';
-          profileAvatar.textContent = '';
-          profileAvatar.dataset.selected = data.profilePic;
+            div.className = 'post-card';
+            div.innerHTML = `<img src="${post.imageUrl}" alt="Post Image" />`;
+            postsGrid.appendChild(div);
+          });
         } else {
-          const rnd = avatarFilenames[Math.floor(Math.random()*avatarFilenames.length)];
-          profileAvatar.style.backgroundImage = 'url(\"' + rnd + '\")';
-          profileAvatar.textContent = '';
-          profileAvatar.dataset.selected = '';
+          noPostsMessage.style.display = 'block';
         }
-      } catch (e) {
-        console.error('loadProfile error', e);
-      }
+      });
     }
 
-    async function saveProfile() {
-      if (!currentUser) return alert('Not signed in');
-      let name = (profileDisplayName.value || '').trim();
-      let about = (profileAbout.value || '').trim();
-      let handle = (profileHandle.value || '').trim();
-      if (!name) return alert('Please enter your name (required).');
-      // Normalize handle: remove leading @ if present
-      if (handle.startsWith('@')) handle = handle.substring(1);
-      const profilePic = profileAvatar.dataset.selected || '';
-      const updates = { displayName: name, about: about, handle: handle };
-      if (profilePic) updates.profilePic = profilePic;
+    // Add person to chat
+    addChatBtn.onclick = async () => {
+      const recipientEmail = addChatEmailInput.value.trim();
+      const currentUser = auth.currentUser;
+      if (!currentUser) return displayMessage(chatMessageArea, "You must be logged in to add a person.", "error");
+      if (!recipientEmail) return displayMessage(chatMessageArea, "Please enter an email address.", "error");
+      if (recipientEmail === currentUser.email) return displayMessage(chatMessageArea, "You cannot add yourself to a chat.", "error");
+      addChatBtn.disabled = true;
       try {
-        await update(dbRef(db, 'users/' + currentUser.uid), updates);
-        alert('Profile saved');
-        loadProfile();
-      } catch (e) {
-        console.error('saveProfile error', e);
-        alert('Failed to save profile');
-      }
-    }
-
-    saveProfileBtn && saveProfileBtn.addEventListener('click', saveProfile);
-
-    async function loadProfileContacts() {
-      profileContactsList.innerHTML = '';
-      if (!currentUser) return;
-      try {
-        const snap = await get(dbRef(db, 'contacts/' + currentUser.uid));
-        if (!snap.exists()) {
-          profileContactsList.innerHTML = '<div class=\"small\">No contacts yet.</div>';
+        const recipientProfile = await getUserByEmail(recipientEmail);
+        if (!recipientProfile || !recipientProfile.uid || !recipientProfile.email) {
+          displayMessage(chatMessageArea, `No user found with email: ${recipientEmail}`, "error");
+          console.error("Invalid recipient profile:", recipientProfile);
           return;
         }
-        const uids = Object.keys(snap.val() || {});
-        for (const uid of uids) {
-          let u = usersCache[uid];
-          if (!u) {
-            const usnap = await get(dbRef(db, 'users/' + uid));
-            if (usnap.exists()) u = usnap.val();
-          }
-          if (!u) continue;
-          const row = document.createElement('div');
-          row.className = 'contact-row';
-          row.innerHTML = `<div style=\"width:44px;height:44px;border-radius:50%;background:linear-gradient(180deg,#dbeeff,#c1ddff);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--primary);\">${(u.displayName||u.email||'U').charAt(0).toUpperCase()}</div>
-                           <div style="flex:1;">
-                             <div class=\"contact-name\">${u.displayName || u.email || u.phoneNumber || 'User'}</div>
-                             <div class="small">${u.handle ? ('@' + u.handle) : (u.phoneNumber || '')}</div>
-                           </div>
-                           <button class=\"delete-btn\">Delete</button>`;
-          const delBtn = row.querySelector('.delete-btn');
-          delBtn.addEventListener('click', async () => {
-            const ok = confirm('Delete this contact? This will remove them from your Home list.');
-            if (!ok) return;
-            try {
-              await set(dbRef(db, 'contacts/' + currentUser.uid + '/' + uid), null);
-              // reload UI
-              await loadProfileContacts();
-              await loadChats(); // <-- ensure removed from Home list immediately
-            } catch (e) {
-              console.error('delete contact error', e);
-            }
+        const recipientUid = recipientProfile.uid;
+        const currentUid = currentUser.uid;
+        const chatMembers = [currentUid, recipientUid].sort();
+        const chatId = chatMembers.join('_');
+        const existingChatSnapshot = await get(ref(db, `chats/${chatId}`));
+        if (existingChatSnapshot.exists()) {
+          displayMessage(chatMessageArea, `Chat with ${recipientEmail} already exists!`, "info");
+        } else {
+          await set(ref(db, `chats/${chatId}`), {
+            members: chatMembers,
+            memberEmails: { [currentUid]: currentUser.email, [recipientUid]: recipientProfile.email },
+            createdAt: Date.now()
           });
-          profileContactsList.appendChild(row);
+          displayMessage(chatMessageArea, `Chat with ${recipientEmail} added successfully!`, "success");
         }
-      } catch (e) {
-        console.error('loadProfileContacts error', e);
+        addChatEmailInput.value = '';
+      } catch (error) {
+        displayMessage(chatMessageArea, `Failed to add person: ${error.message}`, "error");
+        console.error("Error adding chat:", error);
+      } finally {
+        addChatBtn.disabled = false;
       }
-    }
+    };
 
-    navYou.removeEventListener && navYou.removeEventListener('click', ()=>{});
-    /* navYou click handler replaced by profile handler above */
-
-    // ensure Home / Groups clear navYou active and update fixed header title
-    navHome.addEventListener('click', (ev)=>{
-      try { profileSection.style.display = 'none'; } catch(e){}
-      setBottomActive(navHome);
-      try { fixedHeaderTitle.innerText = 'My chats'; } catch(e){}
-    });
-    navGroups.addEventListener('click', (ev)=>{
-      try { profileSection.style.display = 'none'; } catch(e){}
-      setBottomActive(navGroups);
-      try { fixedHeaderTitle.innerText = 'Groups'; } catch(e){}
-    });
-    // --- end profile updates ---
-
-    window.addEventListener('load', () => {
-      // Show the fixed list header when the app is initialized and user is logged in
-      const flh = document.getElementById('fixedListHeader');
-      if (flh && appSection.style.display !== 'none' && currentUser) flh.style.display = 'flex';
-      // If the page was reloaded while in a chat, ensure UI is consistent
-      if (document.querySelector('.phone.chat-active')){
-        if (bottomNav) bottomNav.style.display = 'none';
-      }
-    });
-
-    // --- START: Startup loader behaviour (added) ---
-    (function startupLoaderBehaviour(){
-      const loader = document.getElementById('startup-loader');
-      function hideLoaderInstant() {
-        if (!loader) return;
-        try {
-          loader.style.transition = 'opacity 220ms ease';
-          loader.style.opacity = '0';
-          loader.style.pointerEvents = 'none';
-          setTimeout(()=>{ if(loader.parentElement) loader.parentElement.removeChild(loader); }, 260);
-        } catch(e){}
-      }
-
-      // Keep loader visible for exactly 1 second, then decide screen based on auth state
-      window.addEventListener('load', () => {
-        setTimeout(() => {
-          // prefer the canonical firebase auth currentUser if available, otherwise use currentUser variable
-          const u = (typeof auth !== 'undefined' && auth.currentUser) ? auth.currentUser : (typeof currentUser !== 'undefined' ? currentUser : null);
-          if (u) {
-            // user is signed in -> show app area
-            updateUI(u);
-            // ensure caches and lists are loaded
-            try { loadUsersCache(); loadChats(); loadGroups(); } catch(e){}
-          } else {
-            // no user -> remain on auth screen
-            updateUI(null);
+    // Load chat list
+    function loadChatList() {
+      if (!auth.currentUser) return;
+      chatListContainer.innerHTML = '';
+      noChatsMessage.style.display = 'block';
+      const userUid = auth.currentUser.uid;
+      onValue(chatsRef, (snapshot) => {
+        chatListContainer.innerHTML = '';
+        let chatFound = false;
+        snapshot.forEach(childSnapshot => {
+          const chat = childSnapshot.val();
+          const chatId = childSnapshot.key;
+          if (chat.members && chat.members.includes(userUid)) {
+            chatFound = true;
+            const otherUid = chat.members.find(uid => uid !== userUid);
+            const otherEmail = chat.memberEmails ? chat.memberEmails[otherUid] : null;
+            const chatName = otherEmail ? otherEmail.split('@')[0] : 'Unknown';
+            const div = document.createElement('div');
+            div.className = 'chat-list-item';
+            div.dataset.chatId = chatId;
+            div.dataset.recipientUid = otherUid;
+            div.dataset.recipientEmail = otherEmail;
+            div.innerHTML = `<div class="chat-list-avatar">${chatName.charAt(0).toUpperCase()}</div><div class="chat-list-name">${chatName}</div>`;
+            div.onclick = () => openIndividualChat(chatId, otherUid, otherEmail);
+            chatListContainer.appendChild(div);
           }
-          hideLoaderInstant();
-        }, 1000); // 1 second as requested
-      });
-    })();
-    // --- END: Startup loader behaviour ---
-
-    console.log('Profile & contacts improvements applied: handle field, contact deletion removes from Home, @You opens profile.');
-  
-// --- START: Games & presence/invite/session logic (added) ---
-(function initGamesFeature(){
-  function setMyPresenceOnline() {
-    if (!currentUser) return;
-    try {
-      const pRef = dbRef(db, 'presence/' + currentUser.uid);
-      set(pRef, true).catch(()=>{});
-      window.addEventListener('beforeunload', () => {
-        try { set(dbRef(db, 'presence/' + currentUser.uid), null); } catch(e){}
-      });
-    } catch(e){}
-  }
-
-  let presenceSnapshot = {};
-  function initPresenceListener(){
-    try {
-      const presRef = dbRef(db, 'presence');
-      onValue(presRef, snap => {
-        presenceSnapshot = snap.exists() ? snap.val() : {};
-      });
-    } catch(e){}
-  }
-
-  try {
-    if (typeof navGames !== 'undefined' && navGames) {
-      navGames.addEventListener('click', () => { closeProfile(); navGames.classList.add('active'); navHome.classList.remove('active'); try{ navYou.classList.remove('active'); }catch(e){} listTitle.innerText = 'Games'; chatList.style.display = 'none'; groupList.style.display = 'none'; document.getElementById('games-section').style.display = 'block'; updateFloatingVisibility();
-        setBottomActive(navGames);
-        try { profileSection.style.display = 'none'; } catch(e){}
-        chatList.style.display = 'none';
-        groupList.style.display = 'none';
-        document.getElementById('games-section').style.display = 'block';
-        listTitle && (listTitle.innerText = 'Games');
-        updateFloatingVisibility();
-      });
-    }
-  } catch(e){}
-
-  document.addEventListener('click', (ev) => {
-    const el = ev.target.closest && ev.target.closest('.game-card');
-    if (el) {
-      const game = el.dataset.game;
-      openGameInvitePicker(game);
-    }
-  });
-
-  let selectedInviteTarget = null;
-  let currentInviterListener = null;
-
-  async function openGameInvitePicker(gameId){
-    if (!currentUser) return alert('Please sign in to use games.');
-    const modal = document.getElementById('gameInviteModal');
-    const title = document.getElementById('inviteGameName');
-    title.textContent = gameId === 'tictactoe' ? 'Tic‑Tac‑Toe' : (gameId === 'rps' ? 'Rock Paper Scissors' : gameId);
-    const list = document.getElementById('onlineContactsList');
-    list.innerHTML = '<div class="small">Loading contacts…</div>';
-    modal.style.display = 'flex';
-    selectedInviteTarget = null;
-
-    try {
-      const contactsSnap = await get(dbRef(db, 'contacts/' + currentUser.uid));
-      const contacts = contactsSnap.exists() ? Object.keys(contactsSnap.val()||{}) : [];
-      list.innerHTML = '';
-      for (const uid of contacts) {
-        if (!usersCache[uid]) continue;
-        if (!presenceSnapshot || !presenceSnapshot[uid]) continue;
-        const u = usersCache[uid];
-        const row = document.createElement('div');
-        row.style.display = 'flex';
-        row.style.alignItems = 'center';
-        row.style.gap = '8px';
-        row.style.padding = '8px';
-        row.style.borderRadius = '8px';
-        row.style.cursor = 'pointer';
-        row.style.border = '1px solid rgba(11,96,214,0.04)';
-        row.innerHTML = `<div style="width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#f0f6ff;color:var(--primary);font-weight:700;">${(u.displayName||u.email||'U').charAt(0).toUpperCase()}</div>
-                         <div style="flex:1"><div style="font-weight:700;color:var(--primary)}">${escapeHtml(u.displayName||u.email||u.phoneNumber||'User')}</div>
-                         <div class="small">${u.handle?('@'+u.handle):(u.phoneNumber||'')}</div></div>`;
-        row.dataset.uid = uid;
-        row.addEventListener('click', () => {
-          list.querySelectorAll('div').forEach(d=>d.style.opacity='1');
-          row.style.opacity = '0.6';
-          selectedInviteTarget = uid;
         });
-        list.appendChild(row);
-      }
-      if (list.children.length === 0) {
-        list.innerHTML = '<div class="small">No contacts online right now.</div>';
-      }
-    } catch(e){
-      console.error('openGameInvitePicker error', e);
-      list.innerHTML = '<div class="small">Failed to load contacts.</div>';
+        if (chatFound) noChatsMessage.style.display = 'none'; else noChatsMessage.style.display = 'block';
+      });
     }
 
-    const cancelBtn = document.getElementById('cancelInviteBtn');
-    const sendBtn = document.getElementById('sendInviteBtn');
-    cancelBtn.onclick = () => { modal.style.display='none'; selectedInviteTarget = null; };
-    sendBtn.onclick = async () => {
-      if (!selectedInviteTarget) return alert('Select an online contact first.');
+    // Open individual chat
+    function openIndividualChat(chatId, recipientUid, recipientEmail) {
+      currentChatId = chatId;
+      currentChatRecipientUid = recipientUid;
+      currentChatRecipientEmail = recipientEmail;
+      document.getElementById("chat-list-container").style.display = 'none';
+      document.getElementById("chat-management-area").style.display = 'none';
+      noChatsMessage.style.display = 'none';
+      individualChatContainer.style.display = 'flex';
+      const chatName = recipientEmail ? recipientEmail.split('@')[0] : 'Unknown User';
+      currentChatName.textContent = chatName;
+      currentChatAvatar.textContent = chatName.charAt(0).toUpperCase();
+      chatMessagesContainer.innerHTML = '';
+      loadMessages(chatId);
+    }
+
+    // Load messages for chat
+    function loadMessages(chatId) {
+      chatMessagesContainer.innerHTML = '';
+      const messagesQuery = query(ref(db, `privateMessages/${chatId}`), orderByChild('timestamp'));
+      onChildAdded(messagesQuery, (snapshot) => {
+        const message = snapshot.val();
+        const messageElement = document.createElement('div');
+        messageElement.classList.add('chat-message');
+        messageElement.classList.add(message.senderUid === auth.currentUser.uid ? 'sent' : 'received');
+        const senderName = message.senderEmail ? message.senderEmail.split('@')[0] : 'Unknown';
+        const timestamp = new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        messageElement.innerHTML = `${message.text || ''}<span style="display:block;font-size:0.78em;margin-top:6px;color:rgba(0,0,0,0.6)">${senderName} - ${timestamp}</span>`;
+        chatMessagesContainer.appendChild(messageElement);
+        chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+      });
+    }
+
+    // Send message
+    sendChatMessageBtn.onclick = async () => {
+      const messageText = chatMessageInput.value.trim();
+      if (!messageText || !currentChatId || !auth.currentUser) return;
+      sendChatMessageBtn.disabled = true;
       try {
-        const invitesRef = dbRef(db, 'gameInvites/' + selectedInviteTarget);
-        const newInvRef = push(invitesRef);
-        const inviteId = newInvRef.key;
-        await set(newInvRef, {
-          id: inviteId,
-          from: currentUser.uid,
-          fromEmail: currentUser.email || '',
-          game: gameId,
-          status: 'pending',
+        await push(ref(db, `privateMessages/${currentChatId}`), {
+          text: messageText,
+          senderUid: auth.currentUser.uid,
+          senderEmail: auth.currentUser.email,
           timestamp: Date.now()
         });
-        modal.style.display = 'none';
-        alert('Invite sent — waiting for response.');
-        const invPath = dbRef(db, 'gameInvites/' + selectedInviteTarget + '/' + inviteId);
-        if (currentInviterListener) currentInviterListener(); 
-        currentInviterListener = onValue(invPath, async snap => {
-          if (!snap.exists()) return;
-          const data = snap.val();
-          if (data.status === 'accepted' && data.sessionId) {
-            openGameSession(data.sessionId);
-          } else if (data.status === 'declined') {
-            alert('Sorry — chosen person does not want to play.');
-          }
-        });
-      } catch(e){
-        console.error('send invite error', e);
-        alert('Failed to send invite.');
-      }
-    };
-  }
-
-  function initIncomingInvitesListener(){
-    if (!currentUser) return;
-    const myInvRef = dbRef(db, 'gameInvites/' + currentUser.uid);
-    onValue(myInvRef, snap => {
-      if (!snap.exists()) return;
-      let pending = null;
-      snap.forEach(child => {
-        const val = child.val();
-        if (val && val.status === 'pending') pending = val;
-      });
-      if (pending) {
-        showIncomingInvite(pending);
-      }
-    });
-  }
-
-  let activeIncomingInviteId = null;
-  function showIncomingInvite(inv){
-    if (!inv) return;
-    activeIncomingInviteId = inv.id;
-    const modal = document.getElementById('incomingInviteModal');
-    document.getElementById('incomingFromName').textContent = (usersCache[inv.from] && (usersCache[inv.from].displayName || usersCache[inv.from].email)) || inv.fromEmail || 'Someone';
-    document.getElementById('incomingGameName').textContent = inv.game === 'tictactoe' ? 'Tic‑Tac‑Toe' : (inv.game === 'rps' ? 'Rock Paper Scissors' : inv.game);
-    modal.style.display = 'flex';
-
-    document.getElementById('acceptInviteBtn').onclick = async () => {
-      modal.style.display = 'none';
-      try {
-        const invitesRef = dbRef(db, 'gameInvites/' + currentUser.uid + '/' + inv.id);
-        const sessionsRef = dbRef(db, 'gameSessions');
-        const newSessRef = push(sessionsRef);
-        const sid = newSessRef.key;
-        const sessionData = {
-          id: sid,
-          game: inv.game,
-          players: { [inv.from]: true, [currentUser.uid]: true },
-          createdAt: Date.now(),
-          createdBy: currentUser.uid,
-          state: {}
-        };
-        await set(dbRef(db, 'gameSessions/' + sid), sessionData);
-        await update(invitesRef, { status: 'accepted', sessionId: sid });
-        openGameSession(sid);
-      } catch(e){
-        console.error('accept invite error', e);
-        alert('Failed to accept invite.');
-      }
-    };
-    document.getElementById('declineInviteBtn').onclick = async () => {
-      modal.style.display = 'none';
-      try {
-        const invitesRef = dbRef(db, 'gameInvites/' + currentUser.uid + '/' + inv.id);
-        await update(invitesRef, { status: 'declined' });
-      } catch(e){ console.error(e); }
-    };
-  }
-
-  async function openGameSession(sessionId){
-    if (!sessionId) return alert('Invalid session.');
-    try {
-      const sSnap = await get(dbRef(db, 'gameSessions/' + sessionId));
-      if (!sSnap.exists()) return alert('Session not found.');
-      const session = sSnap.val();
-      const game = session.game;
-      const players = Object.keys(session.players || {});
-      const otherUid = players.find(u=>u !== currentUser.uid);
-      const otherName = (usersCache[otherUid] && (usersCache[otherUid].displayName || usersCache[otherUid].email)) || otherUid;
-      document.getElementById('gameScreenTitle').textContent = game === 'tictactoe' ? 'Tic‑Tac‑Toe' : (game === 'rps' ? 'Rock Paper Scissors' : game);
-      document.getElementById('gamePlayersInfo').textContent = 'You vs ' + otherName;
-      document.getElementById('gameContent').innerHTML = '<div class="small">Loading game...</div>';
-      document.getElementById('game-screen').style.display = 'block';
-
-      document.getElementById('closeGameScreen').onclick = () => {
-        document.getElementById('game-screen').style.display = 'none';
-      };
-
-      if (game === 'tictactoe') {
-        startTicTacToe(sessionId, currentUser.uid, players);
-      } else if (game === 'rps') {
-        startRPS(sessionId, currentUser.uid, players);
-      } else {
-        document.getElementById('gameContent').innerHTML = '<div class="small">Unknown game type</div>';
-      }
-    } catch(e){
-      console.error('openGameSession error', e);
-      alert('Failed to open game session.');
-    }
-  }
-
-  function startTicTacToe(sessionId, myUid, players){
-    const mySymbol = players[0] === myUid ? 'X' : 'O';
-    const sessRef = dbRef(db, 'gameSessions/' + sessionId + '/state');
-    const content = document.getElementById('gameContent');
-    content.innerHTML = '';
-    const boardEl = document.createElement('div');
-    boardEl.style.display = 'grid';
-    boardEl.style.gridTemplateColumns = 'repeat(3, 1fr)';
-    boardEl.style.gap = '6px';
-    boardEl.style.maxWidth = '360px';
-    boardEl.style.margin = '0 auto';
-    for (let i=0;i<9;i++){
-      const cell = document.createElement('div');
-      cell.dataset.idx = i;
-      cell.style.minHeight = '64px';
-      cell.style.display = 'flex';
-      cell.style.alignItems = 'center';
-      cell.style.justifyContent = 'center';
-      cell.style.fontSize = '26px';
-      cell.style.borderRadius = '8px';
-      cell.style.background = '#fff';
-      cell.style.border = '1px solid rgba(11,96,214,0.04)';
-      cell.style.cursor = 'pointer';
-      boardEl.appendChild(cell);
-      cell.onclick = async () => {
-        try {
-          const snap = await get(dbRef(db, 'gameSessions/' + sessionId + '/state/board/' + i));
-          if (snap.exists()) return;
-          const turnSnap = await get(dbRef(db, 'gameSessions/' + sessionId + '/state/nextTurn'));
-          const nextTurn = turnSnap.exists() ? turnSnap.val() : players[0];
-          if (nextTurn !== myUid) return alert('Wait for your turn.');
-          await set(dbRef(db, 'gameSessions/' + sessionId + '/state/board/' + i), myUid);
-          const other = players.find(u=>u!==myUid);
-          await set(dbRef(db, 'gameSessions/' + sessionId + '/state/nextTurn'), other);
-          checkTicTacToeWinner(sessionId, players);
-        } catch(e){ console.error(e); }
-      };
-    }
-    content.appendChild(boardEl);
-
-    const status = document.createElement('div');
-    status.style.marginTop = '12px';
-    status.className = 'small';
-    content.appendChild(status);
-
-    onValue(dbRef(db, 'gameSessions/' + sessionId + '/state/board'), snap => {
-      const board = snap.exists() ? snap.val() : {};
-      for (let i=0;i<9;i++){
-        const c = boardEl.children[i];
-        const val = board && board[i];
-        if (val) {
-          const sym = (val === players[0]) ? 'X' : 'O';
-          c.textContent = sym;
-        } else c.textContent = '';
-      }
-    });
-    onValue(dbRef(db, 'gameSessions/' + sessionId + '/state/nextTurn'), snap => {
-      const next = snap.exists() ? snap.val() : players[0];
-      status.textContent = (next === myUid) ? 'Your turn' : 'Opponent\'s turn';
-    });
-  }
-
-  async function checkTicTacToeWinner(sessionId, players){
-    try {
-      const boardSnap = await get(dbRef(db, 'gameSessions/' + sessionId + '/state/board'));
-      const board = boardSnap.exists() ? boardSnap.val() : {};
-      const b = Array.from({length:9}).map((_,i)=>board && board[i] ? board[i] : null);
-      const lines = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
-      for (const [a,b1,c] of lines){
-        if (b[a] && b[a] === b[b1] && b[a] === b[c]) {
-          await set(dbRef(db, 'gameSessions/' + sessionId + '/state/result'), { winner: b[a], winningLine:[a,b1,c] });
-          return;
-        }
-      }
-      if (b.every(x=>x !== null)) {
-        await set(dbRef(db, 'gameSessions/' + sessionId + '/state/result'), { draw: true });
-      }
-    } catch(e){ console.error(e); }
-  }
-
-  function startRPS(sessionId, myUid, players){
-    const content = document.getElementById('gameContent');
-    content.innerHTML = '';
-    const picks = ['rock','paper','scissors'];
-    const pickArea = document.createElement('div');
-    pickArea.style.display = 'flex';
-    pickArea.style.gap = '8px';
-    pickArea.style.justifyContent = 'center';
-    pickArea.style.marginTop = '12px';
-    picks.forEach(p => {
-      const b = document.createElement('button');
-      b.className = 'btn ghost';
-      b.textContent = p.charAt(0).toUpperCase() + p.slice(1);
-      b.onclick = async () => {
-        try {
-          await set(dbRef(db, 'gameSessions/' + sessionId + '/moves/' + myUid), p);
-          b.disabled = true;
-        } catch(e){ console.error(e); }
-      };
-      pickArea.appendChild(b);
-    });
-    content.appendChild(pickArea);
-
-    const status = document.createElement('div');
-    status.className = 'small';
-    status.style.marginTop = '10px';
-    content.appendChild(status);
-
-    onValue(dbRef(db, 'gameSessions/' + sessionId + '/moves'), async snap => {
-      const m = snap.exists() ? snap.val() : {};
-      const keys = Object.keys(m || {});
-      if (keys.length < 2) {
-        status.textContent = 'Waiting for both players to pick...';
-        return;
-      }
-      const u1 = players[0], u2 = players[1];
-      const p1 = m[u1], p2 = m[u2];
-      let resText = '';
-      if (p1 && p2) {
-        if (p1 === p2) resText = 'Draw — both chose ' + p1;
-        else {
-          const beats = { rock: 'scissors', scissors: 'paper', paper: 'rock' };
-          if (beats[p1] === p2) resText = (usersCache[u1] ? (usersCache[u1].displayName||usersCache[u1].email) : u1) + ' wins ('+p1+' beats '+p2+')';
-          else resText = (usersCache[u2] ? (usersCache[u2].displayName||usersCache[u2].email) : u2) + ' wins ('+p2+' beats '+p1+')';
-        }
-        status.textContent = resText;
-      }
-    });
-  }
-
-  try {
-    onAuthStateChanged(auth, user => {
-      if (user) {
-        setMyPresenceOnline();
-        initPresenceListener();
-        initIncomingInvitesListener();
-      }
-    });
-  } catch(e){}
-
-})(); // end initGamesFeature
-// --- END: Games feature ---
-</script>
-
-  <!-- Main + Modal -->
-  <div class="main-modal-backdrop" id="mainModalBackdrop" style="display:none;">
-    <div class="main-modal" style="width:90%;max-width:420px;background:linear-gradient(180deg,var(--primary),var(--primary-dark));color:#fff;border-radius:16px;padding:24px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.2);position:relative;">
-      <div class="close-modal" id="closeMainModal" style="position:absolute;top:10px;right:14px;background:#fff;color:var(--primary);border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-weight:bold;">×</div>
-      <h3 style="margin:0 0 20px;font-size:20px;">Start New Chat</h3>
-      <button id="openIndividualModalBtn" style="display:block;width:100%;padding:12px;margin:10px 0;border:none;border-radius:10px;background:#fff;color:var(--primary);font-weight:700;">Individual Chat</button>
-      <button id="openGroupModalBtn" style="display:block;width:100%;padding:12px;margin:10px 0;border:none;border-radius:10px;background:#fff;color:var(--primary);font-weight:700;">Group Chat</button>
-    </div>
-  </div>
-
-
-<script>
-// Ripple click handler: creates a circle at click point and expands to cover element
-(function(){
-  function createRipple(ev, el) {
-    try {
-      // compute bounds and position
-      var rect = el.getBoundingClientRect();
-      var dX = Math.max(ev.clientX - rect.left, rect.right - ev.clientX);
-      var dY = Math.max(ev.clientY - rect.top, rect.bottom - ev.clientY);
-      var radius = Math.sqrt(dX*dX + dY*dY);
-      var size = Math.ceil(radius * 2);
-      // limit size to element dimensions (not much larger)
-      var maxDim = Math.max(rect.width, rect.height);
-      if (size < maxDim) size = Math.ceil(maxDim * 1.05);
-
-      var circle = document.createElement('div');
-      circle.className = 'ripple-circle';
-      circle.style.width = size + 'px';
-      circle.style.height = size + 'px';
-      // center the circle on pointer, translate so top-left at (x - size/2, y - size/2)
-      var left = ev.clientX - rect.left - size/2;
-      var top = ev.clientY - rect.top - size/2;
-      circle.style.left = left + 'px';
-      circle.style.top = top + 'px';
-      el.appendChild(circle);
-
-      // force reflow then animate
-      requestAnimationFrame(function(){
-        circle.style.transform = 'scale(1)';
-        circle.style.opacity = '0.18';
-      });
-
-      // fade out after a short delay and remove
-      setTimeout(function(){
-        circle.classList.add('fadeout');
-        // remove after fade
-        setTimeout(function(){ try{ el.removeChild(circle); }catch(e){} }, 380);
-      }, 420);
-    } catch(e) {
-      // fail silently
-      console.error('ripple error', e);
-    }
-  }
-
-  // Attach event listener for pointerdown (covers touch and mouse)
-  document.addEventListener('pointerdown', function(e){
-    var target = e.target;
-    var el = target.closest && target.closest('button, .btn, a');
-    if (!el) return;
-    // ignore if element has attribute data-no-ripple="true"
-    if (el.getAttribute && el.getAttribute('data-no-ripple') === 'true') return;
-    createRipple(e, el);
-  }, {passive: true});
-})();
-</script>
-
-
-<!-- Fallback: ensure a visible link-only avatar box is present at top of page if no gallery found -->
-<script>
-document.getElementById('globalAvatarLinkSave').addEventListener('click', function(){
-      var inp = document.getElementById('globalAvatarLinkInput');
-      var url = inp && inp.value && inp.value.trim();
-      if (!url) { alert('Please paste an image link first.'); if (inp) inp.focus(); return; }
-      var existingOverlay = document.getElementById('avatarConfirmOverlay') || document.getElementById('confirmAvatarModal') || document.getElementById('avatarConfirmCard');
-      if (existingOverlay) {
-        var preview = document.getElementById('avatarConfirmPreview') || existingOverlay.querySelector('img');
-        var urlText = document.getElementById('avatarConfirmUrl') || existingOverlay.querySelector('.confirm-img-url');
-        if (preview) preview.src = url;
-        if (urlText) urlText.textContent = url;
-        existingOverlay.style.display = 'flex';
-        return;
-      }
-      var ov = document.createElement('div');
-      ov.style.position='fixed'; ov.style.left=0; ov.style.top=0; ov.style.right=0; ov.style.bottom=0;
-      ov.style.background='rgba(0,0,0,0.45)'; ov.style.display='flex'; ov.style.alignItems='center'; ov.style.justifyContent='center'; ov.style.zIndex=99999;
-      ov.innerHTML = '<div style="background:#fff;padding:18px;border-radius:12px;max-width:520px;width:92%;text-align:center;">' + '<h3>Confirm profile picture</h3>' + ''<img src="''" style="max-width:240px;max-height:240px;border-radius:8px;object-fit:cover;display:block;margin:0 auto 12px" />' + '<div style="display:flex;gap:8px;justify-content:center;margin-top:12px;">' + '<button id="quickConfirmCancel" class="btn">Cancel</button>' + '<button id="quickConfirmBtn" class="btn primary">Confirm</button>' + '</div></div>';
-      document.body.appendChild(ov);
-      document.getElementById('quickConfirmCancel').addEventListener('click', function(){ ov.remove(); });
-      document.getElementById('quickConfirmBtn').addEventListener('click', function(){
-        if (typeof applyProfilePhoto === 'function') {
-          applyProfilePhoto(url, function(err){ if (!err) { try { var pa = document.getElementById('profileAvatar'); if (pa) { pa.style.backgroundImage = 'url("' + url + '")'; pa.textContent = ''; pa.dataset.selected = url; } } catch(e){}
-                ov.remove(); alert('Profile picture updated'); } else alert('Could not save: ' + (err && err.message)); });
-        } else {
-          try { document.querySelectorAll('.profile-photo img, .avatar img, img.profile-avatar, .user-avatar img').forEach(function(i){ i.src = url; }); } catch(e){}
-          try { localStorage.setItem('profilePhotoURL', url); } catch(e) {}
-          document.dispatchEvent(new CustomEvent('profilePhotoUpdated', { detail: { photoURL: url } }));
-          ov.remove();
-          alert('Profile picture updated');
-        }
-      });
-    });
-  }
-
-  function init() { ensureBoxPresent(); var obs = new MutationObserver(function(){ ensureBoxPresent(); }); obs.observe(document.body, { childList:true, subtree:true }); }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
-})();
-</script>
-
-<!-- Pencil-triggered Avatar Edit Modal (link-only) -->
-<style>
-#pencilAvatarModal {
-  position:fixed; left:0; top:0; right:0; bottom:0; display:none;
-  align-items:center; justify-content:center; background:rgba(0,0,0,0.55); z-index:100000;
-}
-.pencil-modal-card {
-  background:#fff; border-radius:12px; width:96%; max-width:720px; padding:20px;
-  box-shadow:0 20px 60px rgba(2,6,23,0.16);
-}
-.pencil-modal-row { display:flex; gap:18px; align-items:center; }
-.pencil-preview {
-  width:160px; height:160px; border-radius:50%; background:#f4f7ff; overflow:hidden; flex:0 0 160px;
-  display:flex; align-items:center; justify-content:center;
-
-  border: 6px solid #ff8a52; /* orange preview ring */
-  box-shadow: 0 6px 18px rgba(255,138,90,0.12);
-}
-.pencil-preview img { width:100%; height:100%; object-fit:cover; display:block; }
-.pencil-controls { flex:1; }
-.pencil-controls input[type="text"]{
-  width:100%; padding:12px 14px; border:1px solid #e6e9f3; border-radius:10px; font-size:15px; box-sizing:border-box;
-}
-.pencil-hint { font-size:13px; color:#5b6470; margin-top:8px; }
-.pencil-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:14px; }
-.btn { padding:10px 14px; border-radius:8px; border:1px solid rgba(0,0,0,0.06); background:#fff; cursor:pointer; }
-.btn.primary { background:#0b60d6; color:#fff; border:none; }
-.btn.ghost { background:transparent; }
-</style>
-
-<div id="pencilAvatarModal" aria-hidden="true">
-  <div class="pencil-modal-card" role="dialog" aria-modal="true" aria-labelledby="pencilModalTitle">
-    <h2 id="pencilModalTitle" style="margin:0 0 10px 0;font-size:20px;">Edit profile picture</h2>
-    <div class="pencil-modal-row">
-      <div class="pencil-preview"><img id="pencilPreviewImg" src="" alt="preview" /></div>
-      <div class="pencil-controls">
-        <input id="pencilAvatarInput" type="text" placeholder="Paste an image URL (link only) — jpg, png, webp" />
-        
-        <div id="pencilValidation" style="color:#d9534f;margin-top:8px;font-size:13px;display:none;"></div>
-<div class="pencil-hint">Paste an image URL and press Confirm.</div>
-        <div class="pencil-actions">
-          <button id="pencilCancelBtn" class="btn">Cancel</button>
-          <button id="pencilConfirmBtn" class="btn primary">Confirm</button>
-        </div>
-      </div>
-    </div>
-    <div id="pencilStatus" style="margin-top:10px;font-size:13px;color:#666"></div>
-  </div>
-</div>
-
-<script>
-(function(){
-  if (window.__pencilAvatarInstalled) return;
-  window.__pencilAvatarInstalled = true;
-
-  // selectors for pencil/edit avatar buttons
-  var pencilSelectors = ['.pencil','button.pencil','button.edit-avatar','.avatar-edit','#changeAvatarBtn','[data-action="edit-avatar"]','.profile-pic-edit'];
-  var previewImg = null, inputEl = null, overlay = null, statusEl = null;
-
-  function findPencilButtons(){
-    var found = [];
-    pencilSelectors.forEach(function(s){
-      try { document.querySelectorAll(s).forEach(function(el){ found.push(el); }); } catch(e){}
-    });
-    return Array.from(new Set(found));
-  }
-
-  function showModal(initialUrl){
-    overlay = document.getElementById('pencilAvatarModal');
-    previewImg = document.getElementById('pencilPreviewImg');
-    inputEl = document.getElementById('pencilAvatarInput');
-    statusEl = document.getElementById('pencilStatus');
-    if (!overlay || !previewImg || !inputEl) return;
-    inputEl.value = initialUrl || '';
-    previewImg.src = initialUrl || '';
-    overlay.style.display = 'flex';
-    inputEl.focus();
-    setTimeout(function(){ inputEl.selectionStart = inputEl.selectionEnd = inputEl.value.length; }, 120);
-  }
-
-  function hideModal(){
-    var ov = document.getElementById('pencilAvatarModal');
-    if (ov) ov.style.display = 'none';
-  }
-
-  // update preview when input changes
-  function wireInput(){
-    inputEl = document.getElementById('pencilAvatarInput');
-    previewImg = document.getElementById('pencilPreviewImg');
-    if (!inputEl) return;
-    inputEl.addEventListener('input', function(){ var v = inputEl.value.trim(); previewImg.src = v || ''; });
-    inputEl.addEventListener('paste', function(){ setTimeout(function(){ var v = inputEl.value.trim(); previewImg.src = v || ''; }, 60); });
-  }
-
-  // Apply profile photo across app
-  function applyProfilePhoto(url, cb){
-    // update common avatar selectors
-    try {
-      var selImgs = ['.profile-photo img', '.avatar img', 'img.profile-avatar', '.user-avatar img', '.contact-avatar img'];
-      selImgs.forEach(function(s){
-        document.querySelectorAll(s).forEach(function(el){ try { el.src = url; } catch(e){} });
-      });
-      // also update our custom .contact-avatar elements (they might be divs)
-      document.querySelectorAll('.profile-contacts .contact-row .contact-avatar').forEach(function(div){
-        try {
-          if (div.tagName.toLowerCase() === 'img') div.src = url;
-          else {
-            div.style.backgroundImage = 'url(\"' + url + '\")';
-            div.style.backgroundSize = 'cover';
-            div.textContent = '';
-          }
-        } catch(e){}
-      });
-    } catch(e){}
-
-    // dispatch event and save to localStorage
-    try { localStorage.setItem('profilePhotoURL', url); } catch(e){}
-    try { document.dispatchEvent(new CustomEvent('profilePhotoUpdated', { detail: { photoURL: url } })); } catch(e){}
-
-    // Try Firebase namespaced SDK
-    if (window.firebase && firebase.auth && typeof firebase.auth === 'function') {
-      var user = firebase.auth().currentUser;
-      if (user && typeof user.updateProfile === 'function') {
-        user.updateProfile({ photoURL: url }).then(function(){
-          try { if (firebase.database) firebase.database().ref('users/' + user.uid + '/photoURL').set(url);
-            try { if (firebase.database) firebase.database().ref('users/' + user.uid + '/profilePic').set(url); } catch(e){}; } catch(e){}
-          return cb && cb(null);
-        }).catch(function(err){
-          try {
-            if (firebase.database && user && user.uid) {
-              firebase.database().ref('users/' + user.uid + '/photoURL').set(url).then(function(){ return cb && cb(null); }).catch(function(e){ return cb && cb(e); });
-              return;
-            }
-          } catch(e){}
-          return cb && cb(err);
-        });
-        return;
-      }
-    }
-
-    // Try modular Firebase
-    try {
-      if (window.getAuth && typeof getAuth === 'function' && typeof updateProfile === 'function') {
-        var auth = getAuth();
-        var u = auth.currentUser;
-        if (u) {
-          updateProfile(u, { photoURL: url }).then(function(){
-            try { if (typeof getDatabase === 'function' && typeof ref === 'function' && typeof set === 'function') set(ref(getDatabase(), 'users/' + u.uid + '/photoURL'), url);
-            try { if (typeof set === 'function' && typeof ref === 'function') set(ref(getDatabase(), 'users/' + u.uid + '/profilePic'), url); } catch(e){}; } catch(e){}
-            return cb && cb(null);
-          }).catch(function(err){ return cb && cb(err); });
-          return;
-        }
-      }
-    } catch(e){}
-
-    // App-level hooks
-    try { if (typeof setCurrentUserPhoto === 'function') { setCurrentUserPhoto(url); return cb && cb(null); } } catch(e){}
-    try { if (typeof saveProfile === 'function') { saveProfile({ photoURL: url }); return cb && cb(null); } } catch(e){}
-
-    // ensure UI update (fallback)
-    try { var el = document.getElementById('profileAvatar'); if (el) { el.style.backgroundImage = 'url("' + url + '")'; el.textContent = ''; el.dataset.selected = url; } } catch(e){}
-    // fallback success
-    return cb && cb(null);
-  }
-
-  // wire pencil buttons to open modal
-  function attachPencils(){
-    var buttons = findPencilButtons();
-    if (buttons.length === 0) {
-      // also try to find an element that looks like a small edit icon inside avatar area
-      var alt = document.querySelector('.profile-photo .edit, .avatar .edit, .profile-pic .edit');
-      if (alt) buttons = [alt];
-    }
-    buttons.forEach(function(btn){
-      try {
-        btn.addEventListener('click', function(ev){
-          ev.preventDefault();
-          ev.stopPropagation();
-          // try to find current avatar url
-          var cur = null;
-          try {
-            var img = document.querySelector('.profile-photo img, .avatar img, img.profile-avatar, .user-avatar img');
-            if (img && img.src) cur = img.src;
-          } catch(e){}
-          showModal(cur);
-          wireInput();
-        });
-      } catch(e){}
-    });
-  }
-
-  // wire modal buttons
-  function wireModalButtons(){
-    document.getElementById('pencilCancelBtn').addEventListener('click', function(){ hideModal(); });
-    document.getElementById('pencilConfirmBtn').addEventListener('click', function(){
-      var url = (document.getElementById('pencilAvatarInput')||{}).value || '';
-      url = url.trim();
-      if (!url) { alert('Please paste an image URL first.'); document.getElementById('pencilAvatarInput').focus(); return; }
-      statusEl = document.getElementById('pencilStatus');
-      statusEl.style.color = '#666';
-      statusEl.textContent = 'Saving...';
-      applyProfilePhoto(url, function(err){
-        if (err) {
-          statusEl.style.color = '#b00020';
-          statusEl.textContent = 'Could not save: ' + (err.message || err);
-        } else {
-          statusEl.style.color = '#0a8a00';
-          statusEl.textContent = 'Profile picture saved.';
-          try { var pa = document.getElementById('profileAvatar'); if (pa) { pa.style.backgroundImage = 'url("' + url + '")'; pa.textContent = ''; pa.dataset.selected = url; } } catch(e){}
-          setTimeout(function(){ hideModal(); }, 700);
-        }
-      });
-    });
-  }
-
-  // Initialize on DOM ready
-  function init(){
-    attachPencils();
-    wireModalButtons();
-    // re-attach if new buttons added later
-    var obs = new MutationObserver(function(){ attachPencils(); });
-    obs.observe(document.body, { childList:true, subtree:true });
-  }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
-
-})();
-
-
-    // --- START: Call & permission helpers (added) ---
-    const callBtn = document.getElementById('callBtn');
-    const videoBtn = document.getElementById('videoBtn');
-    const localCallModal = document.getElementById('localCallModal');
-    const localPreview = document.getElementById('localPreview');
-    const endPreviewBtn = document.getElementById('endPreviewBtn');
-    const closePreviewBtn = document.getElementById('closePreviewBtn');
-
-    // Remember permission status in localStorage to avoid re-prompting
-    const PERM_KEY = 'zag_media_permission_granted_v1';
-
-    async function askForMediaPermissions() {
-      // If previously granted, skip asking
-      try {
-        const already = localStorage.getItem(PERM_KEY);
-        if (already === 'granted') return true;
-      } catch(e){}
-
-      // Try to get both audio+video by default to cover video calls
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
-        // if succeeded, stop tracks immediately and mark granted
-        stream.getTracks().forEach(t => t.stop());
-        try { localStorage.setItem(PERM_KEY, 'granted'); } catch(e){}
-        return true;
+        chatMessageInput.value = '';
       } catch (err) {
-        // If user denies or not available, mark as denied so we don't continuously prompt
-        try { localStorage.setItem(PERM_KEY, 'denied'); } catch(e){}
-        console.warn('Media permission denied or unavailable:', err);
-        return false;
+        console.error("Error sending message:", err);
+        displayMessage(chatMessageArea, "Failed to send message.", "error");
+      } finally {
+        sendChatMessageBtn.disabled = false;
       }
-    }
+    };
 
-    // On first page load (after auth state check), prompt once for permissions
-    // Utility: show local preview modal and attach stream
-    let currentLocalStream = null;
-    async function startLocalPreview({ audio = true, video = false } = {}) {
-      // Obtain permission for required tracks (will prompt if not previously granted)
-      try {
-        const constraints = { audio: !!audio, video: !!video };
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
-        currentLocalStream = stream;
-        localPreview.srcObject = stream;
-        localCallModal.style.display = 'flex';
-        localCallModal.setAttribute('aria-hidden','false');
-      } catch (err) {
-        alert('Could not access camera/microphone. Please check browser permissions.');
-        console.error(err);
-      }
-    }
+    // Back button
+    backToChatListBtn.onclick = () => {
+      individualChatContainer.style.display = 'none';
+      document.getElementById("chat-list-container").style.display = 'block';
+      document.getElementById("chat-management-area").style.display = 'block';
+      noChatsMessage.style.display = 'block';
+      loadChatList();
+    };
 
-    function stopLocalPreview() {
-      if (currentLocalStream) {
-        currentLocalStream.getTracks().forEach(t => t.stop());
-        currentLocalStream = null;
-      }
-      localPreview.srcObject = null;
-      localCallModal.style.display = 'none';
-      localCallModal.setAttribute('aria-hidden','true');
-    }
-
-    // Attach handlers
-    if (callBtn) {
-      callBtn.addEventListener('click', async () => {
-        // For voice call, open preview with audio only (muted video)
-        await startLocalPreview({ audio: true, video: false });
-      });
-    }
-    if (videoBtn) {
-      videoBtn.addEventListener('click', async () => {
-        // For video call, open preview with both audio+video
-        await startLocalPreview({ audio: true, video: true });
-      });
-    }
-    endPreviewBtn && endPreviewBtn.addEventListener('click', () => {
-      stopLocalPreview();
-    });
-    closePreviewBtn && closePreviewBtn.addEventListener('click', () => {
-      stopLocalPreview();
-    });
-    // Also stop preview if user navigates back to chat list
-    backToChatListBtn && backToChatListBtn.addEventListener('click', () => {
-      stopLocalPreview();
-    });
-    // --- END: Call & permission helpers ---
-
-
-
-// --- Permission overlay logic (user-gesture required) ---
-(function(){
-  const PERM_KEY = 'zag_media_permission_granted_v1';
-  const permissionOverlay = document.getElementById('permissionOverlay');
-  const enableBtn = document.getElementById('enableMediaBtn');
-  const dismissBtn = document.getElementById('permissionDismiss');
-  const callBtn = document.getElementById('callBtn');
-  const videoBtn = document.getElementById('videoBtn');
-
-  async function checkPermissionStatus(){
-    try {
-      const stored = localStorage.getItem(PERM_KEY);
-      if (stored === 'granted') return 'granted';
-      if (stored === 'denied') return 'denied';
-      // Try Permissions API if available (may be 'prompt'/'granted'/'denied')
-      if (navigator.permissions && navigator.permissions.query) {
-        try {
-          const p = await navigator.permissions.query({name:'camera'});
-          // camera permission doesn't necessarily reflect microphone; check microphone too
-          const p2 = await navigator.permissions.query({name:'microphone'});
-          if (p.state === 'granted' && p2.state === 'granted') {
-            localStorage.setItem(PERM_KEY,'granted');
-            return 'granted';
-          }
-          if (p.state === 'denied' || p2.state === 'denied') {
-            localStorage.setItem(PERM_KEY,'denied');
-            return 'denied';
-          }
-        } catch(e){ /* ignore */ }
-      }
-      return 'prompt';
-    } catch(e){ return 'prompt'; }
-  }
-
-  async function showOverlayIfNeeded(){
-    const status = await checkPermissionStatus();
-    if (status === 'granted') {
-      // no overlay needed
-      return;
-    }
-    // Show overlay to request a user gesture to prompt getUserMedia
-    permissionOverlay.style.display = 'flex';
-    permissionOverlay.setAttribute('aria-hidden','false');
-  }
-
-  async function requestMediaAndStore(video=true, audio=true){
-    try {
-      const constraints = { audio: !!audio, video: !!video };
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      // stop tracks immediately, we just need permission
-      stream.getTracks().forEach(t => t.stop());
-      localStorage.setItem(PERM_KEY,'granted');
-      permissionOverlay.style.display = 'none';
-      permissionOverlay.setAttribute('aria-hidden','true');
-      return true;
-    } catch (err) {
-      localStorage.setItem(PERM_KEY,'denied');
-      alert('Permission denied or not available. Please enable camera/microphone in your browser settings if you want to make calls.');
-      permissionOverlay.style.display = 'none';
-      permissionOverlay.setAttribute('aria-hidden','true');
-      console.warn('getUserMedia failed:', err);
-      return false;
-    }
-  }
-
-  // On page load, show overlay if needed
-  document.addEventListener('DOMContentLoaded', function(){ showOverlayIfNeeded(); });
-
-  // When user clicks enable button, request both audio+video (so video calls work later without another prompt)
-  enableBtn && enableBtn.addEventListener('click', async function(){
-    await requestMediaAndStore(true, true);
-  });
-
-  // Dismiss overlay (user can still trigger permissions later by tapping call/video buttons)
-  dismissBtn && dismissBtn.addEventListener('click', function(){
-    permissionOverlay.style.display = 'none';
-    permissionOverlay.setAttribute('aria-hidden','true');
-    try { localStorage.setItem(PERM_KEY,'denied'); } catch(e){}
-  });
-
-  // If user clicks call/video buttons and permission isn't granted, open the overlay again to prompt
-  function ensureThenPreview(kind){
-    (async ()=>{
-      const st = await checkPermissionStatus();
-      if (st === 'granted') {
-        // already granted: trigger preview as before by simulating click to open preview modal
-        if (kind === 'audio') {
-          // start audio-only preview by triggering existing handler if exists
-          callBtn && callBtn.click && callBtn.click();
-        } else {
-          videoBtn && videoBtn.click && videoBtn.click();
-        }
-      } else {
-        // show overlay to let them grant
-        permissionOverlay.style.display = 'flex';
-        permissionOverlay.setAttribute('aria-hidden','false');
-      }
-    })();
-  }
-
-  // Wrap original buttons to ensure permission is present first
-  if (callBtn){
-    callBtn.removeEventListener && callBtn.removeEventListener('click', ()=>{}); // best-effort
-    callBtn.addEventListener('click', function(e){
-      // intercept: ensure permission first; if already granted, proceed (existing handler will run)
-      // but to avoid double-calling startLocalPreview, if granted we will proceed normally; if not, preventDefault and show overlay
-      (async ()=>{
-        const st = await checkPermissionStatus();
-        if (st === 'granted') {
-          // allow existing handler to run (do nothing special)
-          return;
-        } else {
-          e.stopImmediatePropagation && e.stopImmediatePropagation();
-          e.preventDefault && e.preventDefault();
-          permissionOverlay.style.display = 'flex';
-          permissionOverlay.setAttribute('aria-hidden','false');
-        }
-      })();
-    }, true);
-  }
-  if (videoBtn){
-    videoBtn.removeEventListener && videoBtn.removeEventListener('click', ()=>{});
-    videoBtn.addEventListener('click', function(e){
-      (async ()=>{
-        const st = await checkPermissionStatus();
-        if (st === 'granted') {
-          return;
-        } else {
-          e.stopImmediatePropagation && e.stopImmediatePropagation();
-          e.preventDefault && e.preventDefault();
-          permissionOverlay.style.display = 'flex';
-          permissionOverlay.setAttribute('aria-hidden','false');
-        }
-      })();
-    }, true);
-  }
-
-})(); // end permission overlay IIFE
-// --- End permission overlay logic ---
-
-</script>
-
-  
-<!-- Permission overlay that asks user to click to enable camera & microphone (user gesture) -->
-<div id="permissionOverlay" aria-hidden="true">
-  <div class="overlay-inner" role="dialog" aria-modal="true" aria-label="Enable camera and microphone">
-    <h3>Enable camera & microphone</h3>
-    <p>To make voice and video calls, please allow access to your camera and microphone. This will only be asked once.</p>
-    <div style="display:flex;gap:8px;align-items:center;">
-      <button id="enableMediaBtn">Allow camera & microphone</button>
-      <button id="permissionDismiss">Maybe later</button>
-    </div>
-    <div style="font-size:12px;color:var(--muted);">If you denied earlier you may need to change permissions in your browser/site settings.</div>
-  </div>
-</div>
-
-<!-- Local call preview modal (used for requesting permissions and preview) -->
-  <div id="localCallModal" aria-hidden="true">
-    <div class="modal-inner" role="dialog" aria-modal="true" aria-label="Call preview">
-      <h4 style="margin:0;color:var(--primary)">Call preview</h4>
-      <div style="font-size:13px;color:var(--muted);">Local preview — permissions and quick test</div>
-      <video id="localPreview" autoplay muted playsinline></video>
-      <div class="call-controls">
-        <button id="endPreviewBtn" class="hangup-btn">End</button>
-        <button id="closePreviewBtn" class="close-preview">Close</button>
-      </div>
-    </div>
-  </div>
-
-
-// --- User change: validate pencil avatar link before accepting ---
-(function(){
-  function isValidImageUrl(u){
-    if(!u) return false;
-    try {
-      var p = /^https?:\/\/.+\.(jpg|jpeg|png|webp|gif)$/i;
-      return p.test(u);
-    } catch(e){ return false; }
-  }
-
-  var pencilConfirm = document.getElementById('pencilConfirmBtn');
-  var pencilInput = document.getElementById('pencilAvatarInput');
-  var pencilValidation = document.getElementById('pencilValidation') || document.getElementById('pencilStatus');
-  if (pencilConfirm){
-    pencilConfirm.addEventListener('click', function(ev){
-      ev.preventDefault && ev.preventDefault();
-      var url = pencilInput ? (pencilInput.value||'').trim() : '';
-      if(!isValidImageUrl(url)){
-        if(pencilValidation){ pencilValidation.style.display='block'; pencilValidation.textContent = 'Please enter a valid image link (jpg/png/webp). Some links may not work — try a different URL.'; }
-        return;
-      }
-      // valid -> try to apply via existing helper if available, otherwise update UI and close modal
-      if(typeof applyProfilePhoto === 'function'){
-        applyProfilePhoto(url, function(err){
-          if(!err){
-            try { document.getElementById('pencilAvatarModal').style.display = 'none'; } catch(e){};
-            alert('Profile picture updated');
-          } else {
-            if(pencilValidation){ pencilValidation.style.display='block'; pencilValidation.textContent = 'Could not save this image link. Try a different link.'; }
-          }
-        });
-      } else {
-        try { var pa = document.getElementById('profileAvatar'); if(pa){ pa.style.backgroundImage='url(\"'+url+'\")'; pa.textContent=''; pa.dataset.selected = url; } } catch(e) {}
-        try { document.getElementById('pencilAvatarModal').style.display='none'; } catch(e){};
-      }
-    });
-  }
-  // hide validation on cancel
-  var pencilCancel = document.getElementById('pencilCancelBtn');
-  if (pencilCancel){
-    pencilCancel.addEventListener('click', function(){ if(pencilValidation){ pencilValidation.style.display='none'; pencilValidation.textContent=''; } document.getElementById('pencilAvatarModal').style.display='none'; });
-  }
-})();
-
+  </script>
 </body>
 </html>
