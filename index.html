@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Zag Messenger — User fixes (profile & contacts improvements)</title>
+  <title>Zag Messenger — User fixes (scroll fix, side menu, auth page header fix)</title>
   <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet" />
   <style>
     :root{
@@ -332,7 +332,7 @@
     }
     /* --- END: Startup loader overlay styles --- */
 
-
+  
 /* Profile section styles */
 .profile-section { display:none; flex:1; overflow-y:auto; padding: calc(var(--header-height) + var(--wave-height) + 12px) 18px 120px 18px; box-sizing:border-box; }
 .profile-card { max-width:420px; margin:12px auto; background:linear-gradient(180deg,#fff,#fbfdff); border-radius:12px; padding:16px; box-shadow:0 12px 30px rgba(10,30,80,0.06); }
@@ -343,14 +343,6 @@
 .profile-field input[type="text"], .profile-field textarea { width:100%; padding:10px; border-radius:10px; border:1px solid rgba(11,96,214,0.06); font-size:15px; }
 .save-profile-btn { margin-top:12px; }
 .profile-contacts { margin-top:18px; }
-
-/* --- USER CHANGE: make contact name truncate with ellipsis and ensure circle avatars --- */
-.contact-row{ min-width:0; }
-.contact-row > div { min-width:0; }
-.contact-row .contact-name{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
-/* Ensure avatar in contact-row is a perfect circle */
-.contact-row .contact-avatar, .contact-row > div > .contact-avatar { width:44px; height:44px; border-radius:50%; overflow:hidden; display:flex; align-items:center; justify-content:center; }
-
 .contact-row { display:flex; align-items:center; gap:10px; padding:8px; border-radius:8px; background:#fff; border:1px solid rgba(11,96,214,0.04); margin-bottom:8px; }
 .contact-row .contact-name { flex:1; font-weight:700; color:var(--primary); }
 .contact-row .delete-btn { background:#ff4d4f; color:#fff; border:none; padding:6px 8px; border-radius:8px; cursor:pointer; }
@@ -360,342 +352,12 @@
 .avatar-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:99999; align-items:center; justify-content:center; }
 .avatar-modal .modal-inner { width:92%; max-width:760px; background:#fff; border-radius:12px; padding:12px; max-height:80vh; overflow:auto; }
 
-
-/* --- Added: Replace blue click highlight with ash color --- */
-* {
-  -webkit-tap-highlight-color: #d3d3d3 !important;
-}
-button:active, button:focus {
-  background-color: #d3d3d3 !important;
-  outline: none !important;
-}
-a:active, a:focus {
-  background-color: #d3d3d3 !important;
-  outline: none !important;
-}
-
-
-/* --- Added: Ash ripple click animation --- */
-/* Ensure clickable elements are positioned for ripple */
-button, .btn, a {
-  position: relative; /* keep layout unchanged but allow absolute ripple */
-  overflow: hidden;   /* contain the ripple inside the element */
-  -webkit-tap-highlight-color: transparent !important;
-}
-
-/* ripple element */
-.ripple-circle {
-  position: absolute;
-  border-radius: 50%;
-  transform: scale(0);
-  pointer-events: none;
-  opacity: 0.18;
-  background: #d3d3d3;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-  transition: transform 480ms cubic-bezier(.2,.9,.2,1), opacity 380ms linear;
-  will-change: transform, opacity;
-  z-index: 9999;
-}
-.ripple-circle.fadeout {
-  opacity: 0;
-  transition: opacity 360ms linear;
-}
-
-
-    /* --- START: Added for call UI and small back icon --- */
-    #backToChatListBtn.back-icon{
-      font-size:18px !important;
-      padding:6px 8px !important;
-      min-width:36px !important;
-      height:36px !important;
-      display:inline-flex !important;
-      align-items:center;
-      justify-content:center;
-      border-radius:8px !important;
-    }
-    .chat-center-text .chat-name{
-      font-size:14px; /* made smaller */
-      font-weight:700;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-      max-width: calc(50vw - 40px);
-    }
-    .chat-dots{
-      font-size:14px;
-      color:var(--muted);
-      opacity:0.95;
-      user-select:none;
-    }
-    .chat-action-btn{
-      background:transparent;
-      border:none;
-      font-size:20px;
-      padding:6px 8px;
-      border-radius:8px;
-      cursor:pointer;
-      line-height:1;
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-    }
-    .chat-action-btn:active{ transform:scale(0.96); }
-    /* Small modal for local preview when starting a call */
-    #localCallModal{
-      position:fixed; inset:0; display:none; align-items:center; justify-content:center; z-index:99999;
-      background: rgba(0,0,0,0.45);
-    }
-    #localCallModal .modal-inner{
-      width:92%; max-width:420px; background:#fff; border-radius:12px; padding:12px; box-sizing:border-box;
-      display:flex; flex-direction:column; gap:8px; align-items:center;
-    }
-    #localCallModal video{ width:100%; height:auto; border-radius:8px; background:#000; }
-    #localCallModal .call-controls{ display:flex; gap:8px; width:100%; justify-content:center; }
-    #localCallModal .hangup-btn{ padding:8px 12px; border-radius:8px; border:none; background:#ff4d4f; color:#fff; cursor:pointer; }
-    #localCallModal .close-preview{ padding:8px 12px; border-radius:8px; border:1px solid #ccc; background:#fff; cursor:pointer; }
-    /* --- END: Added for call UI --- */
-
-
-/* Permission overlay to request camera+mic with a user gesture */
-#permissionOverlay{
-  position:fixed; inset:0; display:none; align-items:center; justify-content:center; z-index:100000;
-  background: rgba(0,0,0,0.6);
-}
-#permissionOverlay .overlay-inner{
-  width:92%; max-width:480px; background:#fff; border-radius:12px; padding:18px; box-sizing:border-box;
-  display:flex; flex-direction:column; gap:12px; align-items:center; text-align:center;
-}
-#permissionOverlay h3{ margin:0; font-size:18px; }
-#permissionOverlay p{ margin:0; color:var(--muted); font-size:13px; }
-#enableMediaBtn{
-  margin-top:6px; padding:10px 14px; border-radius:10px; border:none; cursor:pointer;
-  background:var(--primary); color:#fff; font-weight:600;
-}
-#permissionDismiss{ background:transparent; border:none; color:var(--muted); cursor:pointer; font-size:13px; }
-
-
-/* ===== Added modal & blur styles for + button updates ===== */
-.phone.blurred-bg { filter: blur(6px) saturate(0.98); transition: filter 220ms ease; pointer-events: none; }
-.modal-overlay, .modal-center {
-  position: fixed;
-  inset: 0;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  z-index: 99999;
-  background: rgba(0,0,0,0.35);
-}
-.modal-center .modal-box {
-  width: 92%;
-  max-width: 420px;
-  background: linear-gradient(180deg,#fff,#fbfdff);
-  border-radius: 12px;
-  padding: 14px;
-  box-shadow: 0 18px 50px rgba(0,0,0,0.22);
-  box-sizing: border-box;
-  position: relative;
-}
-.modal-center .modal-box .close-x {
-  position: absolute;
-  right: 10px;
-  top: 8px;
-  width: 36px;
-  height: 36px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  border-radius:50%;
-  background:#fff;
-  border:1px solid rgba(0,0,0,0.06);
-  cursor:pointer;
-  font-weight:700;
-  box-shadow:0 6px 18px rgba(0,0,0,0.06);
-}
-.modal-center .modal-box h4 { margin:0 0 8px; color:var(--primary); }
-.modal-center .modal-box .small { color:var(--muted); font-size:13px; margin-bottom:8px; }
-
-#individualModal .modal-inner { display:flex; flex-direction:column; gap:8px; }
-#individualModal input[type="text"] { width:100%; padding:10px; border-radius:10px; border:1px solid rgba(11,96,214,0.06); }
-#individualModal .action-row { display:flex; gap:8px; justify-content:flex-end; margin-top:6px; }
-
-#modalBackdrop { display:none; position:fixed; inset:0; z-index:99998; align-items:center; justify-content:center; background:rgba(0,0,0,0.35); }
-#modalBackdrop .modal { width:92%; max-width:560px; background:#fff; border-radius:12px; padding:12px; box-sizing:border-box; box-shadow:0 18px 50px rgba(0,0,0,0.18); position:relative; }
-#modalBackdrop .close-x { position:absolute; right:12px; top:10px; width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#fff;border:1px solid rgba(0,0,0,0.06); cursor:pointer; font-weight:700; }
-#modalBackdrop .group-avatar-preview { width:96px;height:96px;border-radius:12px;overflow:hidden;background:#f0f6ff;border:6px solid #fff;margin-right:12px; display:flex;align-items:center;justify-content:center; font-weight:700; color:var(--primary); font-size:36px; }
-#modalBackdrop .group-header { display:flex; align-items:center; gap:12px; margin-bottom:8px; }
-#modalBackdrop .image-link-row { display:flex; gap:8px; align-items:center; }
-#modalBackdrop input[type="url"] { flex:1; padding:8px;border-radius:8px;border:1px solid rgba(11,96,214,0.06); }
-#modalBackdrop .choose-gallery-btn { padding:8px 10px; border-radius:8px; border:none; background:var(--primary); color:#fff; cursor:pointer; }
-
-.avatar-grid.compact { grid-template-columns: repeat(6, 1fr); gap:6px; }
-.avatar-grid.compact img { height:48px; border-radius:8px; }
-
-
-/* ===== OVERRIDES: Blue rounded modal theme + scroll fix + plus-menu styling ===== */
-:root { --app-blue: #0b60d6; --app-blue-2: #0c7bff; --modal-text: #ffffff; --muted-on-blue: rgba(255,255,255,0.85); }
-
-.plus-menu {
-  background: linear-gradient(180deg,var(--app-blue-2),var(--app-blue));
-  padding: 10px;
-  border-radius: 14px;
-  gap:10px;
-  box-shadow: 0 18px 50px rgba(11,96,214,0.18);
-  display:none;
-  flex-direction:column;
-}
-.plus-menu button {
-  background: rgba(255,255,255,0.09);
-  color: var(--modal-text);
-  border: none;
-  padding: 10px 12px;
-  border-radius: 12px;
-  font-weight:600;
-  cursor:pointer;
-  width:100%;
-  text-align:left;
-  box-shadow: none;
-}
-.plus-menu button:hover { background: rgba(255,255,255,0.13); }
-
-.modal-overlay, .modal-center {
-  position: fixed;
-  inset: 0;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  z-index: 99999;
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  background: rgba(3,24,78,0.28); /* subtle deep-blue overlay to match theme */
-}
-.modal-center .modal-box {
-  width: 92%;
-  max-width: 520px;
-  background: linear-gradient(180deg,var(--app-blue),var(--app-blue-2));
-  border-radius: 18px;
-  padding: 18px;
-  color: var(--modal-text);
-  box-shadow: 0 28px 70px rgba(3,24,78,0.35);
-  position: relative;
-  transform: translateY(0);
-}
-.modal-center .modal-box .close-x {
-  position: absolute;
-  right: 12px;
-  top: 10px;
-  width: 40px;
-  height: 40px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  border-radius:50%;
-  background: rgba(255,255,255,0.14);
-  color: var(--modal-text);
-  cursor:pointer;
-  font-weight:700;
-  box-shadow:0 8px 20px rgba(3,24,78,0.18);
-  border: none;
-}
-
-.modal-center .modal-box h4 { margin:0 0 8px; color:var(--modal-text); }
-.modal-center .modal-box .small { color:var(--muted-on-blue); font-size:13px; margin-bottom:8px; }
-
-/* Force modal to be vertically centered and fixed (won't fly up) */
-.modal-center { display:none; align-items:center; justify-content:center; }
-.modal-center .modal-box { max-height:82vh; overflow:hidden; }
-
-/* Make contacts list inside modal scrollable without moving modal */
-#modalBackdrop .contacts, #modalBackdrop .contacts-list, #modalBackdrop .contactsContainer, #modalBackdrop .contactsList {
-  max-height: 48vh;
-  overflow-y: auto;
-  padding-right: 6px;
-}
-
-/* Avatar preview adjustments on blue background */
-#groupAvatarPreview {
-  width:96px;
-  height:96px;
-  border-radius:14px;
-  overflow:hidden;
-  background: rgba(255,255,255,0.12);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  color:var(--modal-text);
-  font-weight:700;
-  font-size:36px;
-  border:4px solid rgba(255,255,255,0.06);
-}
-
-/* Make sure profile avatar preview looks okay against blue */
-#profileAvatar { border-radius:12px; overflow:hidden; background: rgba(255,255,255,0.06); }
-
-/* ensure avatar modal itself appears over blue overlay and has rounded look */
-#avatarModal .modal { border-radius:14px; padding:12px; max-width:520px; background: linear-gradient(180deg,#f8fbff,#eaf3ff); color:#042a66; }
-
-/* small responsive tweak */
-@media (max-width:420px) {
-  .modal-center .modal-box { width: 96%; padding:12px; border-radius:14px; }
-  .plus-menu { right:12px; left:auto; }
-}
-
-
-/* Pencil button on group avatar */
-.edit-pencil {
-  position: absolute;
-  right: 6px;
-  top: 6px;
-  width:28px;
-  height:28px;
-  border-radius:8px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  background: rgba(255,255,255,0.14);
-  color: var(--modal-text);
-  font-size:14px;
-  cursor:pointer;
-  border:1px solid rgba(255,255,255,0.06);
-  box-shadow:0 6px 18px rgba(3,24,78,0.12);
-}
-
-/* Make sure group avatar container is position:relative so pencil sits correctly */
-.group-avatar-preview { position: relative; }
-
-/* Group lists: fix in mobile screen and allow internal scrolling */
-.groups-list, .group-list, #groupsSection, .groups { max-height: 56vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-
-/* Auto-hide helper class (for visibility transitions) */
-.auto-hide { transition: opacity 220ms ease, transform 220ms ease; opacity: 1; transform: translateY(0); }
-.auto-hide.hidden { opacity: 0; transform: translateY(8px); pointer-events: none; }
-
-/* make sure modal content fully scrollable */
-.modal-center .modal-box .modal-content { max-height: 68vh; overflow-y: auto; padding-right:6px; }
-
-/* Ensure group modal scrolls into view when opened */
-#modalBackdrop .modal { max-height: 82vh; overflow: hidden; }
-
 </style>
 </head>
 <body>
   <!-- Startup loader (visible immediately, will be hidden after 1s) -->
   <div id="startup-loader" aria-hidden="false">
     <div class="loader" role="progressbar" aria-label="Loading"></div>
-
-    <!-- Individual Chat Modal (centered, blurred background, cross to close) -->
-    <div id="individualModal" class="modal-center" aria-hidden="true">
-      <div class="modal-box modal-inner" role="dialog" aria-modal="true">
-        <div class="close-x" id="closeIndividualModal" title="Close">×</div>
-        <h4>Create chat with</h4>
-        <div class="small">Enter email or phone and add as individual chat.</div>
-        <input id="individualEmailOrPhone" type="text" placeholder="Email or phone">
-        <div style="display:flex;gap:8px;justify-content:flex-end;">
-          <button id="individualCancelBtn" class="btn ghost" style="padding:8px 12px;">Cancel</button>
-          <button id="individualAddBtn" class="btn primary" style="padding:8px 12px;">Add & Open</button>
-        </div>
-      </div>
-    </div>
-
   </div>
 
   <div class="phone">
@@ -752,62 +414,10 @@ button, .btn, a {
       <!-- Lists -->
       <div id="chat-list-container"></div>
       <div id="group-list-container" style="display:none;"></div>
-
-      <!-- Games section (added) -->
-      <div id="games-section" style="display:none;padding:12px;">
-        <h3 style="color:var(--primary);margin-top:0;margin-bottom:8px;">Games</h3>
-        <div class="games-grid" style="display:flex;gap:12px;flex-wrap:wrap;">
-          <div class="game-card" data-game="tictactoe" style="flex:1 1 180px;padding:18px;border-radius:12px;background:linear-gradient(180deg,#fff,#f6fbff);border:1px solid rgba(11,96,214,0.06);cursor:pointer;text-align:center;font-weight:700;">
-            Tic‑Tac‑Toe
-            <div style="font-size:12px;color:var(--muted);margin-top:8px;">Play 1v1 with a contact</div>
-          </div>
-          <div class="game-card" data-game="rps" style="flex:1 1 180px;padding:18px;border-radius:12px;background:linear-gradient(180deg,#fff,#f6fbff);border:1px solid rgba(11,96,214,0.06);cursor:pointer;text-align:center;font-weight:700;">
-            Rock Paper Scissors
-            <div style="font-size:12px;color:var(--muted);margin-top:8px;">Quick challenge — best of one</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Game invite modal -->
-      <div id="gameInviteModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:9999;align-items:center;justify-content:center;">
-        <div style="width:92%;max-width:420px;background:#fff;border-radius:12px;padding:12px;">
-          <h4 style="margin:0 0 10px;color:var(--primary)">Invite contact to play <span id="inviteGameName"></span></h4>
-          <div id="onlineContactsList" style="max-height:260px;overflow:auto;padding:6px 0"></div>
-          <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;">
-            <button id="cancelInviteBtn" class="btn ghost" style="padding:8px 12px;">Cancel</button>
-            <button id="sendInviteBtn" class="btn primary" style="padding:8px 12px;">Invite</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Incoming invite modal -->
-      <div id="incomingInviteModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:10000;align-items:center;justify-content:center;">
-        <div style="width:92%;max-width:420px;background:#fff;border-radius:12px;padding:12px;">
-          <h4 style="margin:0 0 6px;color:var(--primary)"><span id="incomingFromName"></span> invited you to play <span id="incomingGameName"></span></h4>
-          <div id="incomingInviteMsg" style="margin-top:6px;color:var(--muted);font-size:13px;">Would you like to play?</div>
-          <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;">
-            <button id="declineInviteBtn" class="btn ghost" style="padding:8px 12px;">Decline</button>
-            <button id="acceptInviteBtn" class="btn primary" style="padding:8px 12px;">Accept</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Game screen -->
-      <div id="game-screen" style="display:none;position:fixed;inset:0;background:linear-gradient(180deg,rgba(255,255,255,0.98),#fbfdff);z-index:9998;padding:12px;overflow:auto;">
-        <div style="max-width:560px;margin:0 auto;">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
-            <button id="closeGameScreen" class="btn ghost" style="padding:6px 10px;">&lt; Back</button>
-            <h3 id="gameScreenTitle" style="margin:0;color:var(--primary);font-size:18px;"></h3>
-            <div style="margin-left:auto;color:var(--muted);" id="gamePlayersInfo"></div>
-          </div>
-          <div id="gameContent"></div>
-        </div>
-      </div>
-
     </div>
 
     <!-- Chat Screen -->
-
+    
     <!-- Profile Section (@You) -->
     <div class="profile-section" id="profile-section" aria-hidden="true">
       <div class="profile-card" id="profile-card">
@@ -815,27 +425,15 @@ button, .btn, a {
           <div id="profileAvatar" class="profile-avatar" aria-hidden="false">U</div>
           <div id="pencilBtn" class="pencil-btn" title="Change profile picture">✎</div>
         </div>
-
-        <!-- Desired visual order: avatar -> name -> handle -> about -> contacts -->
         <div class="profile-field">
           <label style="font-size:13px;color:var(--muted)">Your name</label>
           <input id="profileDisplayName" type="text" placeholder="Enter your name">
         </div>
-
-        <div class="profile-field">
-  <label style="font-size:13px;color:var(--muted)">Handle (public)</label>
-  <div style="display:flex;align-items:center;gap:8px;">
-    <input id="profileHandle" type="text" placeholder="@yourhandle" readonly>
-    <small id="profileHandleNote" style="color:var(--muted);font-size:13px;">(cannot change)</small>
-  </div>
-</div>
-
         <div class="profile-field" id="profileAboutField">
           <label style="font-size:13px;color:var(--muted)">About</label>
           <textarea id="profileAbout" rows="2" placeholder='Hi, I am using Zag Messenger'></textarea>
         </div>
-        <div id="saveHint" style="font-size:13px;color:var(--muted);margin-top:8px;">Please save after making changes to your profile.</div>
-<button id="saveProfileBtn" class="btn primary save-profile-btn">Save</button>
+        <button id="saveProfileBtn" class="btn primary save-profile-btn">Save</button>
 
         <hr style="margin:14px 0;border:none;border-top:1px dashed rgba(11,96,214,0.06)">
 
@@ -850,7 +448,7 @@ button, .btn, a {
     <div class="avatar-modal" id="avatarModal" aria-hidden="true">
       <div class="modal-inner">
         <h4 style="margin-top:0">Choose profile picture</h4>
-        <div class="avatar-grid compact" id="avatarGrid"></div>
+        <div class="avatar-grid" id="avatarGrid"></div>
         <div style="text-align:right;margin-top:8px;">
           <button id="saveAvatarModal" class="btn primary" style="margin-right:8px;">Save</button>
           <button id="closeAvatarModal" class="btn ghost">Cancel</button>
@@ -861,24 +459,18 @@ button, .btn, a {
     <div class="chat-screen" id="individual-chat-container">
       <div class="chat-header" role="banner" id="chatHeader">
         <div class="chat-header-left">
-          <button id="backToChatListBtn" class="btn ghost back-icon" aria-label="Back to chats">←</button>
+          <button id="backToChatListBtn" class="btn ghost" aria-label="Back to chats">&lt; Back</button>
         </div>
 
         <div class="chat-header-center" role="group" aria-label="Chat identity">
           <div id="current-chat-avatar" class="avatar"></div>
           <div class="chat-center-text">
-            <div style="display:flex;align-items:center;gap:6px;min-width:0;">
-              <div id="current-chat-name" class="chat-name" title=""></div>
-              <div class="chat-dots" aria-hidden="true">...</div>
-            </div>
+            <div id="current-chat-name" class="chat-name" title=""></div>
             <div id="current-chat-sub" class="small"></div>
           </div>
         </div>
 
         <div class="chat-header-right" aria-hidden="false">
-          <!-- Call & video buttons -->
-          <button id="callBtn" class="chat-action-btn" title="Voice call" aria-label="Voice call">📞</button>
-          <button id="videoBtn" class="chat-action-btn" title="Video call" aria-label="Video call">📹</button>
           <!-- Chat menu button with blue styling -->
           <button id="chatMenuBtn" class="chat-menu-btn" aria-label="Chat menu">⋮</button>
         </div>
@@ -924,19 +516,6 @@ button, .btn, a {
   <div class="modal-backdrop" id="modalBackdrop">
     <div class="modal" role="dialog" aria-modal="true">
       <h4 id="modalTitle">New Group</h4>
-      <div class="group-header">
-        <div class="group-avatar-preview" id="groupAvatarPreview">G  <div class="edit-pencil" id="groupEditPencil" title="Edit group picture">✎</div></div>
-        <div style="flex:1;">
-          <div style="display:flex;gap:8px;margin-bottom:8px;">
-            <input id="groupImageUrl" type="url" placeholder="Paste image URL (optional)" />
-            <button id="groupImageLoad" class="choose-gallery-btn">Load</button>
-          </div>
-          <div style="display:flex;gap:8px;align-items:center;">
-            <button id="openGroupGallery" class="btn ghost">Choose from gallery</button>
-            <div style="color:var(--muted);font-size:13px;">or pick a picture below</div>
-          </div>
-        </div>
-      </div>
       <div class="section-title">Group name</div>
       <input id="groupName" placeholder="Type group name..." />
 
@@ -1322,54 +901,39 @@ button, .btn, a {
       return str.substring(0, leftKeep) + '...' + str.substring(str.length - rightKeep);
     }
 
-    // Updated loadChats: show only contacts (so deleting a contact removes from Home)
-    async function loadChats() {
+    function loadChats() {
       chatList.innerHTML = '';
       if (!currentUser) {
         chatList.innerHTML = '<div class="small">Sign in to see chats.</div>';
         return;
       }
-
-      try {
-        const contactsSnap = await get(dbRef(db, 'contacts/' + currentUser.uid));
-        if (!contactsSnap.exists()) {
-          chatList.innerHTML = '<div class="small">No contacts yet. Add people from the + button.</div>';
+      const usersRef = dbRef(db, 'users');
+      get(usersRef).then(snap => {
+        if (!snap.exists()) {
+          chatList.innerHTML = '<div class="small">No contacts yet.</div>';
           return;
         }
-        const contactUids = Object.keys(contactsSnap.val() || {});
-        if (contactUids.length === 0) {
-          chatList.innerHTML = '<div class="small">No contacts yet. Add people from the + button.</div>';
-          return;
-        }
-
         chatList.innerHTML = '';
-        for (const uid of contactUids) {
-          // fetch user from cache first, otherwise from DB
-          let u = usersCache[uid];
-          if (!u) {
-            try {
-              const usnap = await get(dbRef(db, 'users/' + uid));
-              if (usnap.exists()) u = usnap.val();
-            } catch (e) { console.error('fetch user error', e); }
-          }
-          if (!u) continue;
+        snap.forEach(s => {
+          const u = s.val();
+          if (u.uid === currentUser.uid) return;
           const item = document.createElement('div');
           item.className = 'chat-item';
           item.dataset.uid = u.uid;
           item.innerHTML = `<div class="avatar">${(u.email||'U').charAt(0).toUpperCase()}</div>
                             <div class="chat-meta">
-                              <div class="name">${u.displayName || u.email || u.phoneNumber || 'User'}</div>
-                              <div class="sub">${u.handle ? ('@' + u.handle) : (u.phoneNumber || '')}</div>
+                              <div class="name">${u.email || u.phoneNumber || 'User'}</div>
+                              <div class="sub">${u.phoneNumber || ''}</div>
                             </div>`;
           item.addEventListener('click', () => {
             openPrivateChatWith(u);
           });
           chatList.appendChild(item);
-        }
-      } catch (err) {
+        });
+      }).catch(err => {
         console.error('loadChats error', err);
         chatList.innerHTML = '<div class="small">Error loading chats.</div>';
-      }
+      });
     }
 
     function scrollLatestMessageIntoView(behavior = 'auto') {
@@ -1388,12 +952,12 @@ button, .btn, a {
       currentChat = { type: 'private', id: chatId, with: userObj };
 
       document.getElementById('current-chat-avatar').textContent = (userObj.email||'U').charAt(0).toUpperCase();
-      const displayName = userObj.displayName || userObj.email || userObj.phoneNumber || 'User';
+      const displayName = userObj.email || userObj.phoneNumber || 'User';
       const short = shortenMiddle(displayName, 28);
       const nameEl = document.getElementById('current-chat-name');
       nameEl.textContent = short;
       nameEl.title = displayName;
-      document.getElementById('current-chat-sub').textContent = userObj.handle ? ('@' + userObj.handle) : (userObj.phoneNumber || '');
+      document.getElementById('current-chat-sub').textContent = userObj.phoneNumber || '';
 
       appSection.style.display = 'none';
       individualChat.style.display = 'flex';
@@ -1454,7 +1018,7 @@ button, .btn, a {
           let senderLabel = '';
           if (!isSent) {
             const sender = usersCache[m.sender];
-            if (sender) senderLabel = escapeHtml(sender.displayName || sender.email || sender.phoneNumber || 'Member');
+            if (sender) senderLabel = escapeHtml(sender.email || sender.phoneNumber || 'Member');
             else senderLabel = 'Member';
           }
 
@@ -1544,18 +1108,14 @@ button, .btn, a {
       if (!found) {
         return alert('User not found in directory. They must sign up first.');
       }
-      // add as contact for current user
-      try {
-        await set(dbRef(db, 'contacts/' + currentUser.uid + '/' + found.uid), true);
-      } catch(e){ console.error('add contact error', e); }
       openPrivateChatWith(found);
       addChatArea.style.display = 'none';
       addChatIdentifier.value = '';
       updateFloatingVisibility();
     });
 
-    navGroups.addEventListener('click', () => {       try{ document.getElementById('games-section') && (document.getElementById('games-section').style.display = 'none'); }catch(e){}
-      closeProfile(); navGroups.classList.add('active');
+    navGroups.addEventListener('click', () => {
+      navGroups.classList.add('active');
       navHome.classList.remove('active');
       try{ navYou.classList.remove('active'); }catch(e){}
       listTitle.innerText = 'Groups';
@@ -1564,8 +1124,8 @@ button, .btn, a {
       updateFloatingVisibility();
       loadGroups();
     });
-    navHome.addEventListener('click', () => {       try{ document.getElementById('games-section') && (document.getElementById('games-section').style.display = 'none'); }catch(e){}
-      closeProfile(); navHome.classList.add('active');
+    navHome.addEventListener('click', () => {
+      navHome.classList.add('active');
       navGroups.classList.remove('active');
       try{ navYou.classList.remove('active'); }catch(e){}
       listTitle.innerText = 'My chats';
@@ -1573,11 +1133,6 @@ button, .btn, a {
       groupList.style.display = 'none';
       updateFloatingVisibility();
       loadChats();
-    });
-
-    // connect @You to openProfile
-    navYou.addEventListener('click', (ev)=>{
-      openProfile();
     });
 
     cancelCreateGroup.addEventListener('click', () => {
@@ -1744,7 +1299,7 @@ button, .btn, a {
       });
     }
 
-
+    
     // --- Profile page & avatar picker logic (updated) ---
     const profileSection = document.getElementById('profile-section');
     const profileAvatar = document.getElementById('profileAvatar');
@@ -1754,7 +1309,6 @@ button, .btn, a {
     const closeAvatarModal = document.getElementById('closeAvatarModal');
     const saveAvatarModal = document.getElementById('saveAvatarModal');
     const profileDisplayName = document.getElementById('profileDisplayName');
-    const profileHandle = document.getElementById('profileHandle');
     const profileAbout = document.getElementById('profileAbout');
     const saveProfileBtn = document.getElementById('saveProfileBtn');
     const profileContactsList = document.getElementById('profileContactsList');
@@ -1768,7 +1322,6 @@ button, .btn, a {
     }
 
     function openProfile() {
-            try{ document.getElementById('games-section') && (document.getElementById('games-section').style.display = 'none'); }catch(e){}
       if (!currentUser) return alert('Not signed in');
       authSection.style.display = 'none';
       appSection.style.display = 'none';
@@ -1783,8 +1336,6 @@ button, .btn, a {
     }
 
     function closeProfile() {
-            try{ document.getElementById('games-section') && (document.getElementById('games-section').style.display = 'none'); }catch(e){}
-      try{ navYou.classList.remove('active'); }catch(e){}
       profileSection.style.display = 'none';
       appSection.style.display = 'block';
       setTopBannerVisible(true);
@@ -1811,9 +1362,10 @@ button, .btn, a {
     }
 
     pencilBtn && pencilBtn.addEventListener('click', () => {
-  // Open the larger link-edit modal (pencilAvatarModal) — only visible when user taps pencil on @You
-  try { showModal(profileAvatar.dataset.selected || ''); } catch(e) { document.getElementById('pencilAvatarModal').style.display = 'flex'; }
-});
+      renderAvatarGrid(profileAvatar.dataset.selected || '');
+      avatarModal.style.display = 'flex';
+      avatarModal.setAttribute('aria-hidden','false');
+    });
     closeAvatarModal && closeAvatarModal.addEventListener('click', () => {
       avatarModal.style.display = 'none';
       avatarModal.setAttribute('aria-hidden','true');
@@ -1835,9 +1387,6 @@ button, .btn, a {
         let data = snap.exists() ? snap.val() : {};
         if (data.displayName) profileDisplayName.value = data.displayName;
         else profileDisplayName.value = (currentUser.email || '').split('@')[0] || '';
-        /* enforce handle as email local-part and make it readonly (cannot change) */
-        profileHandle.value = (currentUser && currentUser.email ? (currentUser.email.split('@')[0]) : (data && data.handle ? data.handle : '')) || '';
-        try { profileHandle.setAttribute('readonly','true'); } catch(e){};
         if (data.about) profileAbout.value = data.about;
         else profileAbout.value = 'Hi, I am using Zag Messenger';
         if (data.profilePic) {
@@ -1859,12 +1408,9 @@ button, .btn, a {
       if (!currentUser) return alert('Not signed in');
       let name = (profileDisplayName.value || '').trim();
       let about = (profileAbout.value || '').trim();
-      let handle = (profileHandle.value || '').trim();
       if (!name) return alert('Please enter your name (required).');
-      // Normalize handle: remove leading @ if present
-      if (handle.startsWith('@')) handle = handle.substring(1);
       const profilePic = profileAvatar.dataset.selected || '';
-      const updates = { displayName: name, about: about, handle: handle };
+      const updates = { displayName: name, about: about };
       if (profilePic) updates.profilePic = profilePic;
       try {
         await update(dbRef(db, 'users/' + currentUser.uid), updates);
@@ -1897,21 +1443,16 @@ button, .btn, a {
           if (!u) continue;
           const row = document.createElement('div');
           row.className = 'contact-row';
-          row.innerHTML = `<div style=\"width:44px;height:44px;border-radius:50%;background:linear-gradient(180deg,#dbeeff,#c1ddff);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--primary);\">${(u.displayName||u.email||'U').charAt(0).toUpperCase()}</div>
-                           <div style="flex:1;">
-                             <div class=\"contact-name\">${u.displayName || u.email || u.phoneNumber || 'User'}</div>
-                             <div class="small">${u.handle ? ('@' + u.handle) : (u.phoneNumber || '')}</div>
-                           </div>
+          row.innerHTML = `<div style=\"width:44px;height:44px;border-radius:50%;background:linear-gradient(180deg,#dbeeff,#c1ddff);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--primary);\">${(u.email||'U').charAt(0).toUpperCase()}</div>
+                           <div class=\"contact-name\">${u.email || u.phoneNumber || 'User'}</div>
                            <button class=\"delete-btn\">Delete</button>`;
           const delBtn = row.querySelector('.delete-btn');
           delBtn.addEventListener('click', async () => {
-            const ok = confirm('Delete this contact? This will remove them from your Home list.');
+            const ok = confirm('Delete this contact?');
             if (!ok) return;
             try {
               await set(dbRef(db, 'contacts/' + currentUser.uid + '/' + uid), null);
-              // reload UI
-              await loadProfileContacts();
-              await loadChats(); // <-- ensure removed from Home list immediately
+              loadProfileContacts();
             } catch (e) {
               console.error('delete contact error', e);
             }
@@ -1982,370 +1523,8 @@ button, .btn, a {
     })();
     // --- END: Startup loader behaviour ---
 
-    console.log('Profile & contacts improvements applied: handle field, contact deletion removes from Home, @You opens profile.');
-  
-// --- START: Games & presence/invite/session logic (added) ---
-(function initGamesFeature(){
-  function setMyPresenceOnline() {
-    if (!currentUser) return;
-    try {
-      const pRef = dbRef(db, 'presence/' + currentUser.uid);
-      set(pRef, true).catch(()=>{});
-      window.addEventListener('beforeunload', () => {
-        try { set(dbRef(db, 'presence/' + currentUser.uid), null); } catch(e){}
-      });
-    } catch(e){}
-  }
-
-  let presenceSnapshot = {};
-  function initPresenceListener(){
-    try {
-      const presRef = dbRef(db, 'presence');
-      onValue(presRef, snap => {
-        presenceSnapshot = snap.exists() ? snap.val() : {};
-      });
-    } catch(e){}
-  }
-
-  try {
-    if (typeof navGames !== 'undefined' && navGames) {
-      navGames.addEventListener('click', () => { closeProfile(); navGames.classList.add('active'); navHome.classList.remove('active'); try{ navYou.classList.remove('active'); }catch(e){} listTitle.innerText = 'Games'; chatList.style.display = 'none'; groupList.style.display = 'none'; document.getElementById('games-section').style.display = 'block'; updateFloatingVisibility();
-        setBottomActive(navGames);
-        try { profileSection.style.display = 'none'; } catch(e){}
-        chatList.style.display = 'none';
-        groupList.style.display = 'none';
-        document.getElementById('games-section').style.display = 'block';
-        listTitle && (listTitle.innerText = 'Games');
-        updateFloatingVisibility();
-      });
-    }
-  } catch(e){}
-
-  document.addEventListener('click', (ev) => {
-    const el = ev.target.closest && ev.target.closest('.game-card');
-    if (el) {
-      const game = el.dataset.game;
-      openGameInvitePicker(game);
-    }
-  });
-
-  let selectedInviteTarget = null;
-  let currentInviterListener = null;
-
-  async function openGameInvitePicker(gameId){
-    if (!currentUser) return alert('Please sign in to use games.');
-    const modal = document.getElementById('gameInviteModal');
-    const title = document.getElementById('inviteGameName');
-    title.textContent = gameId === 'tictactoe' ? 'Tic‑Tac‑Toe' : (gameId === 'rps' ? 'Rock Paper Scissors' : gameId);
-    const list = document.getElementById('onlineContactsList');
-    list.innerHTML = '<div class="small">Loading contacts…</div>';
-    modal.style.display = 'flex';
-    selectedInviteTarget = null;
-
-    try {
-      const contactsSnap = await get(dbRef(db, 'contacts/' + currentUser.uid));
-      const contacts = contactsSnap.exists() ? Object.keys(contactsSnap.val()||{}) : [];
-      list.innerHTML = '';
-      for (const uid of contacts) {
-        if (!usersCache[uid]) continue;
-        if (!presenceSnapshot || !presenceSnapshot[uid]) continue;
-        const u = usersCache[uid];
-        const row = document.createElement('div');
-        row.style.display = 'flex';
-        row.style.alignItems = 'center';
-        row.style.gap = '8px';
-        row.style.padding = '8px';
-        row.style.borderRadius = '8px';
-        row.style.cursor = 'pointer';
-        row.style.border = '1px solid rgba(11,96,214,0.04)';
-        row.innerHTML = `<div style="width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#f0f6ff;color:var(--primary);font-weight:700;">${(u.displayName||u.email||'U').charAt(0).toUpperCase()}</div>
-                         <div style="flex:1"><div style="font-weight:700;color:var(--primary)}">${escapeHtml(u.displayName||u.email||u.phoneNumber||'User')}</div>
-                         <div class="small">${u.handle?('@'+u.handle):(u.phoneNumber||'')}</div></div>`;
-        row.dataset.uid = uid;
-        row.addEventListener('click', () => {
-          list.querySelectorAll('div').forEach(d=>d.style.opacity='1');
-          row.style.opacity = '0.6';
-          selectedInviteTarget = uid;
-        });
-        list.appendChild(row);
-      }
-      if (list.children.length === 0) {
-        list.innerHTML = '<div class="small">No contacts online right now.</div>';
-      }
-    } catch(e){
-      console.error('openGameInvitePicker error', e);
-      list.innerHTML = '<div class="small">Failed to load contacts.</div>';
-    }
-
-    const cancelBtn = document.getElementById('cancelInviteBtn');
-    const sendBtn = document.getElementById('sendInviteBtn');
-    cancelBtn.onclick = () => { modal.style.display='none'; selectedInviteTarget = null; };
-    sendBtn.onclick = async () => {
-      if (!selectedInviteTarget) return alert('Select an online contact first.');
-      try {
-        const invitesRef = dbRef(db, 'gameInvites/' + selectedInviteTarget);
-        const newInvRef = push(invitesRef);
-        const inviteId = newInvRef.key;
-        await set(newInvRef, {
-          id: inviteId,
-          from: currentUser.uid,
-          fromEmail: currentUser.email || '',
-          game: gameId,
-          status: 'pending',
-          timestamp: Date.now()
-        });
-        modal.style.display = 'none';
-        alert('Invite sent — waiting for response.');
-        const invPath = dbRef(db, 'gameInvites/' + selectedInviteTarget + '/' + inviteId);
-        if (currentInviterListener) currentInviterListener(); 
-        currentInviterListener = onValue(invPath, async snap => {
-          if (!snap.exists()) return;
-          const data = snap.val();
-          if (data.status === 'accepted' && data.sessionId) {
-            openGameSession(data.sessionId);
-          } else if (data.status === 'declined') {
-            alert('Sorry — chosen person does not want to play.');
-          }
-        });
-      } catch(e){
-        console.error('send invite error', e);
-        alert('Failed to send invite.');
-      }
-    };
-  }
-
-  function initIncomingInvitesListener(){
-    if (!currentUser) return;
-    const myInvRef = dbRef(db, 'gameInvites/' + currentUser.uid);
-    onValue(myInvRef, snap => {
-      if (!snap.exists()) return;
-      let pending = null;
-      snap.forEach(child => {
-        const val = child.val();
-        if (val && val.status === 'pending') pending = val;
-      });
-      if (pending) {
-        showIncomingInvite(pending);
-      }
-    });
-  }
-
-  let activeIncomingInviteId = null;
-  function showIncomingInvite(inv){
-    if (!inv) return;
-    activeIncomingInviteId = inv.id;
-    const modal = document.getElementById('incomingInviteModal');
-    document.getElementById('incomingFromName').textContent = (usersCache[inv.from] && (usersCache[inv.from].displayName || usersCache[inv.from].email)) || inv.fromEmail || 'Someone';
-    document.getElementById('incomingGameName').textContent = inv.game === 'tictactoe' ? 'Tic‑Tac‑Toe' : (inv.game === 'rps' ? 'Rock Paper Scissors' : inv.game);
-    modal.style.display = 'flex';
-
-    document.getElementById('acceptInviteBtn').onclick = async () => {
-      modal.style.display = 'none';
-      try {
-        const invitesRef = dbRef(db, 'gameInvites/' + currentUser.uid + '/' + inv.id);
-        const sessionsRef = dbRef(db, 'gameSessions');
-        const newSessRef = push(sessionsRef);
-        const sid = newSessRef.key;
-        const sessionData = {
-          id: sid,
-          game: inv.game,
-          players: { [inv.from]: true, [currentUser.uid]: true },
-          createdAt: Date.now(),
-          createdBy: currentUser.uid,
-          state: {}
-        };
-        await set(dbRef(db, 'gameSessions/' + sid), sessionData);
-        await update(invitesRef, { status: 'accepted', sessionId: sid });
-        openGameSession(sid);
-      } catch(e){
-        console.error('accept invite error', e);
-        alert('Failed to accept invite.');
-      }
-    };
-    document.getElementById('declineInviteBtn').onclick = async () => {
-      modal.style.display = 'none';
-      try {
-        const invitesRef = dbRef(db, 'gameInvites/' + currentUser.uid + '/' + inv.id);
-        await update(invitesRef, { status: 'declined' });
-      } catch(e){ console.error(e); }
-    };
-  }
-
-  async function openGameSession(sessionId){
-    if (!sessionId) return alert('Invalid session.');
-    try {
-      const sSnap = await get(dbRef(db, 'gameSessions/' + sessionId));
-      if (!sSnap.exists()) return alert('Session not found.');
-      const session = sSnap.val();
-      const game = session.game;
-      const players = Object.keys(session.players || {});
-      const otherUid = players.find(u=>u !== currentUser.uid);
-      const otherName = (usersCache[otherUid] && (usersCache[otherUid].displayName || usersCache[otherUid].email)) || otherUid;
-      document.getElementById('gameScreenTitle').textContent = game === 'tictactoe' ? 'Tic‑Tac‑Toe' : (game === 'rps' ? 'Rock Paper Scissors' : game);
-      document.getElementById('gamePlayersInfo').textContent = 'You vs ' + otherName;
-      document.getElementById('gameContent').innerHTML = '<div class="small">Loading game...</div>';
-      document.getElementById('game-screen').style.display = 'block';
-
-      document.getElementById('closeGameScreen').onclick = () => {
-        document.getElementById('game-screen').style.display = 'none';
-      };
-
-      if (game === 'tictactoe') {
-        startTicTacToe(sessionId, currentUser.uid, players);
-      } else if (game === 'rps') {
-        startRPS(sessionId, currentUser.uid, players);
-      } else {
-        document.getElementById('gameContent').innerHTML = '<div class="small">Unknown game type</div>';
-      }
-    } catch(e){
-      console.error('openGameSession error', e);
-      alert('Failed to open game session.');
-    }
-  }
-
-  function startTicTacToe(sessionId, myUid, players){
-    const mySymbol = players[0] === myUid ? 'X' : 'O';
-    const sessRef = dbRef(db, 'gameSessions/' + sessionId + '/state');
-    const content = document.getElementById('gameContent');
-    content.innerHTML = '';
-    const boardEl = document.createElement('div');
-    boardEl.style.display = 'grid';
-    boardEl.style.gridTemplateColumns = 'repeat(3, 1fr)';
-    boardEl.style.gap = '6px';
-    boardEl.style.maxWidth = '360px';
-    boardEl.style.margin = '0 auto';
-    for (let i=0;i<9;i++){
-      const cell = document.createElement('div');
-      cell.dataset.idx = i;
-      cell.style.minHeight = '64px';
-      cell.style.display = 'flex';
-      cell.style.alignItems = 'center';
-      cell.style.justifyContent = 'center';
-      cell.style.fontSize = '26px';
-      cell.style.borderRadius = '8px';
-      cell.style.background = '#fff';
-      cell.style.border = '1px solid rgba(11,96,214,0.04)';
-      cell.style.cursor = 'pointer';
-      boardEl.appendChild(cell);
-      cell.onclick = async () => {
-        try {
-          const snap = await get(dbRef(db, 'gameSessions/' + sessionId + '/state/board/' + i));
-          if (snap.exists()) return;
-          const turnSnap = await get(dbRef(db, 'gameSessions/' + sessionId + '/state/nextTurn'));
-          const nextTurn = turnSnap.exists() ? turnSnap.val() : players[0];
-          if (nextTurn !== myUid) return alert('Wait for your turn.');
-          await set(dbRef(db, 'gameSessions/' + sessionId + '/state/board/' + i), myUid);
-          const other = players.find(u=>u!==myUid);
-          await set(dbRef(db, 'gameSessions/' + sessionId + '/state/nextTurn'), other);
-          checkTicTacToeWinner(sessionId, players);
-        } catch(e){ console.error(e); }
-      };
-    }
-    content.appendChild(boardEl);
-
-    const status = document.createElement('div');
-    status.style.marginTop = '12px';
-    status.className = 'small';
-    content.appendChild(status);
-
-    onValue(dbRef(db, 'gameSessions/' + sessionId + '/state/board'), snap => {
-      const board = snap.exists() ? snap.val() : {};
-      for (let i=0;i<9;i++){
-        const c = boardEl.children[i];
-        const val = board && board[i];
-        if (val) {
-          const sym = (val === players[0]) ? 'X' : 'O';
-          c.textContent = sym;
-        } else c.textContent = '';
-      }
-    });
-    onValue(dbRef(db, 'gameSessions/' + sessionId + '/state/nextTurn'), snap => {
-      const next = snap.exists() ? snap.val() : players[0];
-      status.textContent = (next === myUid) ? 'Your turn' : 'Opponent\'s turn';
-    });
-  }
-
-  async function checkTicTacToeWinner(sessionId, players){
-    try {
-      const boardSnap = await get(dbRef(db, 'gameSessions/' + sessionId + '/state/board'));
-      const board = boardSnap.exists() ? boardSnap.val() : {};
-      const b = Array.from({length:9}).map((_,i)=>board && board[i] ? board[i] : null);
-      const lines = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
-      for (const [a,b1,c] of lines){
-        if (b[a] && b[a] === b[b1] && b[a] === b[c]) {
-          await set(dbRef(db, 'gameSessions/' + sessionId + '/state/result'), { winner: b[a], winningLine:[a,b1,c] });
-          return;
-        }
-      }
-      if (b.every(x=>x !== null)) {
-        await set(dbRef(db, 'gameSessions/' + sessionId + '/state/result'), { draw: true });
-      }
-    } catch(e){ console.error(e); }
-  }
-
-  function startRPS(sessionId, myUid, players){
-    const content = document.getElementById('gameContent');
-    content.innerHTML = '';
-    const picks = ['rock','paper','scissors'];
-    const pickArea = document.createElement('div');
-    pickArea.style.display = 'flex';
-    pickArea.style.gap = '8px';
-    pickArea.style.justifyContent = 'center';
-    pickArea.style.marginTop = '12px';
-    picks.forEach(p => {
-      const b = document.createElement('button');
-      b.className = 'btn ghost';
-      b.textContent = p.charAt(0).toUpperCase() + p.slice(1);
-      b.onclick = async () => {
-        try {
-          await set(dbRef(db, 'gameSessions/' + sessionId + '/moves/' + myUid), p);
-          b.disabled = true;
-        } catch(e){ console.error(e); }
-      };
-      pickArea.appendChild(b);
-    });
-    content.appendChild(pickArea);
-
-    const status = document.createElement('div');
-    status.className = 'small';
-    status.style.marginTop = '10px';
-    content.appendChild(status);
-
-    onValue(dbRef(db, 'gameSessions/' + sessionId + '/moves'), async snap => {
-      const m = snap.exists() ? snap.val() : {};
-      const keys = Object.keys(m || {});
-      if (keys.length < 2) {
-        status.textContent = 'Waiting for both players to pick...';
-        return;
-      }
-      const u1 = players[0], u2 = players[1];
-      const p1 = m[u1], p2 = m[u2];
-      let resText = '';
-      if (p1 && p2) {
-        if (p1 === p2) resText = 'Draw — both chose ' + p1;
-        else {
-          const beats = { rock: 'scissors', scissors: 'paper', paper: 'rock' };
-          if (beats[p1] === p2) resText = (usersCache[u1] ? (usersCache[u1].displayName||usersCache[u1].email) : u1) + ' wins ('+p1+' beats '+p2+')';
-          else resText = (usersCache[u2] ? (usersCache[u2].displayName||usersCache[u2].email) : u2) + ' wins ('+p2+' beats '+p1+')';
-        }
-        status.textContent = resText;
-      }
-    });
-  }
-
-  try {
-    onAuthStateChanged(auth, user => {
-      if (user) {
-        setMyPresenceOnline();
-        initPresenceListener();
-        initIncomingInvitesListener();
-      }
-    });
-  } catch(e){}
-
-})(); // end initGamesFeature
-// --- END: Games feature ---
-</script>
+    console.log('User fixes applied: scroll position adjusted, side menu implemented, fixed header visibility fixed on auth page.');
+  </script>
 
   <!-- Main + Modal -->
   <div class="main-modal-backdrop" id="mainModalBackdrop" style="display:none;">
@@ -2356,1050 +1535,6 @@ button, .btn, a {
       <button id="openGroupModalBtn" style="display:block;width:100%;padding:12px;margin:10px 0;border:none;border-radius:10px;background:#fff;color:var(--primary);font-weight:700;">Group Chat</button>
     </div>
   </div>
-
-
-<script>
-// Ripple click handler: creates a circle at click point and expands to cover element
-(function(){
-  function createRipple(ev, el) {
-    try {
-      // compute bounds and position
-      var rect = el.getBoundingClientRect();
-      var dX = Math.max(ev.clientX - rect.left, rect.right - ev.clientX);
-      var dY = Math.max(ev.clientY - rect.top, rect.bottom - ev.clientY);
-      var radius = Math.sqrt(dX*dX + dY*dY);
-      var size = Math.ceil(radius * 2);
-      // limit size to element dimensions (not much larger)
-      var maxDim = Math.max(rect.width, rect.height);
-      if (size < maxDim) size = Math.ceil(maxDim * 1.05);
-
-      var circle = document.createElement('div');
-      circle.className = 'ripple-circle';
-      circle.style.width = size + 'px';
-      circle.style.height = size + 'px';
-      // center the circle on pointer, translate so top-left at (x - size/2, y - size/2)
-      var left = ev.clientX - rect.left - size/2;
-      var top = ev.clientY - rect.top - size/2;
-      circle.style.left = left + 'px';
-      circle.style.top = top + 'px';
-      el.appendChild(circle);
-
-      // force reflow then animate
-      requestAnimationFrame(function(){
-        circle.style.transform = 'scale(1)';
-        circle.style.opacity = '0.18';
-      });
-
-      // fade out after a short delay and remove
-      setTimeout(function(){
-        circle.classList.add('fadeout');
-        // remove after fade
-        setTimeout(function(){ try{ el.removeChild(circle); }catch(e){} }, 380);
-      }, 420);
-    } catch(e) {
-      // fail silently
-      console.error('ripple error', e);
-    }
-  }
-
-  // Attach event listener for pointerdown (covers touch and mouse)
-  document.addEventListener('pointerdown', function(e){
-    var target = e.target;
-    var el = target.closest && target.closest('button, .btn, a');
-    if (!el) return;
-    // ignore if element has attribute data-no-ripple="true"
-    if (el.getAttribute && el.getAttribute('data-no-ripple') === 'true') return;
-    createRipple(e, el);
-  }, {passive: true});
-})();
-</script>
-
-
-<!-- Fallback: ensure a visible link-only avatar box is present at top of page if no gallery found -->
-<script>
-document.getElementById('globalAvatarLinkSave').addEventListener('click', function(){
-      var inp = document.getElementById('globalAvatarLinkInput');
-      var url = inp && inp.value && inp.value.trim();
-      if (!url) { alert('Please paste an image link first.'); if (inp) inp.focus(); return; }
-      var existingOverlay = document.getElementById('avatarConfirmOverlay') || document.getElementById('confirmAvatarModal') || document.getElementById('avatarConfirmCard');
-      if (existingOverlay) {
-        var preview = document.getElementById('avatarConfirmPreview') || existingOverlay.querySelector('img');
-        var urlText = document.getElementById('avatarConfirmUrl') || existingOverlay.querySelector('.confirm-img-url');
-        if (preview) preview.src = url;
-        if (urlText) urlText.textContent = url;
-        existingOverlay.style.display = 'flex';
-        return;
-      }
-      var ov = document.createElement('div');
-      ov.style.position='fixed'; ov.style.left=0; ov.style.top=0; ov.style.right=0; ov.style.bottom=0;
-      ov.style.background='rgba(0,0,0,0.45)'; ov.style.display='flex'; ov.style.alignItems='center'; ov.style.justifyContent='center'; ov.style.zIndex=99999;
-      ov.innerHTML = '<div style="background:#fff;padding:18px;border-radius:12px;max-width:520px;width:92%;text-align:center;">' + '<h3>Confirm profile picture</h3>' + ''<img src="''" style="max-width:240px;max-height:240px;border-radius:8px;object-fit:cover;display:block;margin:0 auto 12px" />' + '<div style="display:flex;gap:8px;justify-content:center;margin-top:12px;">' + '<button id="quickConfirmCancel" class="btn">Cancel</button>' + '<button id="quickConfirmBtn" class="btn primary">Confirm</button>' + '</div></div>';
-      document.body.appendChild(ov);
-      document.getElementById('quickConfirmCancel').addEventListener('click', function(){ ov.remove(); });
-      document.getElementById('quickConfirmBtn').addEventListener('click', function(){
-        if (typeof applyProfilePhoto === 'function') {
-          applyProfilePhoto(url, function(err){ if (!err) { try { var pa = document.getElementById('profileAvatar'); if (pa) { pa.style.backgroundImage = 'url("' + url + '")'; pa.textContent = ''; pa.dataset.selected = url; } } catch(e){}
-                ov.remove(); alert('Profile picture updated'); } else alert('Could not save: ' + (err && err.message)); });
-        } else {
-          try { document.querySelectorAll('.profile-photo img, .avatar img, img.profile-avatar, .user-avatar img').forEach(function(i){ i.src = url; }); } catch(e){}
-          try { localStorage.setItem('profilePhotoURL', url); } catch(e) {}
-          document.dispatchEvent(new CustomEvent('profilePhotoUpdated', { detail: { photoURL: url } }));
-          ov.remove();
-          alert('Profile picture updated');
-        }
-      });
-    });
-  }
-
-  function init() { ensureBoxPresent(); var obs = new MutationObserver(function(){ ensureBoxPresent(); }); obs.observe(document.body, { childList:true, subtree:true }); }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
-})();
-</script>
-
-<!-- Pencil-triggered Avatar Edit Modal (link-only) -->
-<style>
-#pencilAvatarModal {
-  position:fixed; left:0; top:0; right:0; bottom:0; display:none;
-  align-items:center; justify-content:center; background:rgba(0,0,0,0.55); z-index:100000;
-}
-.pencil-modal-card {
-  background:#fff; border-radius:12px; width:96%; max-width:720px; padding:20px;
-  box-shadow:0 20px 60px rgba(2,6,23,0.16);
-}
-.pencil-modal-row { display:flex; gap:18px; align-items:center; }
-.pencil-preview {
-  width:160px; height:160px; border-radius:50%; background:#f4f7ff; overflow:hidden; flex:0 0 160px;
-  display:flex; align-items:center; justify-content:center;
-
-  border: 6px solid #ff8a52; /* orange preview ring */
-  box-shadow: 0 6px 18px rgba(255,138,90,0.12);
-}
-.pencil-preview img { width:100%; height:100%; object-fit:cover; display:block; }
-.pencil-controls { flex:1; }
-.pencil-controls input[type="text"]{
-  width:100%; padding:12px 14px; border:1px solid #e6e9f3; border-radius:10px; font-size:15px; box-sizing:border-box;
-}
-.pencil-hint { font-size:13px; color:#5b6470; margin-top:8px; }
-.pencil-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:14px; }
-.btn { padding:10px 14px; border-radius:8px; border:1px solid rgba(0,0,0,0.06); background:#fff; cursor:pointer; }
-.btn.primary { background:#0b60d6; color:#fff; border:none; }
-.btn.ghost { background:transparent; }
-</style>
-
-<div id="pencilAvatarModal" aria-hidden="true">
-  <div class="pencil-modal-card" role="dialog" aria-modal="true" aria-labelledby="pencilModalTitle">
-    <h2 id="pencilModalTitle" style="margin:0 0 10px 0;font-size:20px;">Edit profile picture</h2>
-    <div class="pencil-modal-row">
-      <div class="pencil-preview"><img id="pencilPreviewImg" src="" alt="preview" /></div>
-      <div class="pencil-controls">
-        <input id="pencilAvatarInput" type="text" placeholder="Paste an image URL (link only) — jpg, png, webp" />
-        
-        <div id="pencilValidation" style="color:#d9534f;margin-top:8px;font-size:13px;display:none;"></div>
-<div class="pencil-hint">Paste an image URL and press Confirm.</div>
-        <div class="pencil-actions">
-          <button id="pencilCancelBtn" class="btn">Cancel</button>
-          <button id="pencilConfirmBtn" class="btn primary">Confirm</button>
-        </div>
-      </div>
-    </div>
-    <div id="pencilStatus" style="margin-top:10px;font-size:13px;color:#666"></div>
-  </div>
-</div>
-
-<script>
-(function(){
-  if (window.__pencilAvatarInstalled) return;
-  window.__pencilAvatarInstalled = true;
-
-  // selectors for pencil/edit avatar buttons
-  var pencilSelectors = ['.pencil','button.pencil','button.edit-avatar','.avatar-edit','#changeAvatarBtn','[data-action="edit-avatar"]','.profile-pic-edit'];
-  var previewImg = null, inputEl = null, overlay = null, statusEl = null;
-
-  function findPencilButtons(){
-    var found = [];
-    pencilSelectors.forEach(function(s){
-      try { document.querySelectorAll(s).forEach(function(el){ found.push(el); }); } catch(e){}
-    });
-    return Array.from(new Set(found));
-  }
-
-  function showModal(initialUrl){
-    overlay = document.getElementById('pencilAvatarModal');
-    previewImg = document.getElementById('pencilPreviewImg');
-    inputEl = document.getElementById('pencilAvatarInput');
-    statusEl = document.getElementById('pencilStatus');
-    if (!overlay || !previewImg || !inputEl) return;
-    inputEl.value = initialUrl || '';
-    previewImg.src = initialUrl || '';
-    overlay.style.display = 'flex';
-    inputEl.focus();
-    setTimeout(function(){ inputEl.selectionStart = inputEl.selectionEnd = inputEl.value.length; }, 120);
-  }
-
-  function hideModal(){
-    var ov = document.getElementById('pencilAvatarModal');
-    if (ov) ov.style.display = 'none';
-  }
-
-  // update preview when input changes
-  function wireInput(){
-    inputEl = document.getElementById('pencilAvatarInput');
-    previewImg = document.getElementById('pencilPreviewImg');
-    if (!inputEl) return;
-    inputEl.addEventListener('input', function(){ var v = inputEl.value.trim(); previewImg.src = v || ''; });
-    inputEl.addEventListener('paste', function(){ setTimeout(function(){ var v = inputEl.value.trim(); previewImg.src = v || ''; }, 60); });
-  }
-
-  // Apply profile photo across app
-  function applyProfilePhoto(url, cb){
-    // update common avatar selectors
-    try {
-      var selImgs = ['.profile-photo img', '.avatar img', 'img.profile-avatar', '.user-avatar img', '.contact-avatar img'];
-      selImgs.forEach(function(s){
-        document.querySelectorAll(s).forEach(function(el){ try { el.src = url; } catch(e){} });
-      });
-      // also update our custom .contact-avatar elements (they might be divs)
-      document.querySelectorAll('.profile-contacts .contact-row .contact-avatar').forEach(function(div){
-        try {
-          if (div.tagName.toLowerCase() === 'img') div.src = url;
-          else {
-            div.style.backgroundImage = 'url(\"' + url + '\")';
-            div.style.backgroundSize = 'cover';
-            div.textContent = '';
-          }
-        } catch(e){}
-      });
-    } catch(e){}
-
-    // dispatch event and save to localStorage
-    try { localStorage.setItem('profilePhotoURL', url); } catch(e){}
-    try { document.dispatchEvent(new CustomEvent('profilePhotoUpdated', { detail: { photoURL: url } })); } catch(e){}
-
-    // Try Firebase namespaced SDK
-    if (window.firebase && firebase.auth && typeof firebase.auth === 'function') {
-      var user = firebase.auth().currentUser;
-      if (user && typeof user.updateProfile === 'function') {
-        user.updateProfile({ photoURL: url }).then(function(){
-          try { if (firebase.database) firebase.database().ref('users/' + user.uid + '/photoURL').set(url);
-            try { if (firebase.database) firebase.database().ref('users/' + user.uid + '/profilePic').set(url); } catch(e){}; } catch(e){}
-          return cb && cb(null);
-        }).catch(function(err){
-          try {
-            if (firebase.database && user && user.uid) {
-              firebase.database().ref('users/' + user.uid + '/photoURL').set(url).then(function(){ return cb && cb(null); }).catch(function(e){ return cb && cb(e); });
-              return;
-            }
-          } catch(e){}
-          return cb && cb(err);
-        });
-        return;
-      }
-    }
-
-    // Try modular Firebase
-    try {
-      if (window.getAuth && typeof getAuth === 'function' && typeof updateProfile === 'function') {
-        var auth = getAuth();
-        var u = auth.currentUser;
-        if (u) {
-          updateProfile(u, { photoURL: url }).then(function(){
-            try { if (typeof getDatabase === 'function' && typeof ref === 'function' && typeof set === 'function') set(ref(getDatabase(), 'users/' + u.uid + '/photoURL'), url);
-            try { if (typeof set === 'function' && typeof ref === 'function') set(ref(getDatabase(), 'users/' + u.uid + '/profilePic'), url); } catch(e){}; } catch(e){}
-            return cb && cb(null);
-          }).catch(function(err){ return cb && cb(err); });
-          return;
-        }
-      }
-    } catch(e){}
-
-    // App-level hooks
-    try { if (typeof setCurrentUserPhoto === 'function') { setCurrentUserPhoto(url); return cb && cb(null); } } catch(e){}
-    try { if (typeof saveProfile === 'function') { saveProfile({ photoURL: url }); return cb && cb(null); } } catch(e){}
-
-    // ensure UI update (fallback)
-    try { var el = document.getElementById('profileAvatar'); if (el) { el.style.backgroundImage = 'url("' + url + '")'; el.textContent = ''; el.dataset.selected = url; } } catch(e){}
-    // fallback success
-    return cb && cb(null);
-  }
-
-  // wire pencil buttons to open modal
-  function attachPencils(){
-    var buttons = findPencilButtons();
-    if (buttons.length === 0) {
-      // also try to find an element that looks like a small edit icon inside avatar area
-      var alt = document.querySelector('.profile-photo .edit, .avatar .edit, .profile-pic .edit');
-      if (alt) buttons = [alt];
-    }
-    buttons.forEach(function(btn){
-      try {
-        btn.addEventListener('click', function(ev){
-          ev.preventDefault();
-          ev.stopPropagation();
-          // try to find current avatar url
-          var cur = null;
-          try {
-            var img = document.querySelector('.profile-photo img, .avatar img, img.profile-avatar, .user-avatar img');
-            if (img && img.src) cur = img.src;
-          } catch(e){}
-          showModal(cur);
-          wireInput();
-        });
-      } catch(e){}
-    });
-  }
-
-  // wire modal buttons
-  function wireModalButtons(){
-    document.getElementById('pencilCancelBtn').addEventListener('click', function(){ hideModal(); });
-    document.getElementById('pencilConfirmBtn').addEventListener('click', function(){
-      var url = (document.getElementById('pencilAvatarInput')||{}).value || '';
-      url = url.trim();
-      if (!url) { alert('Please paste an image URL first.'); document.getElementById('pencilAvatarInput').focus(); return; }
-      statusEl = document.getElementById('pencilStatus');
-      statusEl.style.color = '#666';
-      statusEl.textContent = 'Saving...';
-      applyProfilePhoto(url, function(err){
-        if (err) {
-          statusEl.style.color = '#b00020';
-          statusEl.textContent = 'Could not save: ' + (err.message || err);
-        } else {
-          statusEl.style.color = '#0a8a00';
-          statusEl.textContent = 'Profile picture saved.';
-          try { var pa = document.getElementById('profileAvatar'); if (pa) { pa.style.backgroundImage = 'url("' + url + '")'; pa.textContent = ''; pa.dataset.selected = url; } } catch(e){}
-          setTimeout(function(){ hideModal(); }, 700);
-        }
-      });
-    });
-  }
-
-  // Initialize on DOM ready
-  function init(){
-    attachPencils();
-    wireModalButtons();
-    // re-attach if new buttons added later
-    var obs = new MutationObserver(function(){ attachPencils(); });
-    obs.observe(document.body, { childList:true, subtree:true });
-  }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
-
-})();
-
-
-    // --- START: Call & permission helpers (added) ---
-    const callBtn = document.getElementById('callBtn');
-    const videoBtn = document.getElementById('videoBtn');
-    const localCallModal = document.getElementById('localCallModal');
-    const localPreview = document.getElementById('localPreview');
-    const endPreviewBtn = document.getElementById('endPreviewBtn');
-    const closePreviewBtn = document.getElementById('closePreviewBtn');
-
-    // Remember permission status in localStorage to avoid re-prompting
-    const PERM_KEY = 'zag_media_permission_granted_v1';
-
-    async function askForMediaPermissions() {
-      // If previously granted, skip asking
-      try {
-        const already = localStorage.getItem(PERM_KEY);
-        if (already === 'granted') return true;
-      } catch(e){}
-
-      // Try to get both audio+video by default to cover video calls
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
-        // if succeeded, stop tracks immediately and mark granted
-        stream.getTracks().forEach(t => t.stop());
-        try { localStorage.setItem(PERM_KEY, 'granted'); } catch(e){}
-        return true;
-      } catch (err) {
-        // If user denies or not available, mark as denied so we don't continuously prompt
-        try { localStorage.setItem(PERM_KEY, 'denied'); } catch(e){}
-        console.warn('Media permission denied or unavailable:', err);
-        return false;
-      }
-    }
-
-    // On first page load (after auth state check), prompt once for permissions
-    // Utility: show local preview modal and attach stream
-    let currentLocalStream = null;
-    async function startLocalPreview({ audio = true, video = false } = {}) {
-      // Obtain permission for required tracks (will prompt if not previously granted)
-      try {
-        const constraints = { audio: !!audio, video: !!video };
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
-        currentLocalStream = stream;
-        localPreview.srcObject = stream;
-        localCallModal.style.display = 'flex';
-        localCallModal.setAttribute('aria-hidden','false');
-      } catch (err) {
-        alert('Could not access camera/microphone. Please check browser permissions.');
-        console.error(err);
-      }
-    }
-
-    function stopLocalPreview() {
-      if (currentLocalStream) {
-        currentLocalStream.getTracks().forEach(t => t.stop());
-        currentLocalStream = null;
-      }
-      localPreview.srcObject = null;
-      localCallModal.style.display = 'none';
-      localCallModal.setAttribute('aria-hidden','true');
-    }
-
-    // Attach handlers
-    if (callBtn) {
-      callBtn.addEventListener('click', async () => {
-        // For voice call, open preview with audio only (muted video)
-        await startLocalPreview({ audio: true, video: false });
-      });
-    }
-    if (videoBtn) {
-      videoBtn.addEventListener('click', async () => {
-        // For video call, open preview with both audio+video
-        await startLocalPreview({ audio: true, video: true });
-      });
-    }
-    endPreviewBtn && endPreviewBtn.addEventListener('click', () => {
-      stopLocalPreview();
-    });
-    closePreviewBtn && closePreviewBtn.addEventListener('click', () => {
-      stopLocalPreview();
-    });
-    // Also stop preview if user navigates back to chat list
-    backToChatListBtn && backToChatListBtn.addEventListener('click', () => {
-      stopLocalPreview();
-    });
-    // --- END: Call & permission helpers ---
-
-
-
-// --- Permission overlay logic (user-gesture required) ---
-(function(){
-  const PERM_KEY = 'zag_media_permission_granted_v1';
-  const permissionOverlay = document.getElementById('permissionOverlay');
-  const enableBtn = document.getElementById('enableMediaBtn');
-  const dismissBtn = document.getElementById('permissionDismiss');
-  const callBtn = document.getElementById('callBtn');
-  const videoBtn = document.getElementById('videoBtn');
-
-  async function checkPermissionStatus(){
-    try {
-      const stored = localStorage.getItem(PERM_KEY);
-      if (stored === 'granted') return 'granted';
-      if (stored === 'denied') return 'denied';
-      // Try Permissions API if available (may be 'prompt'/'granted'/'denied')
-      if (navigator.permissions && navigator.permissions.query) {
-        try {
-          const p = await navigator.permissions.query({name:'camera'});
-          // camera permission doesn't necessarily reflect microphone; check microphone too
-          const p2 = await navigator.permissions.query({name:'microphone'});
-          if (p.state === 'granted' && p2.state === 'granted') {
-            localStorage.setItem(PERM_KEY,'granted');
-            return 'granted';
-          }
-          if (p.state === 'denied' || p2.state === 'denied') {
-            localStorage.setItem(PERM_KEY,'denied');
-            return 'denied';
-          }
-        } catch(e){ /* ignore */ }
-      }
-      return 'prompt';
-    } catch(e){ return 'prompt'; }
-  }
-
-  async function showOverlayIfNeeded(){
-    const status = await checkPermissionStatus();
-    if (status === 'granted') {
-      // no overlay needed
-      return;
-    }
-    // Show overlay to request a user gesture to prompt getUserMedia
-    permissionOverlay.style.display = 'flex';
-    permissionOverlay.setAttribute('aria-hidden','false');
-  }
-
-  async function requestMediaAndStore(video=true, audio=true){
-    try {
-      const constraints = { audio: !!audio, video: !!video };
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      // stop tracks immediately, we just need permission
-      stream.getTracks().forEach(t => t.stop());
-      localStorage.setItem(PERM_KEY,'granted');
-      permissionOverlay.style.display = 'none';
-      permissionOverlay.setAttribute('aria-hidden','true');
-      return true;
-    } catch (err) {
-      localStorage.setItem(PERM_KEY,'denied');
-      alert('Permission denied or not available. Please enable camera/microphone in your browser settings if you want to make calls.');
-      permissionOverlay.style.display = 'none';
-      permissionOverlay.setAttribute('aria-hidden','true');
-      console.warn('getUserMedia failed:', err);
-      return false;
-    }
-  }
-
-  // On page load, show overlay if needed
-  document.addEventListener('DOMContentLoaded', function(){ showOverlayIfNeeded(); });
-
-  // When user clicks enable button, request both audio+video (so video calls work later without another prompt)
-  enableBtn && enableBtn.addEventListener('click', async function(){
-    await requestMediaAndStore(true, true);
-  });
-
-  // Dismiss overlay (user can still trigger permissions later by tapping call/video buttons)
-  dismissBtn && dismissBtn.addEventListener('click', function(){
-    permissionOverlay.style.display = 'none';
-    permissionOverlay.setAttribute('aria-hidden','true');
-    try { localStorage.setItem(PERM_KEY,'denied'); } catch(e){}
-  });
-
-  // If user clicks call/video buttons and permission isn't granted, open the overlay again to prompt
-  function ensureThenPreview(kind){
-    (async ()=>{
-      const st = await checkPermissionStatus();
-      if (st === 'granted') {
-        // already granted: trigger preview as before by simulating click to open preview modal
-        if (kind === 'audio') {
-          // start audio-only preview by triggering existing handler if exists
-          callBtn && callBtn.click && callBtn.click();
-        } else {
-          videoBtn && videoBtn.click && videoBtn.click();
-        }
-      } else {
-        // show overlay to let them grant
-        permissionOverlay.style.display = 'flex';
-        permissionOverlay.setAttribute('aria-hidden','false');
-      }
-    })();
-  }
-
-  // Wrap original buttons to ensure permission is present first
-  if (callBtn){
-    callBtn.removeEventListener && callBtn.removeEventListener('click', ()=>{}); // best-effort
-    callBtn.addEventListener('click', function(e){
-      // intercept: ensure permission first; if already granted, proceed (existing handler will run)
-      // but to avoid double-calling startLocalPreview, if granted we will proceed normally; if not, preventDefault and show overlay
-      (async ()=>{
-        const st = await checkPermissionStatus();
-        if (st === 'granted') {
-          // allow existing handler to run (do nothing special)
-          return;
-        } else {
-          e.stopImmediatePropagation && e.stopImmediatePropagation();
-          e.preventDefault && e.preventDefault();
-          permissionOverlay.style.display = 'flex';
-          permissionOverlay.setAttribute('aria-hidden','false');
-        }
-      })();
-    }, true);
-  }
-  if (videoBtn){
-    videoBtn.removeEventListener && videoBtn.removeEventListener('click', ()=>{});
-    videoBtn.addEventListener('click', function(e){
-      (async ()=>{
-        const st = await checkPermissionStatus();
-        if (st === 'granted') {
-          return;
-        } else {
-          e.stopImmediatePropagation && e.stopImmediatePropagation();
-          e.preventDefault && e.preventDefault();
-          permissionOverlay.style.display = 'flex';
-          permissionOverlay.setAttribute('aria-hidden','false');
-        }
-      })();
-    }, true);
-  }
-
-})(); // end permission overlay IIFE
-// --- End permission overlay logic ---
-
-
-
-
-    // ===== START: + button improvements (delay + 2s, improved UI) =====
-    let plusShowTimeout = null;
-    floatingBtn.addEventListener('click', (e) => {
-      // If already scheduled, cancel and hide
-      if (plusShowTimeout) {
-        clearTimeout(plusShowTimeout);
-        plusShowTimeout = null;
-        plusMenu.style.display = 'none';
-        return;
-      }
-      // Small visual feedback (pulse)
-      floatingBtn.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.06)' }, { transform: 'scale(1)'}], { duration: 240 });
-      // show the menu after 2 seconds
-      plusShowTimeout = setTimeout(() => {
-        plusMenu.style.display = 'flex';
-        // auto-hide after 4s (so user sees choices)
-        setTimeout(() => { plusMenu.style.display = 'none'; plusShowTimeout = null; }, 3000);
-      }, 2000);
-    });
-
-    // Individual chat modal open/close
-    const individualModal = document.getElementById('individualModal');
-    const individualCancelBtn = document.getElementById('individualCancelBtn');
-    const closeIndividualModal = document.getElementById('closeIndividualModal');
-    const individualAddBtn = document.getElementById('individualAddBtn');
-    const individualInput = document.getElementById('individualEmailOrPhone');
-
-    plusIndividualBtn.removeEventListener && plusIndividualBtn.removeEventListener('click', ()=>{}); // safe remove if exists
-    plusIndividualBtn.addEventListener('click', () => {
-      plusMenu.style.display = 'none';
-      document.querySelector('.phone').classList.add('blurred-bg');
-      individualModal.style.display = 'flex';
-      individualModal.setAttribute('aria-hidden', 'false');
-      setTimeout(()=> individualInput.focus(), 60);
-    });
-    function closeIndividual() {
-      individualModal.style.display = 'none';
-      individualModal.setAttribute('aria-hidden', 'true');
-      document.querySelector('.phone').classList.remove('blurred-bg');
-      individualInput.value = '';
-      updateFloatingVisibility();
-    }
-    individualCancelBtn.addEventListener('click', closeIndividual);
-    closeIndividualModal.addEventListener('click', closeIndividual);
-    individualModal.addEventListener('click', (e)=> { if (e.target === individualModal) closeIndividual(); });
-
-    individualAddBtn.addEventListener('click', async ()=>{
-      const q = (individualInput.value||'').trim();
-      if (!q) return alert('Enter email or phone.');
-      // reuse existing add flow
-      addChatIdentifier.value = q;
-      addBtn.click();
-      closeIndividual();
-    });
-
-    // ===== START: Group modal enhancements (avatar URL + gallery) =====
-    const groupAvatarPreview = document.getElementById('groupAvatarPreview');
-    const groupImageUrlInput = document.getElementById('groupImageUrl');
-    const groupImageLoadBtn = document.getElementById('groupImageLoad');
-    const openGroupGalleryBtn = document.getElementById('openGroupGallery');
-    let selectedGroupImage = null; // can be data-url or remote URL or gallery id
-
-    // apply preview helper
-    function updateGroupAvatarPreview() {
-      if (!groupAvatarPreview) return;
-      if (!selectedGroupImage) {
-        groupAvatarPreview.textContent = 'G';
-        groupAvatarPreview.style.backgroundImage = '';
-      } else {
-        groupAvatarPreview.textContent = '';
-        groupAvatarPreview.style.backgroundImage = `url("${selectedGroupImage}")`;
-        groupAvatarPreview.style.backgroundSize = 'cover';
-        groupAvatarPreview.style.backgroundPosition = 'center';
-      }
-    }
-
-    groupImageLoadBtn && groupImageLoadBtn.addEventListener('click', ()=>{
-      const url = (groupImageUrlInput.value||'').trim();
-      if (!url) return alert('Paste a valid image URL first.');
-      // basic validation
-      if (!/^https?:\/\//i.test(url)) return alert('Please paste a valid http or https image URL.');
-      selectedGroupImage = url;
-      updateGroupAvatarPreview();
-    });
-
-    openGroupGalleryBtn && openGroupGalleryBtn.addEventListener('click', ()=>{
-      // open existing avatar modal (already contains avatarGrid)
-      document.getElementById('avatarModal').style.display = 'flex';
-      // mark that we're picking for group
-      document.getElementById('avatarModal').dataset.target = 'group';
-    });
-
-    // When clicking Save in avatar modal, detect target (profile or group)
-    const saveAvatarModalBtn = document.getElementById('saveAvatarModal');
-    saveAvatarModalBtn && saveAvatarModalBtn.addEventListener('click', ()=>{
-      const sel = document.querySelector('#avatarGrid img.selected');
-      const modal = document.getElementById('avatarModal');
-      const target = modal && modal.dataset.target ? modal.dataset.target : 'profile';
-      if (sel) {
-        const src = sel.dataset.src || sel.src;
-        if (target === 'group') {
-          selectedGroupImage = src;
-          updateGroupAvatarPreview();
-        } else {
-          // profile avatar selection path (existing behavior)
-          document.getElementById('profileAvatar').style.backgroundImage = `url("${src}")`;
-          document.getElementById('profileAvatar').textContent = '';
-        }
-      }
-      document.getElementById('avatarModal').style.display = 'none';
-      document.getElementById('avatarModal').dataset.target = '';
-    });
-
-    // close gallery when cancelling
-    document.getElementById('closeAvatarModal').addEventListener('click', ()=>{
-      document.getElementById('avatarModal').style.display = 'none';
-      document.getElementById('avatarModal').dataset.target = '';
-    });
-
-    // On createGroupBtn, save groupImage into groupData
-    createGroupBtn.removeEventListener && createGroupBtn.removeEventListener('click', ()=>{});
-    createGroupBtn.addEventListener('click', async () => {
-      const name = (groupNameInput.value || '').trim();
-      if (!name) return alert('Enter group name');
-      const memberUids = Object.keys(selectedGroupMembers);
-      if (memberUids.length === 0) return alert('Add at least one member');
-      const groupsRef = dbRef(db, 'groups');
-      const newGroupRef = push(groupsRef);
-      const groupId = newGroupRef.key;
-      const groupData = {
-        id: groupId,
-        name,
-        members: { [currentUser.uid]: true },
-        createdAt: Date.now(),
-        createdBy: currentUser.uid,
-        image: selectedGroupImage || ''
-      };
-      memberUids.forEach(uid => groupData.members[uid] = true);
-      await set(newGroupRef, groupData);
-      modalBackdrop.style.display = 'none';
-      groupNameInput.value = '';
-      selectedGroupMembers = {};
-      renderSelectedMembers();
-      selectedGroupImage = null;
-      updateGroupAvatarPreview();
-      alert('Group created');
-      loadGroups();
-      updateFloatingVisibility();
-    });
-
-    // ensure modalBackdrop close x exists and closes properly (add-close fallback)
-    // add a close button if not already present
-    (function ensureModalClose(){
-      if (!document.querySelector('#modalBackdrop .close-x')) {
-        const closeBtn = document.createElement('div');
-        closeBtn.className = 'close-x';
-        closeBtn.id = 'closeGroupModal';
-        closeBtn.textContent = '×';
-        document.querySelector('#modalBackdrop .modal')?.appendChild(closeBtn);
-        closeBtn.addEventListener('click', ()=> {
-          modalBackdrop.style.display = 'none';
-          document.querySelector('.phone').classList.remove('blurred-bg');
-          selectedGroupImage = null;
-          updateGroupAvatarPreview();
-          updateFloatingVisibility();
-        });
-      } else {
-        document.querySelector('#modalBackdrop .close-x').addEventListener('click', ()=> {
-          modalBackdrop.style.display = 'none';
-          document.querySelector('.phone').classList.remove('blurred-bg');
-          selectedGroupImage = null;
-          updateGroupAvatarPreview();
-          updateFloatingVisibility();
-        });
-      }
-    })();
-
-    // when opening group modal via plusGroupBtn, blur background and show backdrop
-    plusGroupBtn.addEventListener('click', () => {
-      plusMenu.style.display = 'none';
-      document.querySelector('.phone').classList.add('blurred-bg');
-      modalBackdrop.style.display = 'flex';
-    });
-
-    // clicking outside modal closes it
-    modalBackdrop.addEventListener('click', (e)=> {
-      if (e.target === modalBackdrop) {
-        modalBackdrop.style.display = 'none';
-        document.querySelector('.phone').classList.remove('blurred-bg');
-        selectedGroupImage = null;
-        updateGroupAvatarPreview();
-        updateFloatingVisibility();
-      }
-    });
-
-    // Ensure updateFloatingVisibility is invoked after modal actions
-    window.addEventListener('resize', updateFloatingVisibility);
-    // ===== END: + button & modal improvements =====
-
-
-
-
-// Ensure modals lock background scroll and keep centered; ensure contacts inside modal scroll only
-function lockBodyScroll(lock) {
-  if (lock) {
-    document.body.style.overflow = 'hidden';
-  } else {
-    document.body.style.overflow = '';
-  }
-}
-
-// Modify existing eventbindings to lock/unlock scroll
-const origPlusGroupBtn = plusGroupBtn;
-if (origPlusGroupBtn) {
-  origPlusGroupBtn.addEventListener('click', () => {
-    plusMenu.style.display = 'none';
-    document.querySelector('.phone').classList.add('blurred-bg');
-    modalBackdrop.style.display = 'flex';
-    modalBackdrop.style.alignItems = 'center';
-    modalBackdrop.style.justifyContent = 'center';
-    lockBodyScroll(true);
-  });
-}
-
-if (plusIndividualBtn) {
-  plusIndividualBtn.addEventListener('click', () => {
-    plusMenu.style.display = 'none';
-    document.querySelector('.phone').classList.add('blurred-bg');
-    individualModal.style.display = 'flex';
-    individualModal.style.alignItems = 'center';
-    individualModal.style.justifyContent = 'center';
-    individualModal.setAttribute('aria-hidden', 'false');
-    lockBodyScroll(true);
-  });
-}
-
-// Close handlers should unlock scroll
-const closeModalAndUnlock = () => {
-  modalBackdrop.style.display = 'none';
-  individualModal.style.display = 'none';
-  document.querySelector('.phone').classList.remove('blurred-bg');
-  lockBodyScroll(false);
-  updateGroupAvatarPreview();
-};
-
-// bind close buttons to unlock scroll
-document.querySelectorAll('.close-x').forEach(btn => {
-  btn.addEventListener('click', closeModalAndUnlock);
-});
-modalBackdrop.addEventListener('click', (e)=> { if (e.target === modalBackdrop) closeModalAndUnlock(); });
-individualModal.addEventListener('click', (e)=> { if (e.target === individualModal) closeModalAndUnlock(); });
-
-// Ensure contacts container inside modal is scrollable and does not expand modal beyond viewport
-const modalContacts = document.querySelector('#modalBackdrop .contacts, #modalBackdrop .contacts-list, #modalBackdrop .contactsContainer, #modalBackdrop .contactsList');
-if (modalContacts) modalContacts.style.maxHeight = (window.innerHeight * 0.48) + 'px';
-window.addEventListener('resize', ()=> {
-  if (modalContacts) modalContacts.style.maxHeight = (window.innerHeight * 0.48) + 'px';
-});
-
-
-
-
-// ===== additional behavior: auto-hide and group edit pencil =====
-(function(){
-  let hidePlusTimer = null;
-  let modalAutoCloseTimer = null;
-
-  function scheduleHidePlusMenu() {
-    if (hidePlusTimer) clearTimeout(hidePlusTimer);
-    hidePlusTimer = setTimeout(()=> {
-      plusMenu.style.display = 'none';
-      plusShowTimeout = null;
-    }, 3000);
-  }
-  function clearHidePlusMenu() { if (hidePlusTimer) { clearTimeout(hidePlusTimer); hidePlusTimer = null; } }
-
-  // hook into floating button show to schedule hide
-  const originalFloatingHandler = floatingBtn.onclick;
-  floatingBtn.addEventListener('click', ()=> {
-    // when plus shown, schedule hide
-    if (plusMenu && plusMenu.style.display === 'flex') scheduleHidePlusMenu();
-  });
-
-  // ensure when plusMenu is toggled open by our code, schedule hide
-  const origShowPlus = () => {
-    if (plusMenu) scheduleHidePlusMenu();
-  };
-
-  // Cancel hide when user interacts with plus menu options
-  document.addEventListener('pointerdown', (e)=> {
-    if (e.target.closest && e.target.closest('.plus-menu')) clearHidePlusMenu();
-  });
-
-  // Auto-close modals after 3 seconds unless user interacts
-  function scheduleModalAutoClose(modalEl) {
-    if (!modalEl) return;
-    if (modalAutoCloseTimer) clearTimeout(modalAutoCloseTimer);
-    modalAutoCloseTimer = setTimeout(()=> {
-      // only close if no input focused inside modal
-      const active = document.activeElement;
-      if (modalEl.contains(active) && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) {
-        // user is typing, don't close
-        return;
-      }
-      // hide both possible modals
-      modalEl.style.display = 'none';
-      modalBackdrop.style.display = 'none';
-      individualModal.style.display = 'none';
-      document.querySelector('.phone').classList.remove('blurred-bg');
-      lockBodyScroll(false);
-    }, 3000);
-  }
-  function clearModalAutoClose() { if (modalAutoCloseTimer) { clearTimeout(modalAutoCloseTimer); modalAutoCloseTimer = null; } }
-
-  // when opening individual or group modals, schedule auto close
-  plusIndividualBtn && plusIndividualBtn.addEventListener('click', ()=> { scheduleModalAutoClose(individualModal); });
-  plusGroupBtn && plusGroupBtn.addEventListener('click', ()=> { scheduleModalAutoClose(modalBackdrop); });
-
-  // if user focuses inputs inside modal, cancel auto-close
-  const inputs = document.querySelectorAll('#individualModal input, #modalBackdrop input, #modalBackdrop textarea, #modalBackdrop [contenteditable]');
-  inputs.forEach(inp => inp && inp.addEventListener('focus', ()=> clearModalAutoClose()));
-
-  // clicking or pointerdown inside modal cancels auto-close (interaction)
-  document.querySelectorAll('#individualModal, #modalBackdrop, #avatarModal').forEach(el => {
-    if (!el) return;
-    el.addEventListener('pointerdown', ()=> clearModalAutoClose());
-  });
-
-  // Group edit pencil behavior: open avatar modal for group image select
-  const groupEditPencil = document.getElementById('groupEditPencil');
-  if (groupEditPencil) {
-    groupEditPencil.addEventListener('click', ()=> {
-      // open avatar modal and mark target = 'group'
-      const avatarModal = document.getElementById('avatarModal');
-      if (avatarModal) {
-        avatarModal.style.display = 'flex';
-        avatarModal.dataset.target = 'group';
-      }
-      // ensure blur/backdrop remains
-      document.querySelector('.phone').classList.add('blurred-bg');
-      lockBodyScroll(true);
-      clearModalAutoClose();
-    });
-  }
-
-  // When saving avatar for group while editing an existing group, update group image in DB if modalBackdrop has editGroupId
-  const origSaveHandler = document.getElementById('saveAvatarModal');
-  origSaveHandler && origSaveHandler.addEventListener('click', async ()=>{
-    const avatarModal = document.getElementById('avatarModal');
-    const target = avatarModal && avatarModal.dataset.target ? avatarModal.dataset.target : 'profile';
-    const sel = document.querySelector('#avatarGrid img.selected');
-    const src = sel ? (sel.dataset.src || sel.src) : null;
-    if (!src) {
-      // if no selection but there's an input URL in avatar modal, pick it
-      const urlInput = document.getElementById('groupImageUrl') || document.querySelector('#avatarModal input[type="url"]');
-      if (urlInput && urlInput.value) {
-        selectedGroupImage = urlInput.value.trim();
-      }
-    }
-    if (target === 'group' && (src || selectedGroupImage)) {
-      // update preview immediately
-      selectedGroupImage = src || selectedGroupImage;
-      updateGroupAvatarPreview();
-      // if editing an existing group, write to DB
-      const editId = modalBackdrop && modalBackdrop.dataset && modalBackdrop.dataset.editGroupId ? modalBackdrop.dataset.editGroupId : null;
-      if (editId && typeof db !== 'undefined' && typeof ref !== 'undefined' && typeof update === 'function') {
-        try {
-          const updates = { image: selectedGroupImage || '' };
-          await update(ref(db, 'groups/' + editId), updates);
-          // notify and close
-          // optionally show toast
-        } catch (err) {
-          console.warn('Failed to update group image', err);
-        }
-      }
-    }
-    // close avatar modal
-    if (document.getElementById('avatarModal')) {
-      document.getElementById('avatarModal').style.display = 'none';
-      document.getElementById('avatarModal').dataset.target = '';
-    }
-    document.querySelector('.phone').classList.remove('blurred-bg');
-    lockBodyScroll(false);
-  });
-
-  // Ensure when group modal opens, scroll the group section (inside modal) to top and ensure content fully visible
-  const openGroupModal = () => {
-    modalBackdrop.style.display = 'flex';
-    modalBackdrop.style.alignItems = 'center';
-    modalBackdrop.style.justifyContent = 'center';
-    const innerContent = modalBackdrop.querySelector('.modal');
-    if (innerContent) {
-      const contentScroll = innerContent.querySelector('.modal-content') || innerContent;
-      if (contentScroll) contentScroll.scrollTop = 0;
-      // ensure focus on group name input if present
-      const gName = document.getElementById('groupNameInput') || document.querySelector('#modalBackdrop input[name="groupName"]');
-      if (gName) setTimeout(()=> gName.focus(), 80);
-    }
-  };
-  // replace existing plusGroupBtn click to call openGroupModal as well
-  if (plusGroupBtn) {
-    plusGroupBtn.addEventListener('click', ()=> {
-      document.querySelector('.phone').classList.add('blurred-bg');
-      openGroupModal();
-      lockBodyScroll(true);
-      scheduleModalAutoClose(modalBackdrop);
-    });
-  }
-
-})();
-
-</script>
-
-  
-<!-- Permission overlay that asks user to click to enable camera & microphone (user gesture) -->
-<div id="permissionOverlay" aria-hidden="true">
-  <div class="overlay-inner" role="dialog" aria-modal="true" aria-label="Enable camera and microphone">
-    <h3>Enable camera & microphone</h3>
-    <p>To make voice and video calls, please allow access to your camera and microphone. This will only be asked once.</p>
-    <div style="display:flex;gap:8px;align-items:center;">
-      <button id="enableMediaBtn">Allow camera & microphone</button>
-      <button id="permissionDismiss">Maybe later</button>
-    </div>
-    <div style="font-size:12px;color:var(--muted);">If you denied earlier you may need to change permissions in your browser/site settings.</div>
-  </div>
-</div>
-
-<!-- Local call preview modal (used for requesting permissions and preview) -->
-  <div id="localCallModal" aria-hidden="true">
-    <div class="modal-inner" role="dialog" aria-modal="true" aria-label="Call preview">
-      <h4 style="margin:0;color:var(--primary)">Call preview</h4>
-      <div style="font-size:13px;color:var(--muted);">Local preview — permissions and quick test</div>
-      <video id="localPreview" autoplay muted playsinline></video>
-      <div class="call-controls">
-        <button id="endPreviewBtn" class="hangup-btn">End</button>
-        <button id="closePreviewBtn" class="close-preview">Close</button>
-      </div>
-    </div>
-  </div>
-
-
-// --- User change: validate pencil avatar link before accepting ---
-(function(){
-  function isValidImageUrl(u){
-    if(!u) return false;
-    try {
-      var p = /^https?:\/\/.+\.(jpg|jpeg|png|webp|gif)$/i;
-      return p.test(u);
-    } catch(e){ return false; }
-  }
-
-  var pencilConfirm = document.getElementById('pencilConfirmBtn');
-  var pencilInput = document.getElementById('pencilAvatarInput');
-  var pencilValidation = document.getElementById('pencilValidation') || document.getElementById('pencilStatus');
-  if (pencilConfirm){
-    pencilConfirm.addEventListener('click', function(ev){
-      ev.preventDefault && ev.preventDefault();
-      var url = pencilInput ? (pencilInput.value||'').trim() : '';
-      if(!isValidImageUrl(url)){
-        if(pencilValidation){ pencilValidation.style.display='block'; pencilValidation.textContent = 'Please enter a valid image link (jpg/png/webp). Some links may not work — try a different URL.'; }
-        return;
-      }
-      // valid -> try to apply via existing helper if available, otherwise update UI and close modal
-      if(typeof applyProfilePhoto === 'function'){
-        applyProfilePhoto(url, function(err){
-          if(!err){
-            try { document.getElementById('pencilAvatarModal').style.display = 'none'; } catch(e){};
-            alert('Profile picture updated');
-          } else {
-            if(pencilValidation){ pencilValidation.style.display='block'; pencilValidation.textContent = 'Could not save this image link. Try a different link.'; }
-          }
-        });
-      } else {
-        try { var pa = document.getElementById('profileAvatar'); if(pa){ pa.style.backgroundImage='url(\"'+url+'\")'; pa.textContent=''; pa.dataset.selected = url; } } catch(e) {}
-        try { document.getElementById('pencilAvatarModal').style.display='none'; } catch(e){};
-      }
-    });
-  }
-  // hide validation on cancel
-  var pencilCancel = document.getElementById('pencilCancelBtn');
-  if (pencilCancel){
-    pencilCancel.addEventListener('click', function(){ if(pencilValidation){ pencilValidation.style.display='none'; pencilValidation.textContent=''; } document.getElementById('pencilAvatarModal').style.display='none'; });
-  }
-})();
 
 </body>
 </html>
