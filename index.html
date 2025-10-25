@@ -473,14 +473,6 @@ button, .btn, a {
 }
 #permissionDismiss{ background:transparent; border:none; color:var(--muted); cursor:pointer; font-size:13px; }
 
-
-/* V4 group modal appearance */
-.group-avatar-preview { box-shadow: 0 8px 30px rgba(11,96,214,0.08); border: 6px solid rgba(255,255,255,0.6); position:relative; }
-.dotted-box { background: #fff; }
-.dotted-box::-webkit-scrollbar { height:6px; width:6px; }
-.dotted-box::-webkit-scrollbar-thumb { background: rgba(11,96,214,0.08); border-radius:8px; }
-#selectedMembersList .member-pill { background:#eef6ff; color:#0b60d6; padding:6px 10px; border-radius:16px; font-weight:600; font-size:13px; }
-
 </style>
 </head>
 <body>
@@ -712,55 +704,10 @@ button, .btn, a {
 
 
   <!-- Group Modal -->
-  
-<div class="modal-backdrop" id="modalBackdrop" style="display:none;">
-  <div class="modal" role="dialog" aria-modal="true" style="display:flex; align-items:center; justify-content:center; padding:20px;">
-    <div class="modal-box modal-content" style="position:relative; padding:22px; width:100%; max-width:560px; background:#fff; border-radius:14px; box-shadow:0 20px 60px rgba(3,24,78,0.08);">
-      <h3 style="margin:0;color:#0b60d6;font-family: 'Segoe UI', Roboto, sans-serif; font-size:22px;">New Group</h3>
-
-      <!-- Large group icon top-right -->
-      <div style="position:absolute; right:18px; top:18px; display:flex; align-items:center; justify-content:center;">
-        <div id="groupAvatarPreview" class="group-avatar-preview" style="width:120px;height:120px;border-radius:60px; background: #d7e7ff; color:#0b60d6; font-size:34px; display:flex; align-items:center; justify-content:center;">
-          G
-          <div class="edit-pencil" id="groupEditPencil" title="Edit group picture" style="position:absolute; right:6px; top:6px;">✎</div>
-        </div>
-      </div>
-
-      <div style="height:12px;"></div>
-
-      <label style="display:block; color:#0b60d6; margin-bottom:6px; font-weight:600;">Group name</label>
-      <input id="groupNameInput" name="groupName" type="text" placeholder="Type group name..." style="width:100%; padding:16px; border-radius:18px; border:1px solid rgba(11,96,214,0.12); box-shadow:none; font-size:16px;">
-
-      <div style="height:12px;"></div>
-
-      <label style="display:block; color:#0b60d6; margin-bottom:6px; font-weight:600;">Add people <span style='font-weight:400;color:#94b1ea;font-size:13px;'>(type email or phone and press Enter)</span></label>
-      <input id="groupAddInput" type="text" placeholder="Email or phone" style="width:100%; padding:18px; border-radius:22px; border:3px solid #000000; box-sizing:border-box; font-size:16px;">
-
-      <div style="height:14px;"></div>
-
-      <div id="selectedMembers" style="min-height:36px; margin-bottom:10px;">
-        <strong style="color:#0b60d6; font-size:14px;">Selected members</strong>
-        <div id="selectedMembersList" style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;"></div>
-      </div>
-
-      <div style="height:8px;"></div>
-
-      <div style="color:#0b60d6; margin-bottom:8px; font-weight:600;">Contacts (tap to toggle)</div>
-      <div class="contacts-list dotted-box" style="border-radius:12px; border:2px dotted #e6e6f0; padding:12px; max-height:280px; overflow-y:auto;">
-        <div id="contactsContainer"></div>
-      </div>
-
-      <div style="height:18px;"></div>
-
-      <div style="display:flex; gap:12px; justify-content:flex-end; align-items:center;">
-        <button id="cancelGroupBtn" style="padding:12px 20px; border-radius:18px; border:none; background:#f3f7ff; color:#0b60d6; font-weight:700; box-shadow: 0 12px 30px rgba(11,96,214,0.06);">Cancel</button>
-        <button id="createGroupBtn" style="padding:12px 20px; border-radius:22px; border:none; background: linear-gradient(180deg,#0c7bff,#0b60d6); color:white; font-weight:800; box-shadow: 0 18px 40px rgba(11,96,214,0.18);">Create Group</button>
-      </div>
-
-    </div>
-  </div>
-</div>
-
+  <div class="modal-backdrop" id="modalBackdrop">
+    <div class="modal" role="dialog" aria-modal="true">
+      <h4 id="modalTitle">New Group</h4>
+      <div class="section-title">Group name</div>
       <input id="groupName" placeholder="Type group name..." />
 
       <div class="section-title">Add people (type email or phone and press Enter)</div>
@@ -2735,93 +2682,6 @@ document.getElementById('globalAvatarLinkSave').addEventListener('click', functi
 
 })(); // end permission overlay IIFE
 // --- End permission overlay logic ---
-
-
-
-
-// V4: group modal behaviors (cancel/create/pencil)
-(function(){
-  const modal = document.getElementById('modalBackdrop');
-  const cancelBtn = document.getElementById('cancelGroupBtn');
-  const createBtn = document.getElementById('createGroupBtn');
-  const groupAddInput = document.getElementById('groupAddInput');
-  const selectedList = document.getElementById('selectedMembersList');
-  const contactsContainer = document.getElementById('contactsContainer');
-  const groupNameInput = document.getElementById('groupNameInput');
-
-  function closeGroupModal(){
-    if(modal) modal.style.display = 'none';
-    document.querySelector('.phone')?.classList.remove('blurred-bg');
-    try{ lockBodyScroll(false); }catch(e){}
-  }
-  cancelBtn && cancelBtn.addEventListener('click', closeGroupModal);
-
-  createBtn && createBtn.addEventListener('click', async ()=>{
-    if (typeof createGroupBtn !== 'undefined' && createGroupBtn instanceof HTMLElement) {
-      createGroupBtn.click();
-      closeGroupModal();
-      return;
-    }
-    const name = (groupNameInput.value||'').trim();
-    if(!name){ alert('Enter group name'); return; }
-    alert('Group "'+name+'" would be created (implement backend save)');
-    closeGroupModal();
-  });
-
-  const groupEdit = document.getElementById('groupEditPencil');
-  if (groupEdit) {
-    groupEdit.addEventListener('click', ()=>{
-      const avatarModal = document.getElementById('avatarModal');
-      if (avatarModal) {
-        avatarModal.style.display = 'flex';
-        avatarModal.dataset.target = 'group';
-      }
-    });
-  }
-
-  if (groupAddInput) {
-    groupAddInput.addEventListener('keydown', (e)=>{
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        const v = (groupAddInput.value||'').trim();
-        if (!v) return;
-        const pill = document.createElement('div');
-        pill.className = 'member-pill';
-        pill.textContent = v;
-        selectedList.appendChild(pill);
-        groupAddInput.value = '';
-      }
-    });
-  }
-
-  // Render contacts if you have a function or fallback placeholders
-  try {
-    if (typeof renderContactsTo === 'function') {
-      renderContactsTo(contactsContainer);
-    } else {
-      // fallback sample rows if none
-      for (let i=0;i<4;i++){
-        const row = document.createElement('div');
-        row.style.padding='12px 6px';
-        row.style.display='flex';
-        row.style.alignItems='center';
-        row.style.gap='10px';
-        row.style.borderBottom='1px dashed #f0f0f5';
-        row.innerHTML = '<div style="width:44px;height:44px;border-radius:22px;background:#dff0ff;display:flex;align-items:center;justify-content:center;color:#0b60d6;font-weight:700;">M</div><div style="flex:1"><div style="font-weight:700;color:#0b60d6;">example@mail.com</div><div style="color:#9fb3e6;">+8801XXXXXXXX</div></div>';
-        row.addEventListener('click', ()=> {
-          const pill = document.createElement('div');
-          pill.className = 'member-pill';
-          pill.textContent = 'example@mail.com';
-          selectedList.appendChild(pill);
-        });
-        contactsContainer.appendChild(row);
-      }
-    }
-  } catch (err) {
-    console.warn('contacts render error', err);
-  }
-
-})();
 
 </script>
 
